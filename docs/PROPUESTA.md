@@ -208,8 +208,66 @@ Dependencias: Fase 3 depende de que la organización permita el registro de la a
 
 ---
 
-## 4. Decisiones pendientes
-1. ¿Usarás la app en **varios dispositivos** desde el inicio? (define si adelantamos la Fase 4).
-2. ¿Tu cuenta de trabajo permite **registrar aplicaciones / cargar apps personalizadas en Teams**? (define Graph vs. ICS).
-3. ¿La escuela usa alguna plataforma (Moodle, Classroom, etc.) con exportación de calendario ICS?
-4. ¿Prefieres comenzar con el **prototipo visual (Fase 0)** antes de programar el núcleo?
+## 4. Decisiones confirmadas (revisión 2 — 2026-11-11)
+
+| # | Pregunta | Respuesta | Impacto en el diseño |
+|---|---|---|---|
+| 1 | ¿Varios dispositivos? | **Sí** (PC del trabajo, celular, Teams en navegador) | La sincronización en la nube pasa de la Fase 4 a la base del MVP. |
+| 2 | ¿Cómo obtener la agenda de Teams? | Teams se usa **en el navegador**; se busca extraer la agenda desde ahí o importarla | Ver 4.2: una página no puede leer otra pestaña; se usan Graph, ICS publicado, Power Automate o archivo. |
+| 3 | ¿Plataforma escolar? | Carga propia de **actividades con fecha de inicio, fecha de entrega, materia y valor** | Nuevas tablas `materia` y `actividad_escolar`; plantilla CSV/Excel para carga masiva. |
+
+### 4.1 Arquitectura ajustada: *local-first* con sincronización
+```
+ PC / Celular / Pestaña Teams                         Azure (plan gratuito)
+┌──────────────────────────────┐    HTTPS + login    ┌─────────────────────────────────┐
+│ React (PWA)                  │ ◄─────────────────► │ Static Web Apps (sitio + login) │
+│ Caché local IndexedDB        │   sincronización    │ Azure Functions  (API REST)     │
+│ (abre al instante, offline)  │   por cambios       │ Azure SQL Database (relacional) │
+└──────────────────────────────┘                     │ Blob Storage (imágenes)         │
+                                                     └─────────────────────────────────┘
+```
+- **Por qué local-first**: la oferta gratuita de Azure SQL se *pausa* cuando no hay uso y tarda ~30–60 s en "despertar". Con una copia local, la app abre al instante y sincroniza en segundo plano.
+- **Inicio de sesión**: autenticación integrada de Static Web Apps (cuenta Microsoft personal o GitHub). Así los datos personales **no dependen del tenant del trabajo**.
+- **Imágenes**: Azure Blob Storage (centavos de dólar al mes para uso personal), con miniaturas en la caché local.
+- **Conflictos**: cada registro lleva `actualizado_en` y `version`; gana el cambio más reciente y se conserva historial en la bitácora.
+
+| Alternativa evaluada | Motivo de descarte |
+|---|---|
+| Supabase (Postgres + auth + storage gratis) | Muy práctico, pero los proyectos gratuitos se pausan tras 7 días sin uso y te aleja del ecosistema Azure que te interesa. Queda como plan B. |
+| Cosmos DB (gratis, sin pausa) | No relacional; contradice el modelo con llaves foráneas e integridad referencial. |
+
+### 4.2 Agenda de Teams: qué es posible
+Por seguridad, ningún sitio web puede leer el contenido de otra pestaña del navegador (política de *mismo origen*). Además, el calendario de Teams **es el calendario de Outlook** (Exchange). Por eso hay cuatro caminos, en orden de preferencia; el paso a paso está en [`GUIA_AGENDA_TEAMS.md`](GUIA_AGENDA_TEAMS.md).
+
+| Opción | Automático | Requiere | Riesgo |
+|---|---|---|---|
+| A. Microsoft Graph (botón "Conectar Outlook") | Sí, en vivo | Que tu organización permita a usuarios dar consentimiento a apps | TI puede bloquearlo |
+| B. Calendario publicado (enlace ICS de Outlook web) | Sí, cada 15–30 min | Que la opción "Publicar calendario" esté habilitada | Suele estar deshabilitada en empresas |
+| C. Flujo de Power Automate (conector Office 365 Outlook) | Sí, programado | Licencia M365 estándar; el flujo deja un CSV/ICS en tu OneDrive | Paso de importación manual o semiautomático |
+| D. Exportar archivo .ics/.csv manualmente | No | Outlook de escritorio o un flujo | Ninguno |
+
+### 4.3 Módulo escolar (nuevo)
+| Tabla | Campos |
+|---|---|
+| `ciclo` | id, nombre (p. ej. 2026-B), fecha_inicio, fecha_fin, activo |
+| `materia` | id, ciclo_id, clave, nombre, profesor, color, horario_texto, creditos |
+| `actividad_escolar` | id, materia_id, proyecto_id?, titulo, tipo (tarea/foro/examen/proyecto/lectura/exposición), fecha_inicio, fecha_entrega, hora_entrega, valor_porcentaje, horas_estimadas, estatus (pendiente/en curso/entregada/calificada), calificacion, comentarios |
+
+Reglas nuevas:
+- **RN-10**: la carga diaria de una actividad escolar se **reparte** entre la fecha de inicio y la de entrega (no se acumula sólo el día de entrega), para reflejar el trabajo real.
+- **RN-11**: las actividades con `valor_porcentaje` ≥ 15 % se marcan como **alto impacto** en el panel "Hoy" y en el mapa de calor.
+- **RN-12**: por materia se calcula el % acumulado entregado, el % calificado y el promedio ponderado.
+- Plantillas de carga: [`plantillas/materias.csv`](plantillas/materias.csv) y [`plantillas/actividades_escolares.csv`](plantillas/actividades_escolares.csv).
+
+### 4.4 Fases ajustadas
+| Fase | Contenido | Entregable |
+|---|---|---|
+| 1 | Proyecto base (React + Vite), diseño visual, caché local, **API y base de datos en Azure, inicio de sesión**, proyectos, tareas/checklist, bitácora con imágenes, notas/ideas, cumpleaños, panel "Hoy" | URL pública con sincronización entre dispositivos |
+| 2 | Módulo escolar (materias, actividades, valores), importación CSV/Excel con vista previa, mapa de calor de carga, agenda día/semana/mes | Versión 1.1 |
+| 3 | Agenda de Teams (opción A o C, según lo que permita tu organización), pestaña en Teams, exportación ICS/Markdown/ZIP | Versión 1.2 |
+| 4 | Recordatorios, plantillas de proyecto, reportes y Power BI, resumen semanal con IA | Mejoras |
+
+### 4.5 Pendiente de tu parte
+1. Hacer la **prueba de 2 minutos** de la guía de Teams (sección 1) y decirme qué opción funciona.
+2. Confirmar qué significa "valor" en tus actividades: asumí **porcentaje de la calificación final** (p. ej. 10 %). Si son puntos, ajusto el campo.
+3. Elegir la cuenta para iniciar sesión en la app: **Microsoft personal (recomendada)** o GitHub.

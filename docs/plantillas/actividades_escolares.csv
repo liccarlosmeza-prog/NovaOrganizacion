@@ -1,0 +1,6 @@
+﻿clave_materia,titulo,tipo,fecha_inicio,fecha_entrega,hora_entrega,valor_porcentaje,horas_estimadas,estatus,calificacion,comentarios
+IDS101,Actividad 3 - Modelo entidad-relación,tarea,2026-11-04,2026-11-11,23:59,10,3,en curso,,Entregar en PDF
+IDS101,Examen parcial,examen,2026-11-20,2026-11-27,19:00,25,6,pendiente,,Estudiar normalización
+IDS102,Lectura capítulo 4 - Patrones,lectura,2026-11-05,2026-11-10,23:59,5,1.5,pendiente,,
+IDS103,Prototipo UI,proyecto,2026-10-30,2026-11-13,17:00,20,8,en curso,,Figma + PDF
+IDS102,Foro semana 11,foro,2026-11-09,2026-11-12,23:59,3,1,pendiente,,
