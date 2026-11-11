@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NovaOrganización — Conceptos</title>
+<style>
+:root{
+  --bg:#f3f5f9; --surface:#ffffff; --surface-2:#f8fafc; --border:#e2e8f0; --border-2:#edf1f6;
+  --text:#0f1b2d; --muted:#5b6b80; --subtle:#8a97a8;
+  --primary:#2563eb; --primary-600:#1d4ed8; --primary-50:#eef4ff; --primary-100:#dbe7ff;
+  --nav:#0f172a; --nav-2:#1e293b; --nav-text:#cbd5e1;
+  --trabajo:#2563eb; --trabajo-bg:#e8f0fe;
+  --escuela:#7c3aed; --escuela-bg:#f1ebfe;
+  --personal:#0d9488; --personal-bg:#e3f6f3;
+  --teams:#5b5fc7; --teams-bg:#ecedfb;
+  --ok:#16a34a; --ok-bg:#e7f6ec; --warn:#d97706; --warn-bg:#fdf3e2; --danger:#dc2626; --danger-bg:#fdecec;
+  --radius:12px; --shadow:0 1px 2px rgba(15,27,45,.05),0 1px 3px rgba(15,27,45,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+svg.i{width:16px;height:16px;stroke-width:2;flex:none}
+.app{display:grid;grid-template-columns:228px 1fr;width:1440px;height:900px;overflow:hidden}
+/* Sidebar */
+.side{background:var(--nav);color:var(--nav-text);display:flex;flex-direction:column;padding:18px 12px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 20px;color:#fff;font-weight:700;font-size:16px;letter-spacing:-.01em}
+.brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:grid;place-items:center}
+.brand small{display:block;font-weight:500;font-size:11px;color:#94a3b8;letter-spacing:0}
+.nav-sec{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;padding:14px 10px 6px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--nav-text);text-decoration:none;font-weight:500;margin-bottom:2px}
+.nav a.on{background:var(--nav-2);color:#fff;box-shadow:inset 3px 0 0 #3b82f6}
+.nav a .cnt{margin-left:auto;font-size:11px;background:#334155;color:#e2e8f0;border-radius:10px;padding:0 7px}
+.side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid #1e293b}
+.avatar{width:30px;height:30px;border-radius:50%;background:#334155;color:#fff;display:grid;place-items:center;font-weight:600;font-size:12px}
+.side .foot b{color:#fff;font-weight:600;display:block;font-size:12.5px}
+.side .foot span{font-size:11px;color:#94a3b8}
+/* Main */
+.main{display:flex;flex-direction:column;overflow:hidden}
+.top{height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.top h1{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.top .sub{color:var(--muted);font-size:12.5px;margin-left:2px}
+.search{white-space:nowrap;overflow:hidden;margin-left:auto;display:flex;align-items:center;gap:8px;width:300px;height:36px;border:1px solid var(--border);border-radius:9px;padding:0 12px;color:var(--subtle);background:var(--surface-2)}
+.kbd{white-space:nowrap;margin-left:auto;font-size:10.5px;border:1px solid var(--border);border-radius:5px;padding:0 5px;color:var(--muted);background:#fff}
+.btn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:9px;font-weight:600;font-size:12.5px;border:1px solid var(--border);background:#fff;color:var(--text);white-space:nowrap}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.sm{height:30px;padding:0 10px;font-size:12px}
+.icon-btn{width:36px;height:36px;border-radius:9px;border:1px solid var(--border);display:grid;place-items:center;color:var(--muted);background:#fff;position:relative}
+.dot{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--danger);border:2px solid #fff}
+.content{flex:1;padding:22px 28px;overflow:hidden}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-h{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;font-weight:650;font-size:13px}
+.card-h .i{color:var(--muted)}
+.card-h .act{margin-left:auto;font-weight:500;color:var(--primary);font-size:12px}
+.card-b{padding:0 16px 14px}
+.muted{color:var(--muted)} .subtle{color:var(--subtle)}
+.badge{display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-trabajo{background:var(--trabajo-bg);color:var(--trabajo)} .b-escuela{background:var(--escuela-bg);color:var(--escuela)}
+.b-personal{background:var(--personal-bg);color:var(--personal)} .b-teams{background:var(--teams-bg);color:var(--teams)}
+.b-ok{background:var(--ok-bg);color:var(--ok)} .b-warn{background:var(--warn-bg);color:var(--warn)} .b-danger{background:var(--danger-bg);color:var(--danger)}
+.b-gray{background:#eef2f7;color:#475569} .b-blue{background:var(--primary-50);color:var(--primary)}
+.sdot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.bar{height:6px;border-radius:4px;background:#e9eef5;overflow:hidden}
+.bar > i{display:block;height:100%;border-radius:4px;background:var(--primary)}
+.chk{width:17px;height:17px;border-radius:5px;border:1.6px solid #b8c3d1;display:grid;place-items:center;flex:none;background:#fff}
+.chk.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.chk.on svg{width:12px;height:12px;stroke-width:3}
+.row{display:flex;align-items:center;gap:10px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border)}
+.tabs a{padding:10px 14px;font-weight:600;color:var(--muted);display:flex;gap:7px;align-items:center;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a.on{color:var(--primary);border-color:var(--primary)}
+.tabs a .c{font-size:11px;background:#eef2f7;color:#475569;border-radius:10px;padding:0 6px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:#fff}
+.seg a{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;font-weight:600;font-size:12px;color:var(--muted);border-right:1px solid var(--border)}
+.seg a:last-child{border-right:0} .seg a.on{background:var(--primary-50);color:var(--primary)}
+.chip{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--border);border-radius:16px;font-weight:500;font-size:12px;background:#fff;color:var(--text)}
+.chip.on{border-color:var(--primary);background:var(--primary-50);color:var(--primary);font-weight:600}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.img{border-radius:9px;position:relative;overflow:hidden;display:grid;place-items:center;color:rgba(255,255,255,.85)}
+.img svg{width:22px;height:22px}
+.g1{background:linear-gradient(135deg,#93c5fd,#3b82f6)} .g2{background:linear-gradient(135deg,#c4b5fd,#7c3aed)}
+.g3{background:linear-gradient(135deg,#99f6e4,#0d9488)} .g4{background:linear-gradient(135deg,#fde68a,#f59e0b)}
+.g5{background:linear-gradient(135deg,#e2e8f0,#94a3b8)} .g6{background:linear-gradient(135deg,#fecaca,#ef4444)}
+.label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--subtle)}
+.kpi{padding:14px 16px}
+.kpi .v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:4px}
+.kpi .d{font-size:11.5px;color:var(--muted);margin-top:2px}
+.list-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border-2)}
+.list-item:first-child{border-top:0}
+.screen{display:none}
+.screen.show{display:block}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const ICONS = /*ICONS*/{};
+const ic = (n, cls='') => (ICONS[n]||ICONS['circle']).replace('<svg', `<svg class="i ${cls}"`);
+
+const NAV = [
+  ['hoy','sun','Hoy'],['proyectos','folder-kanban','Proyectos',8],['tareas','list-checks','Tareas',14],
+  ['agenda','calendar-days','Agenda'],['carga','flame','Carga de trabajo'],['notas','lightbulb','Notas e ideas'],
+  ['cumple','cake','Cumpleaños',2]
+];
+function shell(active, title, sub, body, extraTop=''){
+  return `<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="logo">${ic('sparkles')}</div><div>NovaOrganización<small>Proyectos · Agenda · Ideas</small></div></div>
+    <nav class="nav">
+      <div class="nav-sec">Espacio</div>
+      ${NAV.map(([k,i,t,c])=>`<a class="${k===active?'on':''}">${ic(i)}${t}${c?`<span class="cnt">${c}</span>`:''}</a>`).join('')}
+      <div class="nav-sec">Ámbitos</div>
+      <a><span class="sdot" style="background:var(--trabajo)"></span>Trabajo<span class="cnt">3</span></a>
+      <a><span class="sdot" style="background:var(--escuela)"></span>Escuela<span class="cnt">3</span></a>
+      <a><span class="sdot" style="background:var(--personal)"></span>Personal<span class="cnt">2</span></a>
+      <div class="nav-sec">Sistema</div>
+      <a class="${active==='ajustes'?'on':''}">${ic('settings')}Ajustes</a>
+    </nav>
+    <div class="foot"><div class="avatar">CM</div><div><b>Carlos</b><span>Sincronizado · local</span></div></div>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <div><h1>${title}</h1></div><div class="sub">${sub}</div>
+      <div class="search">${ic('search')}Buscar proyectos, notas, tareas…<span class="kbd">Ctrl K</span></div>
+      ${extraTop}
+      <div class="icon-btn">${ic('bell')}<span class="dot"></span></div>
+      <button class="btn pri">${ic('plus')}Nuevo</button>
+    </header>
+    <section class="content">${body}</section>
+  </main></div>`;
+}
+const amb = a => `<span class="badge b-${a.toLowerCase()}">${a}</span>`;
+
+/* ---------------- HOY ---------------- */
+function hoy(){
+  const agenda = [
+    ['08:30','09:00','Daily del equipo','Teams','teams','video'],
+    ['10:00','11:00','Revisión: App Mi Comunidad Los Robles','Revisión de proyecto','trabajo','flag'],
+    ['13:00','14:00','Comida con proveedor','Outlook','teams','map-pin'],
+    ['16:00','16:30','Sesión 1:1 con jefe directo','Teams','teams','video'],
+    ['19:00','21:00','Clase: Bases de Datos II','Escuela · Aula virtual','escuela','graduation-cap'],
+  ];
+  const now = 2; // index highlight
+  const pend = [
+    [false,'Entregar Actividad 3 — Modelo E-R','Bases de Datos II','escuela','Hoy 23:59','b-warn'],
+    [false,'Revisar consultas SQL de tesorería','App Mi Comunidad','trabajo','Hoy','b-warn'],
+    [true,'Enviar minuta de la revisión semanal','Reportes Power BI','trabajo','Hoy','b-ok'],
+    [false,'Lectura: Patrones de arquitectura cap. 4','Arquitectura de Software','escuela','Vencida ayer','b-danger'],
+    [false,'Comprar regalo para Ana','Personal','personal','Mañana','b-gray'],
+  ];
+  const proys = [
+    ['App Mi Comunidad Los Robles','Trabajo','En revisión','b-blue',78,'Revisión hoy 10:00'],
+    ['Proyecto final: Sistema de inventario','Escuela','En curso','b-ok',42,'Entrega 28 nov'],
+    ['Dashboard de indicadores Power BI','Trabajo','En curso','b-ok',61,'Siguiente revisión vie'],
+    ['Orquestación de agentes IA (Hermes)','Personal','Idea → Plan','b-gray',15,'Sin fecha'],
+  ];
+  const week = [['L',3.5],['M',6],['X',8.5],['J',11],['V',4],['S',2],['D',0.5]];
+  const max = 12;
+  const heat = h => h>=9?'#ef4444':h>=6?'#f59e0b':h>=3?'#3b82f6':'#93c5fd';
+  return shell('hoy','Buenos días, Carlos','Miércoles 11 de noviembre, 2026', `
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px">
+    ${[['calendar-days','Eventos hoy','5','2 de Teams · 1 revisión'],['list-checks','Pendientes hoy','4','1 vencida'],['folder-kanban','Proyectos activos','8','2 en revisión'],['flame','Carga de hoy','8.5 h','Alta · día más cargado: jueves']]
+      .map(([i,t,v,d],k)=>`<div class="card kpi"><div class="row label">${ic(i)}${t}</div><div class="v" style="${k===3?'color:var(--warn)':''}">${v}</div><div class="d">${d}</div></div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:1.15fr 1.1fr .8fr;gap:14px;margin-bottom:14px">
+    <div class="card">
+      <div class="card-h">${ic('calendar-days')}Agenda de hoy<span class="badge b-teams" style="margin-left:6px">${ic('refresh-cw')}Teams sincronizado 08:05</span><span class="act">Ver agenda</span></div>
+      <div class="card-b">
+        ${agenda.map(([a,b,t,s,c,i],k)=>`
+        <div class="row" style="padding:7px 8px;border-radius:9px;${k===now?'background:var(--primary-50);':''}">
+          <div style="width:74px;font-weight:600;font-size:12px">${a}<div class="subtle" style="font-weight:500">${b}</div></div>
+          <div style="width:3px;height:34px;border-radius:2px;background:var(--${c})"></div>
+          <div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t}</div><div class="row muted" style="gap:5px;font-size:11.5px">${ic(i,'')}${s}</div></div>
+          ${k===now?'<span class="badge b-blue">Siguiente</span>':''}
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">${ic('list-checks')}Pendientes<span class="act">Ver todas</span></div>
+      <div class="card-b">
+        ${pend.map(([d,t,p,a,f,b])=>`<div class="list-item">
+          <span class="chk ${d?'on':''}">${d?ic('check'):''}</span>
+          <div style="flex:1;min-width:0"><div style="font-weight:550;${d?'text-decoration:line-through;color:var(--subtle)':''}">${t}</div>
+          <div class="row" style="gap:6px;font-size:11.5px"><span class="sdot" style="background:var(--${a})"></span><span class="muted">${p}</span></div></div>
+          <span class="badge ${b}">${f}</span></div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-h">${ic('cake')}Cumpleaños<span class="act">Todos</span></div>
+        <div class="card-b">
+          ${[['AR','Ana Ramírez','Hoy · cumple 30','#f43f5e',true],['LM','Luis Mendoza','Domingo 15 nov','#0ea5e9'],['PG','Mamá','2 de diciembre','#a855f7']].map(([ini,n,f,c,h])=>`
+          <div class="list-item"><div class="avatar" style="background:${c};width:32px;height:32px">${ini}</div><div style="flex:1"><div style="font-weight:600">${n}</div><div class="muted" style="font-size:11.5px">${f}</div></div>${h?`<span class="badge b-danger">${ic('gift')}Hoy</span>`:''}</div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h">${ic('flag')}Próximas revisiones</div>
+        <div class="card-b">
+          ${[['Hoy 10:00','App Mi Comunidad'],['Vie 13 · 12:00','Dashboard Power BI'],['Lun 16 · 18:00','Asesoría proyecto final']].map(([f,p])=>`<div class="list-item"><span class="sdot" style="background:var(--primary)"></span><div style="flex:1;font-weight:550">${p}</div><span class="muted" style="font-size:11.5px">${f}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-h">${ic('folder-kanban')}Proyectos activos
+        <div class="row" style="margin-left:12px;gap:6px"><span class="chip on" style="height:24px">Todos</span><span class="chip" style="height:24px">Trabajo</span><span class="chip" style="height:24px">Escuela</span><span class="chip" style="height:24px">Personal</span></div>
+        <span class="act">Ver proyectos</span></div>
+      <div class="card-b">
+        ${proys.map(([n,a,s,b,p,nx])=>`<div class="list-item" style="padding:8px 0">
+          <div style="width:290px;font-weight:600">${n}</div>${amb(a)}
+          <span class="badge ${b}" style="width:92px;justify-content:center">${s}</span>
+          <div style="flex:1" class="bar"><i style="width:${p}%"></i></div><b style="width:36px;text-align:right">${p}%</b>
+          <span class="muted" style="width:150px;text-align:right;font-size:11.5px">${nx}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">${ic('flame')}Carga de la semana<span class="act">Detalle</span></div>
+      <div class="card-b">
+        <div style="display:flex;align-items:flex-end;gap:12px;height:120px;padding:6px 4px 0">
+          ${week.map(([d,h],k)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+            <span style="font-size:10.5px;font-weight:600;color:var(--muted)">${h}h</span>
+            <div style="width:100%;height:${h/max*82}%;min-height:3px;border-radius:6px;background:${heat(h)};${k===2?'outline:2px solid var(--text);outline-offset:2px':''}"></div>
+            <span style="font-weight:600;font-size:11.5px;${k===2?'color:var(--primary)':''}">${d}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`);
+}
+
+/* ---------------- PROYECTOS (KANBAN) ---------------- */
+function proyectos(){
+  const cols = [
+    ['Idea','#94a3b8',[['Orquestación de agentes IA (Hermes)','Personal',15,'Sin fecha',['IA','Automatización'],3,0],['Lector inteligente de facturas PDF','Trabajo',0,'Sin fecha',['Python','IA'],1,0]]],
+    ['Planeado','#0ea5e9',[['Publicar portafolio en Azure SWA','Personal',5,'15 dic',['Azure'],2,1]]],
+    ['En curso','#16a34a',[['Proyecto final: Sistema de inventario','Escuela',42,'28 nov',['SQL','React'],12,4],['Dashboard de indicadores Power BI','Trabajo',61,'20 nov',['Power BI','DAX'],8,6],['Ensayo: Ética en IA','Escuela',30,'18 nov',['Redacción'],3,1]]],
+    ['En revisión','#d97706',[['App Mi Comunidad Los Robles','Trabajo',78,'Hoy 10:00',['Power Apps','SQL'],24,11],['Prototipo UI — Diseño Web','Escuela',90,'13 nov',['Figma'],6,8]]],
+    ['Terminado','#64748b',[['Flujo de aprobación de compras','Trabajo',100,'Cerrado 4 nov',['Power Automate'],10,5]]],
+  ];
+  const card = ([n,a,p,f,tags,notes,imgs]) => `<div class="card" style="padding:13px 14px;margin-bottom:10px">
+    <div class="row" style="margin-bottom:8px">${amb(a)}<span style="margin-left:auto;color:var(--subtle)">${ic('ellipsis')}</span></div>
+    <div style="font-weight:650;font-size:13.5px;line-height:1.3;margin-bottom:8px">${n}</div>
+    ${imgs?`<div class="img ${['g1','g2','g3','g4'][n.length%4]}" style="height:${n.length%2?64:0}px;margin-bottom:${n.length%2?10:0}px;display:${n.length%2?'grid':'none'}">${ic('image')}</div>`:''}
+    <div class="row" style="gap:5px;flex-wrap:wrap;margin-bottom:10px">${tags.map(t=>`<span class="badge b-gray">${t}</span>`).join('')}</div>
+    <div class="row" style="gap:8px;margin-bottom:10px"><div class="bar" style="flex:1"><i style="width:${p}%;${p===100?'background:var(--ok)':''}"></i></div><b style="font-size:11.5px">${p}%</b></div>
+    <div class="row muted" style="font-size:11.5px;gap:12px"><span class="row" style="gap:4px">${ic('clock')}${f}</span><span class="row" style="gap:4px;margin-left:auto">${ic('notebook-pen')}${notes}</span><span class="row" style="gap:4px">${ic('image')}${imgs}</span></div>
+  </div>`;
+  return shell('proyectos','Proyectos','8 activos · 1 terminado este mes',`
+  <div class="toolbar">
+    <div class="seg"><a>${ic('table')}Tabla</a><a>${ic('layout-grid')}Tarjetas</a><a class="on">${ic('columns-3')}Kanban</a></div>
+    <span style="width:8px"></span>
+    <span class="chip on">Todos los ámbitos</span><span class="chip"><span class="sdot" style="background:var(--trabajo)"></span>Trabajo</span><span class="chip"><span class="sdot" style="background:var(--escuela)"></span>Escuela</span><span class="chip"><span class="sdot" style="background:var(--personal)"></span>Personal</span>
+    <span class="chip">${ic('tag')}Etiquetas</span>
+    <span style="margin-left:auto" class="btn sm">${ic('archive')}Archivados</span><span class="btn sm">${ic('arrow-down-up')}Ordenar: fecha objetivo</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:start">
+    ${cols.map(([t,c,items])=>`<div style="background:#eaeef4;border-radius:12px;padding:10px">
+      <div class="row" style="padding:2px 4px 10px;font-weight:650"><span class="sdot" style="background:${c}"></span>${t}<span class="badge b-gray" style="background:#fff">${items.length}</span><span style="margin-left:auto;color:var(--muted)">${ic('plus')}</span></div>
+      ${items.map(card).join('')}
+      <div class="row muted" style="justify-content:center;padding:8px;border:1.5px dashed #cbd5e1;border-radius:10px;font-weight:500">${ic('plus')}Agregar proyecto</div>
+    </div>`).join('')}
+  </div>`);
+}
+
+/* ---------------- DETALLE DE PROYECTO ---------------- */
+function detalle(){
+  const bit = [
+    ['Hoy · 08:42','avance','Avance','b-ok','Se corrigió el cálculo del saldo en el estado de cuenta. La consulta de tesorería pasó de 4.2 s a 0.6 s al agregar índice en <b>movimiento(fecha, residente_id)</b>.',['g1','g5']],
+    ['Ayer · 18:15','decision','Decisión','b-blue','Se acordó separar <b>caja chica</b> de <b>tesorería</b> en tablas distintas, con catálogo de conceptos reutilizable.',[]],
+    ['Lun 9 nov · 11:30','revision','Revisión','b-warn','Revisión con comité: pidieron filtro por torre y exportación a Excel del estado de cuenta. Se crearon 3 tareas.',['g2']],
+    ['Vie 6 nov · 20:05','idea','Idea','b-escuela','¿Enviar avisos por WhatsApp desde Power Automate cuando se publique un aviso urgente?',[]],
+  ];
+  const tasks = [[true,'Modelo de datos de tesorería'],[true,'Pantalla de estado de cuenta'],[true,'Roles: admin, tesorero, residente'],[false,'Filtro por torre en residentes'],[false,'Exportar estado de cuenta a Excel'],[false,'Pruebas con 500 residentes']];
+  return shell('proyectos','App Mi Comunidad Los Robles','Proyectos / Trabajo',`
+  <div class="card" style="padding:16px 18px;margin-bottom:14px">
+    <div class="row" style="gap:14px">
+      <div style="width:44px;height:44px;border-radius:11px;background:var(--trabajo-bg);color:var(--trabajo);display:grid;place-items:center">${ic('building-2')}</div>
+      <div style="flex:1">
+        <div class="row" style="gap:8px">${amb('Trabajo')}<span class="badge b-warn"><span class="sdot" style="background:var(--warn)"></span>En revisión</span><span class="badge b-gray">Power Apps</span><span class="badge b-gray">SQL Server</span></div>
+        <div class="muted" style="margin-top:5px">Administración residencial: residentes, avisos, tesorería, caja chica y estados de cuenta.</div>
+      </div>
+      <div style="width:230px"><div class="row" style="justify-content:space-between;font-size:11.5px;margin-bottom:5px"><span class="muted">Avance (por tareas)</span><b>78%</b></div><div class="bar" style="height:8px"><i style="width:78%"></i></div></div>
+      <div style="width:1px;height:40px;background:var(--border)"></div>
+      <div style="font-size:11.5px"><div class="muted">Inicio</div><b>2 sep 2026</b></div>
+      <div style="font-size:11.5px"><div class="muted">Objetivo</div><b>15 dic 2026</b></div>
+      <button class="btn sm">${ic('download')}Exportar</button><button class="btn sm">${ic('pencil')}Editar</button>
+    </div>
+  </div>
+  <div class="tabs" style="margin-bottom:14px">
+    <a>${ic('layout-dashboard')}Resumen</a><a class="on">${ic('notebook-pen')}Bitácora<span class="c">24</span></a><a>${ic('list-checks')}Tareas<span class="c">18</span></a><a>${ic('lightbulb')}Notas e ideas<span class="c">7</span></a><a>${ic('image')}Imágenes<span class="c">11</span></a><a>${ic('flag')}Revisiones<span class="c">4</span></a>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 330px;gap:14px">
+    <div>
+      <div class="card" style="padding:12px 14px;margin-bottom:12px">
+        <div class="row" style="gap:6px;margin-bottom:8px"><span class="chip on" style="height:26px">Avance</span><span class="chip" style="height:26px">Nota</span><span class="chip" style="height:26px">Idea</span><span class="chip" style="height:26px">Decisión</span><span class="chip" style="height:26px">Revisión</span></div>
+        <div style="border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--subtle);height:46px">¿Qué avanzaste hoy? Escribe, pega una imagen (Ctrl+V) o arrastra archivos…</div>
+        <div class="row" style="margin-top:8px;color:var(--muted)">${ic('image')}${ic('paperclip')}${ic('list-checks')}${ic('bold')}<button class="btn pri sm" style="margin-left:auto">Registrar</button></div>
+      </div>
+      <div style="position:relative;padding-left:22px">
+        <div style="position:absolute;left:7px;top:6px;bottom:0;width:2px;background:var(--border)"></div>
+        ${bit.map(([f,t,l,b,txt,imgs])=>`<div style="position:relative;margin-bottom:10px">
+          <span style="position:absolute;left:-20px;top:14px;width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--primary)"></span>
+          <div class="card" style="padding:11px 14px">
+            <div class="row" style="margin-bottom:5px"><span class="badge ${b}">${l}</span><span class="muted" style="font-size:11.5px">${f}</span><span style="margin-left:auto;color:var(--subtle)">${ic('ellipsis')}</span></div>
+            <div>${txt}</div>
+            ${imgs.length?`<div class="row" style="margin-top:9px">${imgs.map(g=>`<div class="img ${g}" style="width:120px;height:72px">${ic('image')}</div>`).join('')}</div>`:''}
+          </div></div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card"><div class="card-h">${ic('list-checks')}Checklist<span class="act">3 / 6</span></div><div class="card-b">
+        ${tasks.map(([d,t])=>`<div class="row" style="padding:5px 0"><span class="chk ${d?'on':''}">${d?ic('check'):''}</span><span style="${d?'text-decoration:line-through;color:var(--subtle)':''}">${t}</span></div>`).join('')}
+        <div class="row muted" style="padding:6px 0 0">${ic('plus')}Agregar elemento</div></div></div>
+      <div class="card"><div class="card-h">${ic('flag')}Próxima revisión</div><div class="card-b">
+        <div style="background:var(--primary-50);border-radius:9px;padding:10px 12px"><b>Hoy · 10:00 – 11:00</b><div class="muted" style="font-size:11.5px">Comité de administración · Teams</div>
+        <div class="row" style="margin-top:8px"><span class="badge b-teams">${ic('video')}Unirse</span><span class="badge b-gray">Preparar agenda</span></div></div></div></div>
+      <div class="card"><div class="card-h">${ic('image')}Imágenes recientes<span class="act">11</span></div><div class="card-b" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        ${['g1','g5','g2','g3','g4','g1'].map(g=>`<div class="img ${g}" style="height:56px">${ic('image')}</div>`).join('')}</div></div>
+    </div>
+  </div>`);
+}
+
+/* ---------------- TAREAS ---------------- */
+function tareas(){
+  const groups = [
+    ['Vencidas','var(--danger)',[[false,'Lectura: Patrones de arquitectura cap. 4','Arquitectura de Software','Escuela','Ayer',2,1.5,'b-danger',0]]],
+    ['Hoy · miércoles 11','var(--primary)',[
+      [false,'Entregar Actividad 3 — Modelo E-R','Bases de Datos II','Escuela','23:59',1,3,'b-warn',2],
+      [false,'Revisar consultas SQL de tesorería','App Mi Comunidad','Trabajo','Hoy',1,2,'b-warn',3],
+      [true,'Enviar minuta de la revisión semanal','Dashboard Power BI','Trabajo','Hoy',3,.5,'b-ok',0],
+      [false,'Comprar regalo para Ana','—','Personal','Hoy',3,.5,'b-gray',0]]],
+    ['Esta semana','var(--warn)',[
+      [false,'Medidas DAX de rotación de inventario','Dashboard Power BI','Trabajo','Jue 12',2,4,'b-gray',4],
+      [false,'Foro de discusión semana 11','Ética en IA','Escuela','Jue 12',3,1,'b-gray',0],
+      [false,'Ajustar prototipo según comentarios','Prototipo UI — Diseño Web','Escuela','Vie 13',2,2.5,'b-gray',5],
+      [false,'Respaldo mensual de NovaOrganización (ZIP)','—','Personal','Dom 15',4,.25,'b-gray',0]]],
+    ['Próximas','var(--subtle)',[[false,'Documentación técnica del proyecto final','Sistema de inventario','Escuela','28 nov',1,6,'b-gray',3]]],
+  ];
+  const pr = p => [`<span class="badge b-danger">Urgente</span>`,`<span class="badge b-warn">Alta</span>`,`<span class="badge b-blue">Media</span>`,`<span class="badge b-gray">Baja</span>`][p-1];
+  return shell('tareas','Tareas','14 pendientes · 6 completadas esta semana',`
+  <div class="toolbar">
+    <div class="seg"><a class="on">${ic('list')}Lista</a><a>${ic('columns-3')}Tablero</a><a>${ic('calendar-days')}Calendario</a></div>
+    <span class="chip on">Pendientes</span><span class="chip">Completadas</span><span class="chip">${ic('folder-kanban')}Proyecto</span><span class="chip">${ic('flag')}Prioridad</span><span class="chip">${ic('tag')}Ámbito</span>
+    <div style="margin-left:auto" class="row"><div style="display:flex;align-items:center;gap:8px;height:36px;width:360px;border:1px solid var(--border);border-radius:9px;padding:0 12px;background:#fff;color:var(--subtle)">${ic('plus')}Agregar tarea rápida… <span class="kbd">Enter</span></div></div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div class="row label" style="padding:10px 18px;background:var(--surface-2);border-bottom:1px solid var(--border)">
+      <span style="width:24px"></span><span style="flex:1">Tarea</span><span style="width:220px">Proyecto</span><span style="width:90px">Ámbito</span><span style="width:84px">Prioridad</span><span style="width:70px">Esfuerzo</span><span style="width:90px">Checklist</span><span style="width:100px;text-align:right">Vence</span></div>
+    ${groups.map(([g,c,items])=>`
+      <div class="row" style="padding:10px 18px 6px;font-weight:700;font-size:12px"><span class="sdot" style="background:${c}"></span>${g}<span class="subtle" style="font-weight:500">${items.length}</span></div>
+      ${items.map(([d,t,p,a,f,pri,h,b,sub])=>`<div class="row" style="padding:9px 18px;border-top:1px solid var(--border-2)">
+        <span class="chk ${d?'on':''}">${d?ic('check'):''}</span>
+        <span style="flex:1;font-weight:550;${d?'text-decoration:line-through;color:var(--subtle)':''}">${t}</span>
+        <span style="width:220px" class="muted">${p}</span><span style="width:90px">${amb(a)}</span><span style="width:84px">${pr(pri)}</span>
+        <span style="width:70px" class="muted">${h} h</span>
+        <span style="width:90px" class="muted">${sub?`<span class="row" style="gap:4px">${ic('list-checks')}${Math.floor(sub/2)}/${sub}</span>`:'—'}</span>
+        <span style="width:100px;text-align:right"><span class="badge ${b}">${f}</span></span></div>`).join('')}
+    `).join('')}
+  </div>`);
+}
+
+/* ---------------- AGENDA (SEMANA) ---------------- */
+function agenda(){
+  const days = ['Lun 9','Mar 10','Mié 11','Jue 12','Vie 13','Sáb 14','Dom 15'];
+  const H0 = 7, H1 = 22, RH = 44;
+  const ev = [
+    [0,8.5,9,'Daily del equipo','teams'],[1,8.5,9,'Daily del equipo','teams'],[2,8.5,9,'Daily del equipo','teams'],[3,8.5,9,'Daily del equipo','teams'],[4,8.5,9,'Daily del equipo','teams'],
+    [0,11.5,12.5,'Revisión con comité — Los Robles','trabajo'],[0,19,21,'Clase: Arquitectura de Software','escuela'],
+    [1,10,12,'Taller Power BI','teams'],[1,19,21,'Clase: Diseño Web','escuela'],
+    [2,10,11,'Revisión: App Mi Comunidad','trabajo'],[2,13,14,'Comida con proveedor','teams'],[2,16,16.5,'1:1 jefe directo','teams'],[2,19,21,'Clase: Bases de Datos II','escuela'],
+    [3,9.5,13,'Bloque: Medidas DAX','trabajo'],[3,15,17,'Equipo proyecto final','escuela'],[3,18,20,'Foro + lectura cap. 5','escuela'],
+    [4,12,13,'Revisión: Dashboard Power BI','trabajo'],[4,17,18,'Entrega prototipo UI','escuela'],
+    [5,10,12.5,'Avance proyecto final','escuela'],[5,17,19,'Fútbol','personal'],
+    [6,11,13,'Comida familiar','personal'],
+  ];
+  const fmt = h => `${Math.floor(h)}:${h%1?'30':'00'}`;
+  return shell('agenda','Agenda','9 – 15 de noviembre, 2026',`
+  <div class="toolbar">
+    <button class="btn sm">Hoy</button><div class="icon-btn" style="width:30px;height:30px">${ic('chevron-left')}</div><div class="icon-btn" style="width:30px;height:30px">${ic('chevron-right')}</div>
+    <b style="font-size:15px;margin:0 6px;white-space:nowrap">Noviembre 2026</b>
+    <div class="seg" style="margin-left:8px"><a>Día</a><a class="on">Semana</a><a>Mes</a></div>
+    <div class="row" style="margin-left:auto;gap:8px">
+      
+      ${[['Teams','teams'],['Trabajo','trabajo'],['Escuela','escuela'],['Personal','personal'],['Cumpleaños','danger']].map(([t,c])=>`<span class="chip"><span class="chk on" style="width:14px;height:14px;border-radius:4px;background:var(--${c});border-color:var(--${c})">${ic('check')}</span>${t}</span>`).join('')}
+      <button class="btn sm">${ic('upload')}Importar .ics</button>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="display:grid;grid-template-columns:56px repeat(7,1fr);border-bottom:1px solid var(--border)">
+      <div></div>
+      ${days.map((d,k)=>`<div style="padding:9px 10px;border-left:1px solid var(--border-2);${k===2?'background:var(--primary-50)':''}"><div class="label" style="${k===2?'color:var(--primary)':''}">${d.split(' ')[0]}</div><div style="font-size:18px;font-weight:700;${k===2?'color:var(--primary)':''}">${d.split(' ')[1]}</div></div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:56px repeat(7,1fr);background:var(--surface-2);border-bottom:1px solid var(--border)">
+      <div class="subtle" style="font-size:10.5px;padding:6px 8px">Todo el día</div>
+      ${days.map((d,k)=>`<div style="padding:4px;border-left:1px solid var(--border-2);min-height:30px">${k===2?'<span class="badge b-danger" style="width:100%">'+ic('cake')+'Ana Ramírez</span>':k===6?'<span class="badge b-danger" style="width:100%">'+ic('cake')+'Luis Mendoza</span>':k===4?'<span class="badge b-escuela" style="width:100%">'+ic('flag')+'Entrega Act. 4</span>':''}</div>`).join('')}
+    </div>
+    <div style="position:relative;display:grid;grid-template-columns:56px repeat(7,1fr);height:${(H1-H0)*RH*0.8}px;overflow:hidden">
+      <div>${Array.from({length:H1-H0},(_,k)=>`<div class="subtle" style="height:${RH}px;font-size:10.5px;text-align:right;padding-right:8px;transform:translateY(-6px)">${k?`${H0+k}:00`:''}</div>`).join('')}</div>
+      ${days.map((d,k)=>`<div style="position:relative;border-left:1px solid var(--border-2);${k===2?'background:rgba(37,99,235,.03)':''}">
+        ${Array.from({length:H1-H0},()=>`<div style="height:${RH}px;border-top:1px solid var(--border-2)"></div>`).join('')}
+        ${ev.filter(e=>e[0]===k).map(([_,a,b,t,c])=>`<div style="position:absolute;left:4px;right:4px;top:${(a-H0)*RH+1}px;height:${(b-a)*RH-3}px;background:var(--${c}-bg);border-left:3px solid var(--${c});border-radius:6px;padding:3px 7px;overflow:hidden">
+          <div style="font-weight:650;font-size:11.5px;color:var(--${c});line-height:1.25">${t}</div>${b-a>=1?`<div style="font-size:10.5px;color:var(--muted)">${fmt(a)} – ${fmt(b)}${c==='teams'?' · Teams':''}</div>`:''}</div>`).join('')}
+        ${k===2?`<div style="position:absolute;left:0;right:0;top:${(12.25-H0)*RH}px;height:2px;background:var(--danger)"><span style="position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--danger)"></span></div>`:''}
+      </div>`).join('')}
+    </div>
+  </div>`);
+}
+
+/* ---------------- CARGA DE TRABAJO ---------------- */
+function carga(){
+  // Semana inicia lunes; 26 oct – 6 dic
+  const vals = [2,3,4,1,2,0,0, 3,5,4,6,3,2,1, 4,6,8.5,11,4,2,.5, 3,7,5,9,6,3,0, 5,8,6,10,12,4,1, 2,3,2,1,0,0,0];
+  const start = new Date(2026,9,26);
+  const color = h => h===0?'#eef2f7':h<2?'#dbe7ff':h<4?'#93c5fd':h<6?'#3b82f6':h<9?'#f59e0b':'#ef4444';
+  const cells = vals.map((h,k)=>{const d=new Date(start);d.setDate(d.getDate()+k);return {d,h,k}});
+  const mes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const byDay = [['Lun',3.4],['Mar',5.4],['Mié',4.9],['Jue',7.4],['Vie',5.4],['Sáb',2.0],['Dom',0.4]];
+  return shell('carga','Carga de trabajo','Horas estimadas de tareas + eventos por día',`
+  <div class="toolbar">
+    <div class="seg"><a>Semana</a><a class="on">Mes</a><a>Semestre</a></div>
+    <span class="chip">Todos</span><span class="chip">Trabajo</span><span class="chip on"><span class="sdot" style="background:var(--escuela)"></span>Escuela</span><span class="chip">Personal</span>
+    <span style="margin-left:auto" class="row muted" style="gap:6px">Umbrales: <span class="badge b-blue">Normal &lt; 6 h</span><span class="badge b-warn">Alta 6–9 h</span><span class="badge b-danger">Saturado &gt; 9 h</span></span>
+    <button class="btn sm">${ic('settings-2')}Configurar</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px">
+    ${[['Horas planeadas (nov)','164 h','Escuela 92 h · Trabajo 58 h · Personal 14 h'],['Día más cargado','Vie 27 nov','12 h · 3 entregas + clase'],['Días saturados','4','Más de 9 h planeadas'],['Promedio diario','5.5 h','+18% vs. octubre']].map(([t,v,d],k)=>`<div class="card kpi"><div class="label">${t}</div><div class="v" style="${k===1||k===2?'color:var(--danger)':''}">${v}</div><div class="d">${d}</div></div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-h">${ic('flame')}Mapa de calor — Noviembre 2026<span class="act row" style="gap:4px">${ic('chevron-left')}${ic('chevron-right')}</span></div>
+      <div class="card-b">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px">${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="label" style="text-align:center">${d}</div>`).join('')}</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+          ${cells.map(({d,h,k})=>{const inM=d.getMonth()===10;const sel=d.getDate()===27&&inM;const today=d.getDate()===11&&inM;
+            return `<div style="height:62px;border-radius:9px;background:${inM?color(h):'#f8fafc'};padding:6px 8px;display:flex;flex-direction:column;justify-content:space-between;${sel?'outline:2.5px solid var(--text);outline-offset:1px;':''}${today?'box-shadow:inset 0 0 0 2px #fff, 0 0 0 2px var(--primary);':''}opacity:${inM?1:.55}">
+            <span style="font-weight:700;font-size:12px;color:${inM&&h>=4?'#fff':'var(--muted)'}">${d.getDate()}${d.getDate()===1?' '+mes[d.getMonth()]:''}</span>
+            <span style="font-size:11px;font-weight:600;color:${inM&&h>=4?'rgba(255,255,255,.9)':'var(--muted)'}">${inM&&h?h+' h':''}</span></div>`}).join('')}
+        </div>
+        <div class="row" style="margin-top:12px;justify-content:flex-end;gap:5px;font-size:11px" class="muted"><span class="muted">Menos</span>${[0,1,3,5,7,10].map(h=>`<span style="width:16px;height:12px;border-radius:3px;background:${color(h)}"></span>`).join('')}<span class="muted">Más</span></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-h">${ic('chart-column')}Promedio por día de la semana (Escuela)</div>
+        <div class="card-b">
+          ${byDay.map(([d,h])=>`<div class="row" style="padding:4px 0"><span style="width:34px;font-weight:600">${d}</span><div style="flex:1;height:18px;background:#f1f5f9;border-radius:5px;overflow:hidden"><div style="height:100%;width:${h/8*100}%;background:${color(h)};border-radius:5px"></div></div><span class="muted" style="width:44px;text-align:right">${h} h</span></div>`).join('')}
+          <div style="margin-top:8px;padding:9px 11px;background:var(--warn-bg);border-radius:9px;color:#92400e;font-size:12px" class="row">${ic('triangle-alert')}Los jueves concentran tus entregas: considera adelantar trabajo el martes.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h">${ic('calendar-days')}Viernes 27 nov · 12 h<span class="badge b-danger" style="margin-left:6px">Saturado</span></div>
+        <div class="card-b">
+          ${[['Entrega: Documentación proyecto final','Escuela','4 h'],['Examen parcial Bases de Datos II','Escuela','3 h'],['Entrega Act. 6 Diseño Web','Escuela','2 h'],['Revisión mensual Power BI','Trabajo','1 h'],['Clase: Arquitectura de Software','Escuela','2 h']].map(([t,a,h])=>`<div class="list-item"><span class="sdot" style="background:var(--${a.toLowerCase()})"></span><span style="flex:1;font-weight:550">${t}</span><span class="muted">${h}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`);
+}
+
+/* ---------------- NOTAS E IDEAS ---------------- */
+function notas(){
+  const n = [
+    ['Arquitectura para sincronización',true,false,'Repositorio de datos con interfaz común: IndexedDB en local y API REST en la nube. IDs UUID para evitar choques al importar.',['Arquitectura'],'App NovaOrganización','Hoy',null],
+    ['Avisos por WhatsApp',false,true,'Disparar flujo de Power Automate cuando un aviso sea marcado como urgente. Evaluar costo de la API de WhatsApp Business.',['Power Automate','Idea'],'App Mi Comunidad','Ayer',null],
+    ['Boceto pantalla de tesorería',false,false,'Primera versión de la vista de movimientos con filtros por torre y periodo.',['UI'],'App Mi Comunidad','9 nov','g1'],
+    ['Agente revisor de código',false,true,'Un agente QA que revise cada PR con un modelo económico y escale a uno avanzado sólo si encuentra riesgos.',['IA','Agentes'],'Hermes','8 nov',null],
+    ['Checklist entrega proyecto final',true,false,'☑ Diagrama E-R<br>☑ Script SQL<br>☐ Manual de usuario<br>☐ Video demostración',['Escuela'],'Sistema de inventario','7 nov',null],
+    ['Paleta de colores portafolio',false,false,'Azul #2563EB, gris pizarra, acentos teal para estados positivos.',['Diseño'],'Portafolio','5 nov','g3'],
+    ['Lectura: Clean Architecture',false,false,'Separar reglas de negocio de los frameworks. Aplicar a la capa de servicios.',['Lectura'],'—','3 nov',null],
+    ['Lector de facturas PDF',false,true,'Extraer RFC, folio y total con Python; validar contra el ERP y generar reporte de diferencias.',['Python','IA'],'—','1 nov','g4'],
+  ];
+  const card = ([t,pin,idea,txt,tags,proj,f,img]) => `<div class="card" style="padding:14px;break-inside:avoid;margin-bottom:14px;${idea?'border-top:3px solid #f59e0b':''}">
+    <div class="row" style="margin-bottom:6px">${idea?'<span class="badge b-warn">'+ic('lightbulb')+'Idea</span>':'<span class="badge b-gray">'+ic('file-text')+'Nota</span>'}${pin?`<span style="margin-left:auto;color:var(--primary)">${ic('pin')}</span>`:''}</div>
+    <div style="font-weight:650;font-size:14px;margin-bottom:6px">${t}</div>
+    ${img?`<div class="img ${img}" style="height:110px;margin-bottom:8px">${ic('image')}</div>`:''}
+    <div class="muted" style="margin-bottom:10px">${txt}</div>
+    <div class="row" style="gap:5px;flex-wrap:wrap;margin-bottom:10px">${tags.map(x=>`<span class="badge b-blue">#${x}</span>`).join('')}</div>
+    <div class="row subtle" style="font-size:11.5px;border-top:1px solid var(--border-2);padding-top:8px"><span class="row" style="gap:4px">${ic('folder')}${proj}</span><span style="margin-left:auto">${f}</span></div>
+    ${idea?`<div class="row" style="gap:6px;margin-top:8px"><span class="btn sm" style="height:26px">${ic('folder-plus')}A proyecto</span><span class="btn sm" style="height:26px">${ic('square-check')}En tarea</span></div>`:''}
+  </div>`;
+  return shell('notas','Notas e ideas','42 notas · 9 ideas sin convertir',`
+  <div class="toolbar">
+    <div class="seg"><a class="on">${ic('layout-grid')}Muro</a><a>${ic('list')}Lista</a></div>
+    <span class="chip on">Todas</span><span class="chip">${ic('pin')}Fijadas</span><span class="chip">${ic('lightbulb')}Ideas</span><span class="chip">${ic('image')}Con imágenes</span><span class="chip">${ic('folder')}Proyecto</span><span class="chip">${ic('tag')}#IA</span><span class="chip">#Escuela</span>
+    <button class="btn sm" style="margin-left:auto">${ic('download')}Exportar Markdown</button>
+  </div>
+  <div class="card" style="padding:10px 14px;margin-bottom:14px" ><div class="row subtle">${ic('pencil')}Escribe una nota rápida… usa <b style="color:var(--muted)">#etiqueta</b> y <b style="color:var(--muted)">@proyecto</b><span class="row" style="margin-left:auto;gap:10px">${ic('image')}${ic('lightbulb')}${ic('list-checks')}</span></div></div>
+  <div style="columns:4;column-gap:14px">${n.map(card).join('')}</div>`);
+}
+
+/* ---------------- CUMPLEAÑOS ---------------- */
+function cumple(){
+  const up = [['AR','Ana Ramírez','Amiga','Hoy','Cumple 30 años','#f43f5e','Libro de diseño UX · ya comprado ✓',0],
+    ['LM','Luis Mendoza','Compañero de trabajo','Dom 15 nov','En 4 días · 34 años','#0ea5e9','Le gusta el café de especialidad',4],
+    ['MA','Mamá','Familia','Mié 2 dic','En 21 días','#a855f7','Reservar comida familiar',21],
+    ['JP','Prof. Jorge Pérez','Escuela','Vie 4 dic','En 23 días','#f59e0b','',23],
+    ['DC','Daniela Castro','Equipo proyecto','Jue 17 dic','En 36 días · 25 años','#10b981','',36]];
+  const meses = [['Noviembre',['11 · Ana Ramírez','15 · Luis Mendoza','29 · Tío Ernesto']],['Diciembre',['2 · Mamá','4 · Prof. Jorge Pérez','17 · Daniela Castro','24 · Abuela Rosa']],['Enero',['8 · Ricardo Salas','21 · Sofía M.']],['Febrero',['3 · Papá','14 · Marco T.']]];
+  return shell('cumple','Cumpleaños','38 personas · 3 este mes',`
+  <div class="toolbar">
+    <div class="seg"><a class="on">Próximos</a><a>Por mes</a><a>Lista</a></div>
+    <span class="chip on">Todos</span><span class="chip">Familia</span><span class="chip">Amigos</span><span class="chip">Trabajo</span><span class="chip">Escuela</span>
+    <button class="btn sm" style="margin-left:auto">${ic('upload')}Importar CSV</button><button class="btn sm">${ic('calendar-plus')}Exportar a calendario (.ics)</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px">
+    <div>
+      <div class="card" style="padding:20px;margin-bottom:14px;background:linear-gradient(120deg,#fff1f2,#fff 60%);border-color:#fecdd3">
+        <div class="row" style="gap:16px"><div class="avatar" style="width:64px;height:64px;font-size:20px;background:#f43f5e">AR</div>
+        <div style="flex:1"><span class="badge b-danger">${ic('party-popper')}Hoy</span><div style="font-size:20px;font-weight:700;margin-top:4px">Ana Ramírez cumple 30 años</div><div class="muted">Amiga · 11 de noviembre de 1996</div></div>
+        <button class="btn">${ic('message-circle')}Enviar felicitación</button></div>
+      </div>
+      <div class="card"><div class="card-h">${ic('cake')}Próximos 60 días</div><div class="card-b">
+        ${up.map(([ini,n,r,f,d,c,nota,days])=>`<div class="list-item" style="padding:11px 0">
+          <div class="avatar" style="background:${c};width:38px;height:38px">${ini}</div>
+          <div style="width:210px"><div style="font-weight:650">${n}</div><div class="muted" style="font-size:11.5px">${r}</div></div>
+          <div style="flex:1" class="muted">${nota?`<span class="row" style="gap:5px">${ic('gift')}${nota}</span>`:''}</div>
+          <div style="text-align:right;width:150px"><div style="font-weight:600">${f}</div><div class="muted" style="font-size:11.5px">${d}</div></div>
+          <div style="width:44px;height:44px;border-radius:10px;background:${days===0?'var(--danger-bg)':days<=7?'var(--warn-bg)':'#eef2f7'};display:grid;place-items:center;font-weight:700;color:${days===0?'var(--danger)':days<=7?'var(--warn)':'#475569'}">${days===0?'🎂':days+'d'}</div></div>`).join('')}
+      </div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card"><div class="card-h">${ic('user-plus')}Agregar cumpleaños</div><div class="card-b" style="display:grid;gap:10px">
+        ${[['Nombre','Ej. María López'],['Fecha','Día / Mes / Año (opcional)'],['Relación','Familia, Amigos, Trabajo…'],['Notas / ideas de regalo','Opcional']].map(([l,p])=>`<div><div style="font-weight:600;font-size:12px;margin-bottom:4px">${l}</div><div style="height:34px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--subtle)">${p}</div></div>`).join('')}
+        <div class="row"><span class="muted" style="font-size:12px">Avisarme</span><span class="badge b-blue">7 días antes</span><button class="btn pri sm" style="margin-left:auto">Guardar</button></div>
+      </div></div>
+      <div class="card"><div class="card-h">${ic('calendar-days')}Por mes</div><div class="card-b" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${meses.map(([m,l])=>`<div style="background:var(--surface-2);border-radius:9px;padding:9px 11px"><div class="label" style="margin-bottom:4px">${m}</div>${l.map(x=>`<div style="font-size:12px;padding:1px 0">${x}</div>`).join('')}</div>`).join('')}
+      </div></div>
+    </div>
+  </div>`);
+}
+
+/* ---------------- AJUSTES / IMPORTAR-EXPORTAR ---------------- */
+function ajustes(){
+  const fmts = [['file-json','Respaldo completo','JSON / ZIP con imágenes','Todo: proyectos, bitácora, notas, imágenes, agenda y ajustes'],
+    ['file-spreadsheet','CSV / Excel','Por entidad','Proyectos, tareas, eventos, cumpleaños — ideal para Power BI'],
+    ['calendar','Calendario','iCalendar (.ics)','Eventos, entregas y cumpleaños desde/hacia Outlook o Google'],
+    ['file-text','Markdown','.md','Bitácora y notas de un proyecto como documento']];
+  return shell('ajustes','Ajustes','Personalización, integraciones y datos',`
+  <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:20px">
+    <div class="card" style="padding:8px;align-self:start">
+      ${[['sliders-horizontal','General'],['layout-dashboard','Panel Hoy'],['tags','Catálogos'],['palette','Apariencia'],['video','Microsoft Teams'],['arrow-down-up','Importar / Exportar'],['shield-check','Respaldo y privacidad']].map(([i,t],k)=>`<div class="row" style="padding:9px 10px;border-radius:8px;font-weight:550;${k===5?'background:var(--primary-50);color:var(--primary)':'color:var(--muted)'}">${ic(i)}${t}</div>`).join('')}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card"><div class="card-h">${ic('download')}Exportar datos<span class="muted" style="font-weight:500;margin-left:6px">Último respaldo: hace 3 días</span></div>
+        <div class="card-b" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          ${fmts.map(([i,t,s,d],k)=>`<div style="border:1.5px solid ${k===0?'var(--primary)':'var(--border)'};border-radius:11px;padding:14px;${k===0?'background:var(--primary-50)':''}">
+            <div style="width:36px;height:36px;border-radius:9px;background:${k===0?'var(--primary)':'#eef2f7'};color:${k===0?'#fff':'var(--muted)'};display:grid;place-items:center;margin-bottom:10px">${ic(i)}</div>
+            <div style="font-weight:650">${t}</div><div class="subtle" style="font-size:11.5px;margin-bottom:6px">${s}</div><div class="muted" style="font-size:12px">${d}</div></div>`).join('')}
+        </div>
+        <div class="card-b row" style="gap:8px;flex-wrap:wrap"><span class="label">Incluir</span>${['Proyectos','Tareas','Bitácora','Notas','Imágenes','Agenda','Cumpleaños','Ajustes'].map(x=>`<span class="chip on" style="height:26px"><span class="chk on" style="width:13px;height:13px;border-radius:3px">${ic('check')}</span>${x}</span>`).join('')}<button class="btn pri" style="margin-left:auto">${ic('download')}Descargar respaldo (12.4 MB)</button></div>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px">
+        <div class="card"><div class="card-h">${ic('upload')}Importar datos</div><div class="card-b">
+          <div style="border:2px dashed #c7d2e0;border-radius:11px;padding:18px;text-align:center;background:var(--surface-2);margin-bottom:12px">
+            <div style="color:var(--primary);display:flex;justify-content:center;margin-bottom:6px">${ic('cloud-upload')}</div>
+            <b>Arrastra un archivo aquí</b><div class="muted" style="font-size:12px">.json, .zip, .csv, .xlsx, .ics, .md</div></div>
+          <div class="label" style="margin-bottom:6px">Vista previa — tareas_escuela.csv</div>
+          <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;font-size:12px">
+            <div class="row" style="background:var(--surface-2);padding:7px 10px;font-weight:600"><span style="width:24px"></span><span style="flex:1">Título</span><span style="width:110px">Fecha límite</span><span style="width:70px">Horas</span><span style="width:110px">Estado</span></div>
+            ${[['Act. 5 Modelo relacional','20/11/2026','3','b-ok','Nueva'],['Foro semana 12','19/11/2026','1','b-ok','Nueva'],['Examen parcial','27/11/2026','3','b-blue','Actualiza'],['Ensayo final','31/11/2026','4','b-danger','Fecha inválida']].map(([a,b,c,d,e])=>`<div class="row" style="padding:7px 10px;border-top:1px solid var(--border-2)"><span style="width:24px" class="chk on">${ic('check')}</span><span style="flex:1">${a}</span><span style="width:110px">${b}</span><span style="width:70px">${c}</span><span style="width:110px"><span class="badge ${d}">${e}</span></span></div>`).join('')}
+          </div>
+          <div class="row" style="margin-top:12px"><div class="seg"><a class="on">Combinar</a><a>Reemplazar todo</a></div><span class="muted" style="font-size:12px">3 válidas · 1 con error</span><button class="btn pri sm" style="margin-left:auto">Importar 3 registros</button></div>
+        </div></div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card"><div class="card-h">${ic('video')}Microsoft Teams / Outlook</div><div class="card-b">
+            <div class="row" style="padding:10px 12px;background:var(--ok-bg);border-radius:9px;margin-bottom:10px"><span style="color:var(--ok)">${ic('circle-check')}</span><div style="flex:1"><b>Conectado</b><div class="muted" style="font-size:11.5px">Cuenta de trabajo · permiso de solo lectura del calendario</div></div><span class="btn sm">Desconectar</span></div>
+            ${[['Leer agenda del día al abrir',true],['Sincronizar cada 15 minutos',true],['Mostrar eventos privados como "Ocupado"',true]].map(([t,on])=>`<div class="row" style="padding:6px 0"><span style="flex:1">${t}</span><span style="width:34px;height:20px;border-radius:12px;background:${on?'var(--primary)':'#cbd5e1'};position:relative"><span style="position:absolute;top:2px;${on?'right:2px':'left:2px'};width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>`).join('')}
+            <div class="row muted" style="margin-top:8px;font-size:12px;gap:6px">${ic('link')}Plan B: suscribirse a un calendario ICS publicado</div>
+          </div></div>
+          <div class="card"><div class="card-h">${ic('shield-check')}Respaldo automático</div><div class="card-b">
+            <div class="row" style="padding:4px 0"><span style="flex:1">Recordarme respaldar cada</span><span class="badge b-blue">7 días</span></div>
+            <div class="row" style="padding:4px 0"><span style="flex:1">Respaldo antes de "Reemplazar todo"</span><span class="badge b-ok">Siempre</span></div>
+            <div class="row" style="padding:4px 0"><span style="flex:1">Espacio usado en este dispositivo</span><b>148 MB</b></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>`);
+}
+
+/* ---------------- MÓVIL / TEAMS ---------------- */
+function teams(){
+  return `<div style="width:1440px;height:900px;background:#ebebeb;display:grid;grid-template-columns:68px 1fr;font-family:'Segoe UI',Inter,sans-serif">
+    <div style="background:#e8e8e8;border-right:1px solid #d6d6d6;display:flex;flex-direction:column;align-items:center;padding-top:12px;gap:16px;color:#616161">
+      ${['bell','message-square','users','calendar-days','phone'].map(i=>`<div style="width:44px;height:44px;display:grid;place-items:center">${ic(i)}</div>`).join('')}
+      <div style="width:44px;height:44px;display:grid;place-items:center;background:#fff;border-radius:8px;color:var(--teams);box-shadow:inset 3px 0 0 var(--teams)">${ic('sparkles')}</div>
+      <div style="width:44px;height:44px;display:grid;place-items:center">${ic('ellipsis')}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;background:#f5f5f5">
+      <div style="height:48px;background:#ebebeb;border-bottom:1px solid #d6d6d6;display:flex;align-items:center;padding:0 18px;gap:12px">
+        <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;display:grid;place-items:center">${ic('sparkles')}</div>
+        <b style="font-size:14px">NovaOrganización</b>
+        <div style="display:flex;gap:2px;margin-left:16px">${['Hoy','Proyectos','Agenda','Notas'].map((t,k)=>`<span style="padding:13px 12px;font-weight:600;font-size:13px;${k===0?'color:var(--teams);border-bottom:3px solid var(--teams)':'color:#616161'}">${t}</span>`).join('')}</div>
+        <span style="margin-left:auto;color:#616161" class="row">${ic('refresh-cw')}${ic('external-link')}</span>
+      </div>
+      <div style="flex:1;padding:20px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px">
+        <div class="card" style="grid-row:span 2">
+          <div class="card-h">${ic('calendar-days')}Mi agenda de hoy<span class="badge b-teams" style="margin-left:6px">Outlook · en vivo</span></div>
+          <div class="card-b">
+          ${[['08:30','Daily del equipo','Reunión de Teams',true],['10:00','Revisión: App Mi Comunidad','Reunión de Teams',true],['13:00','Comida con proveedor','Restaurante Centro',false],['16:00','1:1 con jefe directo','Reunión de Teams',true],['19:00','Clase: Bases de Datos II','Escuela',false]].map(([h,t,s,j],k)=>`
+            <div class="row" style="padding:12px;border-radius:10px;margin-bottom:6px;background:${k===1?'var(--teams-bg)':'var(--surface-2)'}">
+              <b style="width:48px">${h}</b><div style="flex:1"><div style="font-weight:650">${t}</div><div class="muted" style="font-size:12px">${s}</div></div>
+              ${j?`<span class="btn sm" style="background:var(--teams);color:#fff;border-color:var(--teams)">${ic('video')}Unirse</span>`:''}</div>`).join('')}
+          </div>
+        </div>
+        <div class="card"><div class="card-h">${ic('list-checks')}Pendientes de hoy</div><div class="card-b">
+          ${['Entregar Actividad 3 — Modelo E-R','Revisar consultas SQL de tesorería','Comprar regalo para Ana'].map(t=>`<div class="list-item"><span class="chk"></span>${t}</div>`).join('')}
+          <div class="list-item"><span class="chk on">${ic('check')}</span><span style="text-decoration:line-through;color:var(--subtle)">Enviar minuta de la revisión</span></div></div></div>
+        <div class="card"><div class="card-h">${ic('notebook-pen')}Registro rápido en bitácora</div><div class="card-b">
+          <div style="height:34px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px">App Mi Comunidad Los Robles ▾</div>
+          <div style="height:70px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--subtle)">Acuerdos de la reunión…</div>
+          <div class="row" style="margin-top:8px;color:var(--muted)">${ic('image')}${ic('paperclip')}<button class="btn pri sm" style="margin-left:auto">Guardar</button></div></div></div>
+        <div class="card"><div class="card-h">${ic('flag')}Revisiones de la semana</div><div class="card-b">
+          ${[['Hoy 10:00','App Mi Comunidad'],['Vie 12:00','Dashboard Power BI']].map(([f,p])=>`<div class="list-item"><span class="sdot" style="background:var(--teams)"></span><span style="flex:1;font-weight:550">${p}</span><span class="muted">${f}</span></div>`).join('')}</div></div>
+        <div class="card"><div class="card-h">${ic('cake')}Cumpleaños</div><div class="card-b">
+          <div class="list-item"><div class="avatar" style="background:#f43f5e;width:30px;height:30px">AR</div><b style="flex:1">Ana Ramírez</b><span class="badge b-danger">Hoy</span></div>
+          <div class="list-item"><div class="avatar" style="background:#0ea5e9;width:30px;height:30px">LM</div><b style="flex:1">Luis Mendoza</b><span class="muted">Dom 15</span></div></div></div>
+      </div>
+    </div>
+  </div>`;
+}
+function movil(){
+  const phone = (inner) => `<div style="width:390px;height:820px;border-radius:44px;background:#0f172a;padding:12px;box-shadow:0 30px 60px rgba(15,23,42,.25)"><div style="width:100%;height:100%;border-radius:34px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;position:relative">${inner}</div></div>`;
+  const tabbar = a => `<div style="position:absolute;bottom:0;left:0;right:0;height:72px;background:#fff;border-top:1px solid var(--border);display:flex;justify-content:space-around;padding-top:10px">
+    ${[['sun','Hoy'],['folder-kanban','Proyectos'],['plus','',1],['calendar-days','Agenda'],['lightbulb','Notas']].map(([i,t,p],k)=>p?`<div style="width:48px;height:48px;border-radius:14px;background:var(--primary);color:#fff;display:grid;place-items:center;margin-top:-6px">${ic(i)}</div>`:`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:${k===a?'var(--primary)':'var(--subtle)'}">${ic(i)}${t}</div>`).join('')}</div>`;
+  const status = `<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-weight:600;font-size:13px"><span>9:41</span><span style="width:110px;height:28px;background:#0f172a;border-radius:16px"></span><span>100%</span></div>`;
+  const s1 = phone(`${status}<div style="padding:6px 18px 90px;overflow:hidden">
+    <div class="muted" style="font-size:12px">Miércoles 11 nov</div><div style="font-size:22px;font-weight:700;margin-bottom:12px">Buenos días, Carlos</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="card kpi" style="padding:12px"><div class="label">Eventos</div><div class="v" style="font-size:20px">5</div></div>
+      <div class="card kpi" style="padding:12px"><div class="label">Carga</div><div class="v" style="font-size:20px;color:var(--warn)">8.5 h</div></div></div>
+    <div class="card" style="margin-bottom:12px"><div class="card-h">${ic('calendar-days')}Agenda</div><div class="card-b">
+      ${[['08:30','Daily del equipo','teams'],['10:00','Revisión App Mi Comunidad','trabajo'],['16:00','1:1 jefe directo','teams'],['19:00','Clase BD II','escuela']].map(([h,t,c])=>`<div class="row" style="padding:6px 0"><b style="width:44px;font-size:12px">${h}</b><span style="width:3px;height:24px;border-radius:2px;background:var(--${c})"></span><span style="font-weight:550">${t}</span></div>`).join('')}</div></div>
+    <div class="card"><div class="card-h">${ic('list-checks')}Pendientes</div><div class="card-b">
+      ${['Entregar Actividad 3','Revisar SQL tesorería','Regalo para Ana'].map(t=>`<div class="list-item"><span class="chk"></span>${t}</div>`).join('')}</div></div>
+  </div>${tabbar(0)}`);
+  const s2 = phone(`${status}<div style="padding:6px 18px 90px;overflow:hidden">
+    <div class="row muted" style="font-size:12px">${ic('chevron-left')}Proyectos</div><div style="font-size:19px;font-weight:700;margin:4px 0 8px">App Mi Comunidad Los Robles</div>
+    <div class="row" style="gap:6px;margin-bottom:10px">${amb('Trabajo')}<span class="badge b-warn">En revisión</span><b style="margin-left:auto">78%</b></div>
+    <div class="bar" style="margin-bottom:12px"><i style="width:78%"></i></div>
+    <div class="row" style="gap:6px;margin-bottom:12px;overflow:hidden"><span class="chip on">Bitácora</span><span class="chip">Tareas</span><span class="chip">Notas</span><span class="chip">Imágenes</span></div>
+    ${[['Hoy · 08:42','Avance','b-ok','Se corrigió el cálculo del saldo; la consulta bajó a 0.6 s.','g1'],['Ayer · 18:15','Decisión','b-blue','Separar caja chica de tesorería.',null],['Lun 9 · 11:30','Revisión','b-warn','El comité pidió filtro por torre y exportar a Excel.',null]].map(([f,l,b,t,g])=>`<div class="card" style="padding:12px;margin-bottom:10px"><div class="row" style="margin-bottom:4px"><span class="badge ${b}">${l}</span><span class="muted" style="font-size:11px">${f}</span></div>${t}${g?`<div class="img ${g}" style="height:90px;margin-top:8px">${ic('image')}</div>`:''}</div>`).join('')}
+    <div style="position:absolute;right:18px;bottom:90px;height:46px;padding:0 16px;border-radius:23px;background:var(--primary);color:#fff;display:flex;align-items:center;gap:8px;font-weight:600;box-shadow:0 8px 20px rgba(37,99,235,.35)">${ic('camera')}Foto + nota</div>
+  </div>${tabbar(1)}`);
+  return `<div style="width:1440px;height:900px;background:linear-gradient(135deg,#e0e7ff,#f1f5f9);display:flex;align-items:center;justify-content:center;gap:80px">
+    <div style="width:360px"><div class="badge b-blue" style="margin-bottom:12px">Versión móvil (PWA)</div><div style="font-size:30px;font-weight:750;line-height:1.15;letter-spacing:-.02em;margin-bottom:12px">Tu día y tus avances, también en el celular</div><div class="muted" style="font-size:14px">Barra inferior con acceso rápido, botón central “+” para capturar tareas, notas o eventos, y registro de bitácora con foto directa desde la cámara.</div></div>
+    ${s1}${s2}</div>`;
+}
+
+const SCREENS = {hoy,proyectos,detalle,tareas,agenda,carga,notas,cumple,ajustes,teams,movil};
+const key = (location.hash||'#hoy').slice(1);
+document.getElementById('root').innerHTML = (SCREENS[key]||hoy)();
+</script>
+</body>
+</html>
