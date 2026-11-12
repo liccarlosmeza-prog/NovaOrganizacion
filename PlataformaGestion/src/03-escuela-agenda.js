@@ -24,18 +24,19 @@ const Esc = {
   nueva() {
     if (!S.materias.length) { toast('Primero registra una materia'); UI.esc.tab = 'materias'; App.pintar(); return this.materia(); }
     Form.abrir({ titulo: 'Nueva actividad escolar', campos: this.campos(), valores: { materia: UI.esc.mat || S.materias[0].id, tipo: 'Buzón', estatus: 'pendiente', inicio: hoyISO(), valor: 0 },
-      guardar: v => { const er = this._validar(v); if (er) return er; poner('escolares', { id: uid(), ...v }); } });
+      guardar: v => { const er = this._validar(v); if (er) return er; const e = { id: uid(), ...v }; regEstatus('escolares', e, '', e.estatus); poner('escolares', e); } });
   },
   editar(id) {
     const e = por('escolares', id);
-    Form.abrir({ titulo: 'Editar actividad escolar', campos: this.campos(), valores: e,
-      guardar: v => { const er = this._validar(v); if (er) return er; poner('escolares', { ...e, ...v }); }, eliminar: () => quitar('escolares', id) });
+    Form.abrir({ titulo: 'Editar actividad escolar', campos: this.campos(), valores: e, nota: Hist.de(id),
+      guardar: v => { const er = this._validar(v); if (er) return er; regEstatus('escolares', e, e.estatus, v.estatus); poner('escolares', { ...e, ...v }); }, eliminar: () => quitar('escolares', id) });
   },
-  estado(id, v) { const e = por('escolares', id); e.estatus = v; if (v !== 'calificada') e.calif = null; guardar(); App.pintar(); },
+  estado(id, v) { const e = por('escolares', id); regEstatus('escolares', e, e.estatus, v); e.estatus = v; if (v !== 'calificada') e.calif = null; guardar(); App.pintar(); },
   calificar(id, txt) {
     const e = por('escolares', id), n = txt === '' ? null : Number(txt);
     if (n != null && (isNaN(n) || n < 0 || n > (e.valor || 0))) { toast(`La calificación debe estar entre 0 y ${e.valor || 0}`, 'err'); App.pintar(); return; }
-    e.calif = n; if (n != null) e.estatus = 'calificada'; else if (e.estatus === 'calificada') e.estatus = 'enviada';
+    const antes = e.estatus; e.calif = n; if (n != null) e.estatus = 'calificada'; else if (e.estatus === 'calificada') e.estatus = 'enviada';
+    regEstatus('escolares', e, antes, e.estatus);
     guardar(); App.pintar();
   },
   materia(id) {
@@ -62,7 +63,7 @@ Vistas.escuela = () => {
   const t = UI.esc.tab;
   const selMat = `<select onchange="UI.esc.mat=this.value;App.pintar()"><option value="">Todas las materias</option>${S.materias.map(m => `<option value="${m.id}" ${UI.esc.mat === m.id ? 'selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
   const cuerpo = t === 'lista' ? escLista(selMat) : t === 'tiempo' ? escTiempo(selMat) : t === 'eval' ? escEval(selMat) : escMaterias();
-  return `${cab('Escuela', `${S.materias.length} materias · ${S.escolares.filter(e => e.tipo !== 'Vacaciones').length} actividades`, '<button class="btn" onclick="Esc.materia()">+ Materia</button><button class="btn pri" onclick="Esc.nueva()">+ Actividad</button>')}
+  return `${cab('Escuela', `${S.materias.length} materias · ${S.escolares.filter(e => e.tipo !== 'Vacaciones').length} actividades`, btnHist('escolares') + btnCarga(t === 'materias' ? 'materias' : 'escolares') + '<button class="btn" onclick="Esc.materia()">+ Materia</button><button class="btn pri" onclick="Esc.nueva()">+ Actividad</button>')}
   <div class="tabs">${[['lista', 'Actividades'], ['tiempo', 'Línea de tiempo'], ['eval', 'Evaluación'], ['materias', 'Materias']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.esc.tab='${k}';App.pintar()">${n}</button>`).join('')}</div>${cuerpo}`;
 };
 
@@ -70,8 +71,12 @@ function escLista(selMat) {
   let l = S.escolares.filter(e => (!UI.esc.mat || e.materia === UI.esc.mat));
   const f = UI.esc.est;
   if (f === 'abiertas') l = l.filter(e => ['pendiente', 'proceso', 'guardada'].includes(e.estatus) && e.tipo !== 'Vacaciones'); else if (f) l = l.filter(e => e.estatus === f);
+  if (UI.esc.tipo) l = l.filter(e => e.tipo === UI.esc.tipo);
+  l = l.filter(e => coincide(UI.esc.q, e.titulo, e.comentario, (por('materias', e.materia) || {}).nombre));
   l.sort((a, b) => (a.entrega || '').localeCompare(b.entrega || ''));
-  return `<div class="barra">${selMat}<select onchange="UI.esc.est=this.value;App.pintar()"><option value="">Todos los estados</option><option value="abiertas" ${f === 'abiertas' ? 'selected' : ''}>Por entregar</option>${EST_ESC.map(([k, n]) => `<option value="${k}" ${f === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+  return `<div class="barra">${selMat}<select onchange="UI.esc.est=this.value;App.pintar()"><option value="">Todos los estados</option><option value="abiertas" ${f === 'abiertas' ? 'selected' : ''}>Por entregar</option>${EST_ESC.map(([k, n]) => `<option value="${k}" ${f === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
+    <select onchange="UI.esc.tipo=this.value;App.pintar()"><option value="">Todos los tipos</option>${TIPOS_ESC.map(x => `<option ${UI.esc.tipo === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
+    ${campoBuscar('esc', 'eBuscar', 'Buscar actividad…')}<span class="d">${l.length} resultado(s) · ${r1(l.reduce((s, e) => s + (e.valor || 0), 0))} pts</span></div>
   <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Actividad</th><th>Materia</th><th>Tipo</th><th class="num">Valor</th><th>Inicio</th><th>Entrega</th><th>Estado</th><th class="num">Calificación</th></tr></thead><tbody>
     ${l.map(e => { const m = por('materias', e.materia) || {}, cerr = ['enviada', 'calificada'].includes(e.estatus) || e.tipo === 'Vacaciones';
       return `<tr class="${cerr && e.tipo !== 'Vacaciones' ? 'hecho' : ''}"><td><span class="t" onclick="Esc.editar('${e.id}')">${esc(e.titulo)}</span></td><td class="nw">${punto(m.color)}${esc(m.nombre || '')}</td><td class="d nw">${esc(e.tipo || '')}</td>
@@ -165,15 +170,17 @@ function escMaterias() {
 const Agenda = {
   TIPOS: ['Reunión', 'Revisión', 'Clase', 'Personal', 'Otro'],
   /** Todo lo que ocurre en un día: eventos, actividades, entregas, cumpleaños y recordatorios. */
-  items(iso) {
-    const [, m, d] = iso.split('-').map(Number), r = [];
-    for (const e of S.eventos) if (e.fecha === iso) r.push({ hora: e.horaIni || '', titulo: e.titulo + (e.lugar ? ' · ' + e.lugar : ''), tipo: e.tipo || 'Evento', color: 'var(--ac)', clic: `Agenda.evento('${e.id}')`, peso: 1 });
-    for (const a of S.actividades) if (a.limite === iso && !estFinal(a.estatus)) r.push({ hora: a.hora || '', titulo: a.titulo, tipo: 'Actividad', color: (por('estatus', a.estatus) || {}).color, clic: `Act.editar('${a.id}')`, peso: 1 });
-    for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ hora: '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
-    for (const c of S.cumples) if (c.dia === d && c.mes === m) r.push({ hora: '', titulo: 'Cumpleaños de ' + c.nombre, tipo: 'Cumpleaños', color: '#db2777', clic: `Cumples.editar('${c.id}')`, peso: 0 });
-    for (const x of S.recordatorios) if (!x.hecho && Rec.ocurre(x, iso)) r.push({ hora: x.hora || '', titulo: x.texto, tipo: 'Recordatorio', color: '#c77700', clic: `Rec.editar('${x.id}')`, peso: 0 });
+  items(iso, todo) {
+    const [, m, d] = iso.split('-').map(Number), r = [], ambP = id => (por('proyectos', id) || {}).ambito;
+    for (const e of S.eventos) if (e.fecha === iso) r.push({ clase: 'evento', amb: e.tipo === 'Personal' ? 'Personal' : e.tipo === 'Clase' ? 'Escuela' : (ambP(e.proyecto) || 'Trabajo'), hora: e.horaIni || '', titulo: e.titulo + (e.lugar ? ' · ' + e.lugar : ''), tipo: e.tipo || 'Evento', color: 'var(--ac)', clic: `Agenda.evento('${e.id}')`, peso: 1 });
+    for (const a of S.actividades) if (a.limite === iso && !estFinal(a.estatus)) r.push({ clase: 'actividad', amb: ambAct(a), cat: a.categoria || '', hora: a.hora || '', titulo: a.titulo, tipo: 'Actividad', color: (por('estatus', a.estatus) || {}).color, clic: `Act.editar('${a.id}')`, peso: 1 });
+    for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ clase: 'entrega', amb: 'Escuela', hora: '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
+    for (const c of S.cumples) if (c.dia === d && c.mes === m) r.push({ clase: 'cumple', amb: 'Personal', hora: '', titulo: 'Cumpleaños de ' + c.nombre, tipo: 'Cumpleaños', color: '#db2777', clic: `Cumples.editar('${c.id}')`, peso: 0 });
+    for (const x of S.recordatorios) if (!x.hecho && Rec.ocurre(x, iso)) r.push({ clase: 'recordatorio', amb: '', hora: x.hora || '', titulo: x.texto, tipo: 'Recordatorio', color: 'var(--oro)', clic: `Rec.editar('${x.id}')`, peso: 0 });
     return r.sort((a, b) => (a.hora || '00:00').localeCompare(b.hora || '00:00'));
   },
+  /** Igual que items(), pero respetando las casillas "Mostrar" de la pantalla Agenda. */
+  visibles(iso) { return this.items(iso).filter(x => UI.ag.ver[x.clase] !== false); },
   campos: () => [
     { k: 'titulo', label: 'Evento', req: true }, { k: 'fecha', label: 'Fecha', tipo: 'date', req: true, medio: true }, { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: Agenda.TIPOS, medio: true },
     { k: 'horaIni', label: 'Hora de inicio', tipo: 'time', medio: true }, { k: 'horaFin', label: 'Hora de fin', tipo: 'time', medio: true },
@@ -197,12 +204,12 @@ Vistas.agenda = () => {
     const semanas = Math.ceil((desfase + new Date(y, m, 0).getDate()) / 7);
     let celdas = '';
     for (let i = 0; i < semanas * 7; i++) {
-      const iso = sumaDias(ini, i), its = Agenda.items(iso), peso = its.reduce((s, x) => s + x.peso, 0);
+      const iso = sumaDias(ini, i), its = Agenda.visibles(iso), peso = its.reduce((s, x) => s + x.peso, 0);
       const tinte = peso >= 5 ? 'color-mix(in srgb,var(--bad) 16%,transparent)' : peso >= 3 ? 'color-mix(in srgb,var(--warn) 15%,transparent)' : '';
       celdas += `<div class="c ${iso.slice(0, 7) !== UI.ag.mes ? 'fuera' : ''} ${iso === hoy ? 'hoy' : ''} ${iso === UI.ag.dia ? 'sel' : ''}" style="${tinte ? 'background:' + tinte : ''}" onclick="UI.ag.dia='${iso}';App.pintar()">
         <span class="nd">${deISO(iso).getDate()}</span>${its.slice(0, 3).map(x => `<div class="it">${punto(x.color)}${esc((x.hora ? x.hora + ' ' : '') + x.titulo)}</div>`).join('')}${its.length > 3 ? `<div class="mas">+${its.length - 3} más</div>` : ''}</div>`;
     }
-    const sel = Agenda.items(UI.ag.dia);
+    const sel = Agenda.visibles(UI.ag.dia);
     cuerpo = `<div class="ag"><div><div class="mes">${['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => `<div class="dn">${d}</div>`).join('')}${celdas}</div>
       <div class="ley"><span>Carga del día:</span><span><i style="background:color-mix(in srgb,var(--warn) 30%,transparent)"></i>3–4 pendientes</span><span><i style="background:color-mix(in srgb,var(--bad) 30%,transparent)"></i>5 o más</span></div></div>
       <section class="blq"><h3 style="text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--tx)"><span>${esc(may(fFechaLarga(UI.ag.dia)))}</span></h3>
@@ -210,13 +217,14 @@ Vistas.agenda = () => {
         <div class="barra" style="padding:10px 14px;margin:0;border-top:1px solid var(--bd)"><button class="btn ch" onclick="Agenda.evento()">+ Evento</button><button class="btn ch" onclick="Rec.editar(null,'${UI.ag.dia}')">+ Recordatorio</button></div></section></div>`;
   } else {
     let filas = '';
-    for (let i = 0; i < 30; i++) { const iso = sumaDias(hoy, i), its = Agenda.items(iso); if (its.length) filas += `<tr class="grupo"><td colspan="3">${esc(may(fFechaLarga(iso)))}${i === 0 ? ' · hoy' : ''}</td></tr>` + its.map(x => `<tr><td class="d nw" style="width:70px">${esc(x.hora || '—')}</td><td>${punto(x.color)}<span class="t" onclick="${x.clic}">${esc(x.titulo)}</span></td><td class="d nw">${esc(x.tipo)}</td></tr>`).join(''); }
+    for (let i = 0; i < 30; i++) { const iso = sumaDias(hoy, i), its = Agenda.visibles(iso); if (its.length) filas += `<tr class="grupo"><td colspan="3">${esc(may(fFechaLarga(iso)))}${i === 0 ? ' · hoy' : ''}</td></tr>` + its.map(x => `<tr><td class="d nw" style="width:70px">${esc(x.hora || '—')}</td><td>${punto(x.color)}<span class="t" onclick="${x.clic}">${esc(x.titulo)}</span></td><td class="d nw">${esc(x.tipo)}</td></tr>`).join(''); }
     cuerpo = `<div class="panel scrollx">${filas ? `<table class="lista"><tbody>${filas}</tbody></table>` : vacio('Sin eventos en los próximos 30 días', '')}</div>`;
   }
-  return `${cab('Agenda', '', '<button class="btn" onclick="Datos.elegir(\'ics\')">Importar .ics</button><button class="btn pri" onclick="Agenda.evento()">+ Evento</button>')}
+  return `${cab('Agenda', '', btnCarga('eventos') + '<button class="btn pri" onclick="Agenda.evento()">+ Evento</button>')}
   <div class="barra">${filtro('ag', 'modo', [['mes', 'Mes'], ['lista', 'Próximos 30 días']])}
     ${UI.ag.modo === 'mes' ? `<button class="btn ch" onclick="UI.ag.mes='${mover(-1)}';App.pintar()">‹</button><b style="min-width:130px;text-align:center">${may(MESES[m - 1])} ${y}</b><button class="btn ch" onclick="UI.ag.mes='${mover(1)}';App.pintar()">›</button>
-    <button class="btn ch" onclick="UI.ag.mes='${hoy.slice(0, 7)}';UI.ag.dia='${hoy}';App.pintar()">Hoy</button>` : ''}</div>${cuerpo}`;
+    <button class="btn ch" onclick="UI.ag.mes='${hoy.slice(0, 7)}';UI.ag.dia='${hoy}';App.pintar()">Hoy</button>` : ''}
+    <span class="esp"></span><span class="d">Mostrar:</span>${[['evento', 'Eventos'], ['actividad', 'Actividades'], ['entrega', 'Entregas'], ['cumple', 'Cumpleaños'], ['recordatorio', 'Recordatorios']].map(([k, n]) => `<label class="d" style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" ${UI.ag.ver[k] !== false ? 'checked' : ''} onchange="UI.ag.ver.${k}=this.checked;App.pintar()">${n}</label>`).join('')}</div>${cuerpo}`;
 };
 
 /* ==========================================================================
@@ -235,7 +243,7 @@ const Rec = {
     const r = id ? por('recordatorios', id) : null;
     Form.abrir({ titulo: r ? 'Editar recordatorio' : 'Nuevo recordatorio', valores: r || { fecha: fecha || hoyISO(), hora: '09:00', repetir: '' },
       campos: [{ k: 'texto', label: 'Recordarme', req: true }, { k: 'fecha', label: 'Fecha', tipo: 'date', req: true, medio: true }, { k: 'hora', label: 'Hora', tipo: 'time', medio: true }, { k: 'repetir', label: 'Repetición', tipo: 'select', opciones: this.REP }],
-      guardar: v => { poner('recordatorios', { id: r ? r.id : uid(), hecho: false, ...v, avisado: '' }); }, eliminar: r ? () => quitar('recordatorios', r.id) : null });
+      guardar: v => { poner('recordatorios', { id: r ? r.id : uid(), hecho: r ? r.hecho : false, ...v, avisado: '' }); }, eliminar: r ? () => quitar('recordatorios', r.id) : null });
   },
   hecho(id) {
     const r = por('recordatorios', id);
@@ -261,12 +269,13 @@ const Rec = {
 };
 Vistas.recordatorios = () => {
   const hoy = hoyISO(), ord = (a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || ''));
-  const grupos = [['Vencidos y de hoy', S.recordatorios.filter(r => !r.hecho && r.fecha <= hoy).sort(ord)], ['Próximos', S.recordatorios.filter(r => !r.hecho && r.fecha > hoy).sort(ord)], ['Hechos', S.recordatorios.filter(r => r.hecho).sort(ord).reverse().slice(0, 30)]];
+  const R = S.recordatorios.filter(r => coincide(UI.rec.q, r.texto));
+  const grupos = [['Vencidos y de hoy', R.filter(r => !r.hecho && r.fecha <= hoy).sort(ord)], ['Próximos', R.filter(r => !r.hecho && r.fecha > hoy).sort(ord)], ['Hechos', R.filter(r => r.hecho).sort(ord).reverse().slice(0, 30)]];
   const filas = grupos.filter(g => g[1].length).map(([t, l]) => `<tr class="grupo"><td colspan="5">${t} (${l.length})</td></tr>` + l.map(r => `<tr class="${r.hecho ? 'hecho' : ''}">
     <td style="width:30px"><input type="checkbox" ${r.hecho ? 'checked' : ''} onchange="Rec.hecho('${r.id}')" aria-label="Hecho"></td><td><span class="t" onclick="Rec.editar('${r.id}')">${esc(r.texto)}</span></td>
     <td class="nw">${fechaLim(r.fecha, r.hecho)}</td><td class="d nw">${esc(r.hora || '')}</td><td class="d nw">${esc((Rec.REP.find(x => x[0] === (r.repetir || '')) || ['', ''])[1])}</td></tr>`).join('')).join('');
   const sinPermiso = 'Notification' in window && Notification.permission !== 'granted';
-  return `${cab('Recordatorios', '', `${sinPermiso ? '<button class="btn" onclick="Rec.permiso()">Activar notificaciones</button>' : ''}<button class="btn pri" onclick="Rec.editar()">+ Recordatorio</button>`)}
-  <p class="d" style="margin-bottom:12px">Los avisos aparecen mientras la plataforma esté abierta en el navegador.</p>
+  return `${cab('Recordatorios', '', `${sinPermiso ? '<button class="btn" onclick="Rec.permiso()">Activar notificaciones</button>' : ''}${btnCarga('recordatorios')}<button class="btn pri" onclick="Rec.editar()">+ Recordatorio</button>`)}
+  <div class="barra">${campoBuscar('rec', 'rBuscar', 'Buscar recordatorio…')}<span class="d">Los avisos aparecen mientras la plataforma esté abierta en el navegador.</span></div>
   <div class="panel scrollx">${filas ? `<table class="lista"><thead><tr><th></th><th>Recordatorio</th><th>Fecha</th><th>Hora</th><th>Repetición</th></tr></thead><tbody>${filas}</tbody></table>` : vacio('Sin recordatorios', 'Crea uno con el botón “+ Recordatorio”.')}</div>`;
 };

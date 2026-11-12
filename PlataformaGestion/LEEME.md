@@ -1,4 +1,6 @@
-# Plataforma de Gestión — primera prueba (v0.1)
+# Nova Organización — prueba v0.2
+
+> *Evolución sin límites.*
 
 Aplicación en **un solo archivo HTML**, sin instalación ni servidor. Integra y mejora tus dos herramientas anteriores (AcadTrack y LinkManager) junto con proyectos, actividades, agenda, recordatorios, notas, cumpleaños y frases del día.
 
@@ -49,11 +51,20 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Respaldo completo `.json`**: incluye imágenes y ajustes; sirve para pasar los datos a otro equipo.
 - Importación de CSV (actividades escolares, accesos, actividades, cumpleaños) y de calendario `.ics`, con validación y aviso de filas omitidas.
 
+### Novedades de la v0.2
+- **Identidad Nova**: logotipo, barra lateral azul marino, acento azul/turquesa y detalle dorado. Todos los colores siguen siendo editables (Ajustes → Apariencia), con 6 temas y **tamaño general** de la interfaz (85 % a 125 %).
+- **Inicio configurable** (Ajustes → Inicio): orden de los bloques, visibilidad, tamaño (tercio, mitad, dos tercios, completo), número de filas y periodo. Agenda y Actividades van primero por defecto.
+- **Filtros**: en Inicio por ámbito y clasificación; en cada pantalla búsqueda de texto y filtros propios (prioridad, tipo, relación, tipo de elemento en Agenda). Los filtros elegidos se recuerdan.
+- **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
+- **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
+- **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
 ## 4. Lo que debes saber (límites de esta prueba)
 - **Los datos viven en el navegador y equipo donde la abras** (IndexedDB). No se sincronizan entre equipos: usa el respaldo `.json` para moverlos. Si borras los datos de navegación del sitio, se pierden → **descarga un respaldo cada semana**.
 - **Notas privadas**: cifrado AES-256; la contraseña no se guarda. **Si la olvidas no hay recuperación.** Sólo las notas privadas van cifradas; el resto no.
 - Los recordatorios avisan sólo con la plataforma abierta.
 - La importación `.ics` no expande eventos repetitivos (toma la primera fecha).
+- El historial de estatus empieza a registrarse desde esta versión; los cambios anteriores no existen.
 - La agenda de Teams en vivo no está incluida todavía (ver `docs/GUIA_AGENDA_TEAMS.md`).
 
 ## 5. Publicarla en Power Pages (siguiente paso)

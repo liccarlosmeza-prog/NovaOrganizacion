@@ -4,11 +4,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Plataforma de Gestión</title>
+<title>Nova Organización</title>
 <style>
 /* ===== Plataforma de Gestión — estilos (minimalista, basada en listas) ===== */
 :root{
-  --bg:#f6f7f9; --sup:#ffffff; --tx:#1a2230; --mut:#6b7686; --bd:#e3e7ee; --ac:#2f5fd0;
+  --bg:#F4F7FA; --sup:#ffffff; --tx:#0b2a4a; --mut:#5d6f84; --bd:#dde5ee; --ac:#0B84F3; --lat:#073763; --lat-tx:#ffffff; --oro:#E6A817; --z:1;
   --ac-s:color-mix(in srgb,var(--ac) 11%,var(--sup));
   --hover:color-mix(in srgb,var(--tx) 5%,transparent);
   --ok:#1f9d55; --warn:#c77700; --bad:#d23b3b;
@@ -16,26 +16,29 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;color:var(--tx);background:var(--bg);-webkit-font-smoothing:antialiased}
+body{font-family:Aptos,"Segoe UI",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;color:var(--tx);background:var(--bg);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:var(--ac);text-decoration:none}
 a:hover{text-decoration:underline}
 #fondo{position:fixed;inset:0;background-size:cover;background-position:center;pointer-events:none;z-index:0}
 
 /* ---------- Estructura ---------- */
-.app{position:relative;z-index:1;display:grid;grid-template-columns:208px minmax(0,1fr);height:100vh}
-.lat{background:var(--sup);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
-.marca{padding:20px 18px 14px;font-weight:700;font-size:15px;letter-spacing:-.01em}
-.marca small{display:block;font-weight:400;color:var(--mut);font-size:12px;margin-top:2px}
+.app{position:relative;z-index:1;display:grid;grid-template-columns:216px minmax(0,1fr);height:calc(100vh / var(--z))}
+.lat{background:var(--lat);color:var(--lat-tx);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
+.marca{display:flex;align-items:center;gap:10px;padding:18px 16px 14px}
+.marca svg{width:44px;height:44px;flex:none;border-radius:11px;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--lat-tx) 55%,transparent)}
+.marca b{display:block;font-weight:700;font-size:15px;letter-spacing:-.01em;line-height:1.2}
+.marca small{display:block;font-weight:400;color:color-mix(in srgb,var(--lat-tx) 70%,transparent);font-size:11.5px;margin-top:1px}
+.lat .regla{height:1px;margin:0 16px 8px;background:linear-gradient(90deg,var(--oro),transparent)}
 .lat nav{flex:1;overflow:auto;padding:4px 8px}
-.lat nav a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;color:var(--tx);text-decoration:none;margin-bottom:1px}
-.lat nav a:hover{background:var(--hover)}
-.lat nav a.on{background:var(--ac-s);color:var(--ac);font-weight:600}
-.lat nav a .n{margin-left:auto;font-size:11.5px;color:var(--mut);font-weight:500}
-.lat nav hr{border:0;border-top:1px solid var(--bd);margin:8px 6px}
-.lat .pie{padding:10px 18px;border-top:1px solid var(--bd);font-size:12px;color:var(--mut);display:flex;gap:6px;align-items:center}
-.lat .pie i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block}
-.lat .pie.pend i{background:var(--warn)}
+.lat nav a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;color:var(--lat-tx);text-decoration:none;margin-bottom:1px}
+.lat nav a:hover{background:color-mix(in srgb,var(--lat-tx) 10%,transparent)}
+.lat nav a.on{background:color-mix(in srgb,var(--lat-tx) 16%,transparent);font-weight:600;box-shadow:inset 3px 0 0 var(--oro)}
+.lat nav a .n{margin-left:auto;font-size:11.5px;color:color-mix(in srgb,var(--lat-tx) 70%,transparent);font-weight:500}
+.lat nav hr{border:0;border-top:1px solid color-mix(in srgb,var(--lat-tx) 18%,transparent);margin:8px 6px}
+.lat .pie{padding:10px 18px;border-top:1px solid color-mix(in srgb,var(--lat-tx) 18%,transparent);font-size:12px;color:color-mix(in srgb,var(--lat-tx) 70%,transparent);display:flex;gap:6px;align-items:center}
+.lat .pie i{width:7px;height:7px;border-radius:50%;background:#35d07f;display:inline-block}
+.lat .pie.pend i{background:var(--oro)}
 .pral{overflow:auto;min-width:0}
 .cont{max-width:1180px;margin:0 auto;padding:22px 28px 60px}
 .banda{height:96px;background-size:cover;background-position:center;border-bottom:1px solid var(--bd)}
@@ -103,7 +106,12 @@ table.lista{width:100%;border-collapse:collapse}
 .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .blq{background:var(--sup);border:1px solid var(--bd);border-radius:var(--r)}
 .blq h3{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);padding:11px 14px;border-bottom:1px solid var(--bd)}
-.blq h3 .lnk{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12.5px}
+.blq h3 .lnk{margin-left:12px;text-transform:none;letter-spacing:0;font-size:12.5px}
+.blq h3 .lnk:first-of-type{margin-left:auto}
+.blq h3 .ct{font-weight:500;text-transform:none;letter-spacing:0}
+.tab6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px;align-items:start}
+.blq .rap{padding:8px 10px;border-top:1px solid var(--bd)}
+.blq .rap input{width:100%}
 .filas{list-style:none}
 .filas li{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--bd);min-width:0}
 .filas li:last-child{border-bottom:0}
@@ -111,7 +119,9 @@ table.lista{width:100%;border-collapse:collapse}
 .filas .x{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .filas .x.clic{cursor:pointer}
 .filas .x.clic:hover{color:var(--ac)}
-.filas .m{color:var(--mut);font-size:12.5px;white-space:nowrap}
+.filas .x{flex:1 1 50%}
+.filas .m{color:var(--mut);font-size:12.5px;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.filas .m:last-child{flex:none}
 .frase{position:relative;border-radius:var(--r);border:1px solid var(--bd);background:var(--sup) center/cover;min-height:150px;display:flex;align-items:flex-end;margin-bottom:16px;overflow:hidden}
 .frase.img::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.62))}
 .frase .tx{position:relative;padding:18px 20px;max-width:760px}
@@ -212,18 +222,19 @@ table.lista{width:100%;border-collapse:collapse}
 .prev{height:70px;width:120px;border-radius:6px;border:1px solid var(--bd);background:var(--bg) center/cover}
 
 /* ---------- Modal / avisos ---------- */
-.velo{position:fixed;inset:0;background:rgba(10,15,25,.45);display:none;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:50;overflow:auto}
+.velo{position:fixed;inset:0;background:rgba(10,15,25,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
 .velo.on{display:flex}
-.caja{background:var(--sup);border:1px solid var(--bd);border-radius:10px;width:100%;max-width:560px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
-.form h2{font-size:16px;padding:16px 18px 4px}
-.campos{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 18px}
+.caja{background:var(--sup);border:1px solid var(--bd);border-radius:10px;width:100%;max-width:560px;max-height:calc(100vh / var(--z) - 32px);display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden}
+.form{display:flex;flex-direction:column;min-height:0;flex:1}
+.form h2{font-size:16px;padding:14px 18px 10px;border-bottom:1px solid var(--bd);flex:none}
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:14px 18px;overflow:auto;flex:1;min-height:0;align-content:start}
 .campo{grid-column:span 2;display:grid;gap:4px}
 .campo.medio{grid-column:span 1}
 .campo label{font-size:12.5px;font-weight:600;color:var(--mut)}
 .campo input:not([type=checkbox]):not([type=color]),.campo select,.campo textarea{width:100%}
 .campo small{color:var(--mut);font-size:12px}
 .campo .chk{display:flex;align-items:center;gap:8px;font-weight:400;color:var(--tx);font-size:14px}
-.acciones{display:flex;gap:8px;padding:12px 18px 16px;border-top:1px solid var(--bd)}
+.acciones{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--bd);flex:none;flex-wrap:wrap;background:var(--sup)}
 .cuerpo{padding:14px 18px}
 #visor{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:70;cursor:zoom-out}
 #visor.on{display:flex}
@@ -238,13 +249,15 @@ table.lista{width:100%;border-collapse:collapse}
   .lat{min-width:0}
   #avisos{left:14px;right:14px}
   .lat{border-right:0;border-bottom:1px solid var(--bd)}
-  .marca{padding:10px 14px 4px}
   .marca small,.lat .pie{display:none}
   .lat nav{display:flex;overflow-x:auto;padding:4px 8px 8px}
   .lat nav a{white-space:nowrap;margin:0 2px 0 0}
   .lat nav hr{display:none}
   .cont{padding:16px 14px 50px}
   .cols,.ag{grid-template-columns:1fr}
+  .tab6>*{grid-column:1/-1!important}
+  .marca{padding:10px 14px 6px}
+  .lat .regla{display:none}
   .nt{grid-template-columns:1fr;height:auto}
   .nt .izq{border-right:0;border-bottom:1px solid var(--bd);max-height:240px}
   .nt .der textarea{min-height:300px}
@@ -385,12 +398,28 @@ const Img = {
 
 /* ---------- Estado ---------- */
 const TEMAS = {
-  claro:  { nombre: 'Claro',      bg: '#f6f7f9', sup: '#ffffff', tx: '#1a2230', mut: '#6b7686', bd: '#e3e7ee', ac: '#2f5fd0' },
-  gris:   { nombre: 'Gris',       bg: '#eceef1', sup: '#f8f9fa', tx: '#22262c', mut: '#69717d', bd: '#d6dae0', ac: '#3d4f6b' },
-  arena:  { nombre: 'Arena',      bg: '#f6f3ee', sup: '#fffdfa', tx: '#2b2620', mut: '#7c7366', bd: '#e6dfd3', ac: '#9a5b2b' },
-  oscuro: { nombre: 'Oscuro',     bg: '#14171c', sup: '#1c2027', tx: '#e6e9ee', mut: '#8d96a5', bd: '#2c323c', ac: '#6a9bff' },
-  noche:  { nombre: 'Azul noche', bg: '#0f1626', sup: '#172033', tx: '#e3e8f2', mut: '#8a97b0', bd: '#27324a', ac: '#4fb3ff' }
+  nova:   { nombre: 'Nova',       bg: '#f4f7fa', sup: '#ffffff', tx: '#0b2a4a', mut: '#5d6f84', bd: '#dde5ee', ac: '#0b84f3', lat: '#073763', oro: '#e6a817' },
+  claro:  { nombre: 'Claro',      bg: '#f6f7f9', sup: '#ffffff', tx: '#1a2230', mut: '#6b7686', bd: '#e3e7ee', ac: '#2f5fd0', lat: '#ffffff', oro: '#2f5fd0' },
+  gris:   { nombre: 'Gris',       bg: '#eceef1', sup: '#f8f9fa', tx: '#22262c', mut: '#69717d', bd: '#d6dae0', ac: '#3d4f6b', lat: '#3d4f6b', oro: '#19c3c8' },
+  arena:  { nombre: 'Arena',      bg: '#f6f3ee', sup: '#fffdfa', tx: '#2b2620', mut: '#7c7366', bd: '#e6dfd3', ac: '#9a5b2b', lat: '#fffdfa', oro: '#9a5b2b' },
+  oscuro: { nombre: 'Oscuro',     bg: '#14171c', sup: '#1c2027', tx: '#e6e9ee', mut: '#8d96a5', bd: '#2c323c', ac: '#6a9bff', lat: '#1c2027', oro: '#e6a817' },
+  noche:  { nombre: 'Nova noche', bg: '#061a30', sup: '#0b2a4a', tx: '#e8eef6', mut: '#8ea3bd', bd: '#17406b', ac: '#19c3c8', lat: '#073763', oro: '#e6a817' }
 };
+const COLORES_TEMA = [['ac', 'Color de acento'], ['lat', 'Barra lateral'], ['oro', 'Detalle (línea y marcas)'], ['bg', 'Fondo'], ['sup', 'Superficies (paneles)'], ['tx', 'Texto'], ['mut', 'Texto secundario'], ['bd', 'Bordes']];
+/** Bloques de la pantalla de Inicio (el orden, tamaño y filas se editan en Ajustes → Inicio). */
+const WIDGETS = { frase: 'Frase del día', agenda: 'Agenda', actividades: 'Actividades por atender', entregas: 'Entregas escolares', proyectos: 'Proyectos activos', recordatorios: 'Recordatorios', cumples: 'Cumpleaños próximos', accesos: 'Accesos favoritos' };
+const inicioDefecto = () => [
+  { id: 'agenda', on: true, ancho: 3, filas: 12, dias: 1 }, { id: 'actividades', on: true, ancho: 3, filas: 12, dias: 7 },
+  { id: 'frase', on: true, ancho: 6, filas: 0 },
+  { id: 'entregas', on: true, ancho: 3, filas: 6, dias: 14 }, { id: 'proyectos', on: true, ancho: 3, filas: 6 },
+  { id: 'recordatorios', on: true, ancho: 2, filas: 5, dias: 7 }, { id: 'cumples', on: true, ancho: 2, filas: 5, dias: 30 }, { id: 'accesos', on: true, ancho: 2, filas: 8 }
+];
+const temaDe = id => { const { nombre, ...c } = TEMAS[id]; return c; };
+const esOscuro = hex => { const n = parseInt(String(hex).slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 140; };
+/** Logotipo Nova: infinito con barras de crecimiento. */
+const LOGO = `<svg viewBox="0 0 64 64" role="img" aria-label="Nova"><defs><linearGradient id="lgN" x1="0" x2="1"><stop offset="0" stop-color="#19C3C8"/><stop offset="1" stop-color="#0B84F3"/></linearGradient></defs>
+<rect width="64" height="64" rx="14" fill="#073763"/><path d="M32 32C26.5 22.5 11 22.5 11 32s15.5 9.5 21 0c5.500-9.500 21-9.500 21 0s-15.500 9.500-21 0z" fill="none" stroke="url(#lgN)" stroke-width="5.200" stroke-linecap="round"/>
+<rect x="38.600" y="32" width="2.600" height="4.500" rx=".6" fill="#0B84F3"/><rect x="42.300" y="29.500" width="2.600" height="7" rx=".6" fill="#0B84F3"/><rect x="46" y="27" width="2.600" height="9.500" rx=".6" fill="#0B84F3"/></svg>`;
 const AMBITOS = ['Trabajo', 'Escuela', 'Personal'];
 const PRIORIDADES = [['1', 'Urgente'], ['2', 'Alta'], ['3', 'Media'], ['4', 'Baja']];
 const EST_ESC = [['pendiente', 'Pendiente'], ['proceso', 'En proceso'], ['guardada', 'Guardada'], ['enviada', 'Enviada'], ['calificada', 'Calificada']];
@@ -400,7 +429,8 @@ const PALETA = ['#2f5fd0', '#7c3aed', '#0d9488', '#c77700', '#d23b3b', '#0ea5e9'
 function estadoVacio() {
   return {
     v: 1,
-    ajustes: { nombre: 'Plataforma de Gestión', usuario: '', temaId: 'claro', tema: { ...TEMAS.claro }, fondoImg: null, fondoOp: 14, bandaImg: null, metaEscolar: 60, avisoCumple: 7 },
+    ajustes: { nombre: 'Nova Organización', lema: 'Evolución sin límites.', usuario: '', temaId: 'nova', tema: temaDe('nova'), escala: 100, fondoImg: null, fondoOp: 14, bandaImg: null, metaEscolar: 60, avisoCumple: 7,
+               inicio: inicioDefecto(), inicioFiltro: { amb: '', cat: '' } },
     estatus: [
       { id: 'pend', nombre: 'Pendiente', color: '#64748b' }, { id: 'curso', nombre: 'En curso', color: '#2f5fd0' },
       { id: 'rev', nombre: 'En revisión', color: '#c77700' }, { id: 'pausa', nombre: 'En pausa', color: '#94a3b8' },
@@ -412,7 +442,7 @@ function estadoVacio() {
     ],
     proyectos: [], actividades: [], bitacora: [], notas: [], boveda: null, notasPriv: [],
     recordatorios: [], eventos: [], cumples: [], materias: [], escolares: [],
-    carpetas: [], enlaces: [], grupos: [], frases: []
+    carpetas: [], enlaces: [], grupos: [], frases: [], historial: []
   };
 }
 let S = estadoVacio();
@@ -433,14 +463,21 @@ function quitar(lista, id) { S[lista] = S[lista].filter(x => x.id !== id); guard
 const estFinal = id => !!(por('estatus', id) || {}).final;
 const idFinal = () => (S.estatus.find(e => e.final) || S.estatus[S.estatus.length - 1]).id;
 const idInicial = () => S.estatus[0].id;
+/** Bitácora automática de cambios de estatus (proyectos, actividades y actividades escolares). */
+function regEstatus(lista, o, antes, despues) {
+  if (antes === despues || !despues) return;
+  const nom = v => !v ? '' : lista === 'escolares' ? (EST_ESC.find(x => x[0] === v) || ['', v])[1] : (por('estatus', v) || { nombre: v }).nombre;
+  S.historial.push({ id: uid(), lista, ref: o.id, titulo: o.nombre || o.titulo || '', proyecto: lista === 'proyectos' ? o.id : (o.proyecto || ''), de: nom(antes), a: nom(despues), fecha: ahoraTxt() });
+  if (S.historial.length > 5000) S.historial.splice(0, S.historial.length - 5000);
+}
 
 /* ---------- Tema ---------- */
 function aplicarTema() {
   const t = S.ajustes.tema, r = document.documentElement.style;
-  for (const k of ['bg', 'sup', 'tx', 'mut', 'bd', 'ac']) r.setProperty('--' + k, t[k]);
-  // Detecta si el fondo es oscuro para que los controles nativos combinen
-  const n = parseInt(t.sup.slice(1), 16), luz = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255));
-  r.setProperty('color-scheme', luz < 128 ? 'dark' : 'light');
+  for (const [k] of COLORES_TEMA) r.setProperty('--' + k, t[k]);
+  r.setProperty('color-scheme', esOscuro(t.sup) ? 'dark' : 'light');   // para que los controles nativos combinen
+  r.setProperty('--lat-tx', esOscuro(t.lat) ? '#ffffff' : t.tx);
+  const z = (S.ajustes.escala || 100) / 100; r.setProperty('--z', z); document.body.style.zoom = z;
   const f = $('#fondo'), u = Img.url(S.ajustes.fondoImg);
   f.style.backgroundImage = u ? `url("${u}")` : 'none'; f.style.opacity = (S.ajustes.fondoOp || 14) / 100;
   document.title = S.ajustes.nombre;
@@ -452,7 +489,7 @@ function toast(msg, tipo = '') {
   const av = $('#avisos'); while (av.children.length >= 3) av.firstChild.remove(); av.appendChild(d); setTimeout(() => d.remove(), tipo === 'err' ? 5000 : 2600);
 }
 const Modal = {
-  abrir(html, ancho) { const c = $('#modal .caja'); c.style.maxWidth = (ancho || 560) + 'px'; c.innerHTML = html; $('#modal').classList.add('on'); },
+  abrir(html, ancho) { const c = $('#modal .caja'); c.style.maxWidth = (ancho || 620) + 'px'; c.innerHTML = html; $('#modal').classList.add('on'); },
   cerrar() { $('#modal').classList.remove('on'); $('#modal .caja').innerHTML = ''; }
 };
 let _siConfirma = null;
@@ -470,10 +507,10 @@ function verImagen(url) { $('#visor img').src = url; $('#visor').classList.add('
    tipo: text | textarea | date | time | number | select | color | check | url | password | imagen */
 const Form = {
   _c: null,
-  abrir({ titulo, campos, valores = {}, guardar, eliminar, ancho }) {
+  abrir({ titulo, campos, valores = {}, guardar, eliminar, ancho, nota = '' }) {
     this._c = { campos, guardar, eliminar };
     Modal.abrir(`<form class="form" onsubmit="Form.enviar(event)" novalidate>
-      <h2>${esc(titulo)}</h2><div class="campos">${campos.map(c => this._campo(c, valores[c.k] ?? c.def ?? '')).join('')}</div>
+      <h2>${esc(titulo)}</h2><div class="campos">${campos.map(c => this._campo(c, valores[c.k] ?? c.def ?? '')).join('')}${nota}</div>
       <div class="acciones">${eliminar ? '<button type="button" class="btn peligro" onclick="Form.borrar()">Eliminar</button>' : ''}<span class="esp"></span>
       <button type="button" class="btn" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri">Guardar</button></div></form>`, ancho);
     const primero = $('#modal input:not([type=checkbox]):not([type=file]), #modal textarea'); if (primero) primero.focus();
@@ -619,10 +656,11 @@ function urlSegura(u) {
 
 /** Filtros y pestañas activas de cada pantalla (no se guardan). */
 const UI = {
-  proy: { f: 'activos', amb: '', tab: 'actividades' },
-  act: { f: 'pendientes', proy: '', cat: '' },
-  esc: { tab: 'lista', mat: '', est: '', rango: 'mes', mes: hoyISO().slice(0, 7) },
-  ag: { mes: hoyISO().slice(0, 7), dia: hoyISO(), modo: 'mes' },
+  proy: { f: 'activos', amb: '', pri: '', q: '', tab: 'actividades' },
+  act: { f: 'pendientes', proy: '', cat: '', pri: '', q: '' },
+  esc: { tab: 'lista', mat: '', est: '', tipo: '', q: '', rango: 'mes', mes: hoyISO().slice(0, 7) },
+  ag: { mes: hoyISO().slice(0, 7), dia: hoyISO(), modo: 'mes', ver: { evento: true, actividad: true, entrega: true, cumple: true, recordatorio: true } },
+  rec: { q: '' }, cum: { q: '', rel: '' },
   notas: { f: 'todas', id: null, q: '' },
   acc: { f: 'todos', q: '', sel: new Set() },
   aj: { tab: 'apariencia' },
@@ -649,7 +687,7 @@ const App = {
   },
   pintar(arriba) {
     const c = this.contadores(), base = this.vista === 'proyecto' ? 'proyectos' : this.vista;
-    $('#lat').innerHTML = `<div class="marca">${esc(S.ajustes.nombre)}<small>${esc(may(fFechaLarga(hoyISO())))}</small></div>
+    $('#lat').innerHTML = `<div class="marca">${LOGO}<div><b>${esc(S.ajustes.nombre)}</b><small>${esc(S.ajustes.lema || '')}</small></div></div><div class="regla"></div>
       <nav>${this.NAV.map(n => n ? `<a href="#/${n[0]}" class="${n[0] === base ? 'on' : ''}">${esc(n[1])}${c[n[0]] ? `<span class="n">${c[n[0]]}</span>` : ''}</a>` : '<hr>').join('')}</nav>
       <div class="pie"><i></i><span>Guardado en este equipo</span></div>`;
     const banda = Img.url(S.ajustes.bandaImg);
@@ -657,6 +695,8 @@ const App = {
     pral.innerHTML = (banda ? `<div class="banda" style="background-image:url('${banda}')"></div>` : '') + `<div class="cont">${Vistas[this.vista]()}</div>`;
     pral.scrollTop = arriba ? 0 : y;
     const tl = $('#tl'); if (tl && tl.dataset.hoy) tl.scrollLeft = Math.max(0, +tl.dataset.hoy - 260);
+    // Recuerda los filtros elegidos (no el texto de búsqueda) para la próxima vez
+    try { localStorage.setItem('nova_ui', JSON.stringify(UI, (k, v) => (v instanceof Set || k === 'q' || k === 'id' || k === 'dia' || k === 'mes' || k === 'fraseSalto') ? undefined : v)); } catch (e) { /* sin almacenamiento */ }
   }
 };
 
@@ -668,7 +708,7 @@ const filtro = (obj, clave, opciones) => `<div class="fil">${opciones.map(([v, t
 const selEstatus = (lista, id, valor) => `<select onchange="cambiarEstatus('${lista}','${id}',this.value)" aria-label="Estatus">${S.estatus.map(e => `<option value="${e.id}" ${e.id === valor ? 'selected' : ''}>${esc(e.nombre)}</option>`).join('')}</select>`;
 const fechaLim = (iso, cerrada) => { if (!iso) return '<span class="mut">—</span>'; const n = difDias(hoyISO(), iso); return `<span class="${cerrada ? 'mut' : n < 0 ? 'rojo' : n <= 1 ? 'ambar' : ''}" title="${esc(fFecha(iso))}">${esc(fRel(iso))}</span>`; };
 function cambiarEstatus(lista, id, valor) {
-  const o = por(lista, id); if (!o) return; o.estatus = valor;
+  const o = por(lista, id); if (!o) return; regEstatus(lista, o, o.estatus, valor); o.estatus = valor;
   if (lista === 'actividades') o.completada = estFinal(valor) ? (o.completada || hoyISO()) : '';
   guardar(); App.pintar();
 }
@@ -682,36 +722,104 @@ function fraseDelDia() {
   return S.frases[(dia + UI.fraseSalto) % S.frases.length];
 }
 Vistas.inicio = () => {
-  const hoy = hoyISO(), f = fraseDelDia(), u = f ? Img.url(f.img) : '';
-  const hora = new Date().getHours(), saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
-  const agenda = Agenda.items(hoy);
-  const pend = S.actividades.filter(a => !estFinal(a.estatus) && a.limite && difDias(hoy, a.limite) <= 7).sort((a, b) => a.limite.localeCompare(b.limite)).slice(0, 8);
-  const entregas = S.escolares.filter(e => e.tipo !== 'Vacaciones' && !['enviada', 'calificada'].includes(e.estatus) && e.entrega && difDias(hoy, e.entrega) <= 14).sort((a, b) => a.entrega.localeCompare(b.entrega)).slice(0, 8);
-  const cumples = Cumples.proximos().filter(c => c.faltan <= 30).slice(0, 6);
-  const favs = S.enlaces.filter(l => l.fav).slice(0, 12);
-  const proys = S.proyectos.filter(p => !estFinal(p.estatus)).slice(0, 6);
-  const li = (h, x, m, clic) => `<li><span class="h">${esc(h)}</span><span class="x ${clic ? 'clic' : ''}" ${clic ? `onclick="${clic}"` : ''}>${x}</span><span class="m">${m}</span></li>`;
+  const hoy = hoyISO(), f = S.ajustes.inicioFiltro, hora = new Date().getHours(), saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+  const bloques = S.ajustes.inicio.filter(w => w.on && WIDGETS[w.id]).map(w => {
+    if (w.id === 'frase') return `<div style="grid-column:span ${w.ancho}">${Ini.frase()}</div>`;
+    const r = Ini[w.id](w);
+    return `<section class="blq" style="grid-column:span ${w.ancho}"><h3>${esc(r.t)}${r.n != null ? `<span class="ct">${r.n}</span>` : ''}${r.extra || ''}<a class="lnk" href="#/${r.ir}">Ver todo</a></h3>${r.h}${r.pie || ''}</section>`;
+  }).join('');
   return `${cab(`${saludo}${S.ajustes.usuario ? ', ' + S.ajustes.usuario : ''}`, may(fFechaLarga(hoy)))}
-  ${f ? `<section class="frase ${u ? 'img' : ''}" ${u ? `style="background-image:url('${u}')"` : ''}>
+  <div class="barra"><div class="fil">${[['', 'Todo'], ...AMBITOS.map(a => [a, a])].map(([v, t]) => `<button class="${f.amb === v ? 'on' : ''}" onclick="Ini.set('amb','${v}')">${t}</button>`).join('')}</div>
+    <select onchange="Ini.set('cat',this.value)" aria-label="Clasificación"><option value="">Todas las clasificaciones</option>${S.categorias.map(c => `<option value="${c.id}" ${f.cat === c.id ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select>
+    ${f.amb || f.cat ? '<button class="lnk gris" onclick="Ini.limpiar()">Quitar filtros</button>' : ''}<span class="esp"></span>
+    <button class="lnk" onclick="UI.aj.tab='inicio';App.ir('ajustes')">Personalizar inicio</button></div>
+  <div class="tab6">${bloques || vacio('Inicio sin bloques', 'Activa bloques en Ajustes → Inicio.')}</div>`;
+};
+
+/** Bloques de Inicio. Cada uno recibe su configuración (filas, días) y respeta los filtros de la barra superior. */
+const ambAct = a => { const p = a.proyecto && por('proyectos', a.proyecto); return p ? (p.ambito || 'Trabajo') : 'Trabajo'; };
+const Ini = {
+  set(k, v) { S.ajustes.inicioFiltro[k] = v; guardar(); App.pintar(); },
+  limpiar() { S.ajustes.inicioFiltro = { amb: '', cat: '' }; guardar(); App.pintar(); },
+  amb(a) { const f = S.ajustes.inicioFiltro.amb; return !f || !a || a === f; },
+  cat(c) { const f = S.ajustes.inicioFiltro.cat; return !f || c === f; },
+  lista: (filas, tv, dv) => filas ? `<ul class="filas">${filas}</ul>` : vacio(tv, dv || ''),
+  frase() {
+    const f = fraseDelDia(), u = f ? Img.url(f.img) : '';
+    return f ? `<section class="frase ${u ? 'img' : ''}" style="margin:0;${u ? `background-image:url('${u}')` : ''}">
       <div class="ctl">${S.frases.length > 1 ? '<button class="lnk" onclick="UI.fraseSalto++;App.pintar()">Otra</button>' : ''}<a class="lnk" href="#/frases">Administrar</a></div>
       <div class="tx">${f.texto ? `<p>${esc(f.texto)}</p>` : ''}${f.autor ? `<span>— ${esc(f.autor)}</span>` : ''}</div></section>`
-     : `<section class="frase"><div class="tx"><p>Agrega tus frases del día</p><span>Sube imágenes o textos y verás uno diferente cada día. <a href="#/frases">Agregar</a></span></div></section>`}
-  <div class="cols">
-    <section class="blq"><h3>Agenda de hoy <a class="lnk" href="#/agenda">Ver agenda</a></h3>
-      ${agenda.length ? `<ul class="filas">${agenda.map(i => li(i.hora || '', punto(i.color) + esc(i.titulo), esc(i.tipo))).join('')}</ul>` : vacio('Sin eventos hoy', '')}</section>
-    <section class="blq"><h3>Actividades por atender <a class="lnk" href="#/actividades">Ver todas</a></h3>
-      ${pend.length ? `<ul class="filas">${pend.map(a => `<li><input type="checkbox" title="Marcar como terminada" onchange="cambiarEstatus('actividades','${a.id}','${idFinal()}')">
-        <span class="x clic" onclick="Act.editar('${a.id}')">${esc(a.titulo)}</span><span class="m">${esc(Act.origen(a))}</span><span class="m">${fechaLim(a.limite)}</span></li>`).join('')}</ul>` : vacio('Nada urgente', 'No hay actividades que venzan en los próximos 7 días.')}</section>
-    <section class="blq"><h3>Entregas escolares (14 días) <a class="lnk" href="#/escuela">Ver escuela</a></h3>
-      ${entregas.length ? `<ul class="filas">${entregas.map(e => { const m = por('materias', e.materia) || {}; return `<li>${punto(m.color)}<span class="x clic" onclick="Esc.editar('${e.id}')">${esc(e.titulo)}</span><span class="m">${esc(m.nombre || '')}${e.valor ? ' · ' + e.valor + ' pts' : ''}</span><span class="m">${fechaLim(e.entrega)}</span></li>`; }).join('')}</ul>` : vacio('Sin entregas próximas', '')}</section>
-    <section class="blq"><h3>Proyectos activos <a class="lnk" href="#/proyectos">Ver proyectos</a></h3>
-      ${proys.length ? `<ul class="filas">${proys.map(p => { const e = por('estatus', p.estatus) || {}; return `<li><span class="x clic" onclick="App.ir('proyecto','${p.id}')">${esc(p.nombre)}</span><span class="m">${punto(e.color)}${esc(e.nombre || '')}</span><span class="m">${Proy.avance(p)}%</span></li>`; }).join('')}</ul>` : vacio('Sin proyectos activos', '')}</section>
-    <section class="blq"><h3>Cumpleaños próximos <a class="lnk" href="#/cumples">Ver todos</a></h3>
-      ${cumples.length ? `<ul class="filas">${cumples.map(c => li(fFecha(c.fecha), esc(c.nombre) + (c.edad ? ` <span class="mut">· cumple ${c.edad}</span>` : ''), c.faltan === 0 ? '<b class="rojo">Hoy</b>' : `en ${c.faltan} día${c.faltan === 1 ? '' : 's'}`)).join('')}</ul>` : vacio('Sin cumpleaños en 30 días', '')}</section>
-    <section class="blq"><h3>Accesos favoritos <a class="lnk" href="#/accesos">Administrar</a></h3>
-      ${favs.length ? `<ul class="filas">${favs.map(l => `<li><span class="x"><a href="${esc(urlSegura(l.url))}" target="_blank" rel="noopener noreferrer">${esc(l.nombre)}</a></span><span class="m">${esc(Acc.host(l.url))}</span></li>`).join('')}</ul>` : vacio('Sin favoritos', 'Marca con ★ tus accesos directos.')}</section>
-  </div>`;
+      : `<section class="frase" style="margin:0;min-height:90px"><div class="tx"><p>Agrega tus frases del día</p><span>Sube imágenes o textos y verás uno diferente cada día. <a href="#/frases">Agregar</a></span></div></section>`;
+  },
+  agenda(c) {
+    const dias = c.dias || 1, hoy = hoyISO(); let filas = '', n = 0, total = 0;
+    for (let i = 0; i < dias; i++) {
+      const iso = sumaDias(hoy, i);
+      for (const x of Agenda.items(iso).filter(x => this.amb(x.amb) && (x.clase !== 'actividad' || this.cat(x.cat)))) {
+        total++; if (n >= c.filas) continue; n++;
+        filas += `<li><span class="h" style="width:${dias > 1 ? 104 : 46}px">${esc(dias > 1 ? (i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : fFecha(iso)) + (x.hora ? ' · ' + x.hora : '') : x.hora)}</span><span class="x clic" onclick="${x.clic}">${punto(x.color)}${esc(x.titulo)}</span><span class="m">${esc(x.tipo)}</span></li>`;
+      }
+    }
+    return { t: dias > 1 ? `Agenda · ${dias} días` : 'Agenda de hoy', n: total, ir: 'agenda', h: this.lista(filas, 'Sin eventos', dias > 1 ? '' : 'No hay nada programado para hoy.'), extra: '<button class="lnk" onclick="UI.ag.dia=hoyISO();Agenda.evento()">+ Evento</button>' };
+  },
+  actividades(c) {
+    const hoy = hoyISO();
+    const l = S.actividades.filter(a => !estFinal(a.estatus) && this.amb(ambAct(a)) && this.cat(a.categoria) && (!c.dias || (a.limite && difDias(hoy, a.limite) <= c.dias))).sort(Act.orden);
+    const filas = l.slice(0, c.filas).map(a => `<li><input type="checkbox" title="Marcar como terminada" onchange="cambiarEstatus('actividades','${a.id}','${idFinal()}')">
+      <span class="x clic" onclick="Act.editar('${a.id}')">${esc(a.titulo)}</span><span class="m">${esc(Act.origen(a))}</span><span class="m">${fechaLim(a.limite)}</span></li>`).join('');
+    return { t: c.dias ? `Actividades · vencen en ${c.dias} días` : 'Actividades pendientes', n: l.length, ir: 'actividades', h: this.lista(filas, 'Nada por atender', c.dias ? `Sin actividades que venzan en ${c.dias} días.` : ''),
+      pie: `<div class="rap"><input type="text" id="rapida" placeholder="Agregar actividad… (Enter)" onkeydown="if(event.key==='Enter')Act.rapida(this.value,'')"></div>` };
+  },
+  entregas(c) {
+    const hoy = hoyISO(), ok = this.amb('Escuela');
+    const l = !ok ? [] : S.escolares.filter(e => e.tipo !== 'Vacaciones' && !['enviada', 'calificada'].includes(e.estatus) && e.entrega && difDias(hoy, e.entrega) <= (c.dias || 14)).sort((a, b) => a.entrega.localeCompare(b.entrega));
+    const filas = l.slice(0, c.filas).map(e => { const m = por('materias', e.materia) || {}; return `<li>${punto(m.color)}<span class="x clic" onclick="Esc.editar('${e.id}')">${esc(e.titulo)}</span><span class="m">${esc(m.nombre || '')}${e.valor ? ' · ' + e.valor + ' pts' : ''}</span><span class="m">${fechaLim(e.entrega)}</span></li>`; }).join('');
+    return { t: `Entregas escolares · ${c.dias || 14} días`, n: l.length, ir: 'escuela', h: this.lista(filas, ok ? 'Sin entregas próximas' : 'Oculto por el filtro de ámbito') };
+  },
+  proyectos(c) {
+    const l = S.proyectos.filter(p => !estFinal(p.estatus) && this.amb(p.ambito)).sort((a, b) => (a.prioridad || '3').localeCompare(b.prioridad || '3'));
+    const filas = l.slice(0, c.filas).map(p => { const e = por('estatus', p.estatus) || {}; return `<li><span class="x clic" onclick="App.ir('proyecto','${p.id}')">${esc(p.nombre)}</span><span class="m">${punto(e.color)}${esc(e.nombre || '')}</span><span class="m">${Proy.avance(p)}%</span><span class="m">${fechaLim(p.objetivo)}</span></li>`; }).join('');
+    return { t: 'Proyectos activos', n: l.length, ir: 'proyectos', h: this.lista(filas, 'Sin proyectos activos') };
+  },
+  recordatorios(c) {
+    const lim = sumaDias(hoyISO(), c.dias || 7);
+    const l = S.recordatorios.filter(r => !r.hecho && r.fecha <= lim).sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
+    const filas = l.slice(0, c.filas).map(r => `<li><input type="checkbox" title="Hecho" onchange="Rec.hecho('${r.id}')"><span class="x clic" onclick="Rec.editar('${r.id}')">${esc(r.texto)}</span><span class="m">${fechaLim(r.fecha)} ${esc(r.hora || '')}</span></li>`).join('');
+    return { t: 'Recordatorios', n: l.length, ir: 'recordatorios', h: this.lista(filas, 'Sin recordatorios próximos'), extra: '<button class="lnk" onclick="Rec.editar()">+ Nuevo</button>' };
+  },
+  cumples(c) {
+    const l = this.amb('Personal') ? Cumples.proximos().filter(x => x.faltan <= (c.dias || 30)) : [];
+    const filas = l.slice(0, c.filas).map(x => `<li><span class="h" style="width:52px">${esc(fFecha(x.fecha))}</span><span class="x clic" onclick="Cumples.editar('${x.id}')">${esc(x.nombre)}${x.edad ? ` <span class="mut">· cumple ${x.edad}</span>` : ''}</span><span class="m">${x.faltan === 0 ? '<b class="rojo">Hoy</b>' : `en ${x.faltan} día${x.faltan === 1 ? '' : 's'}`}</span></li>`).join('');
+    return { t: 'Cumpleaños próximos', n: l.length, ir: 'cumples', h: this.lista(filas, 'Sin cumpleaños próximos') };
+  },
+  accesos(c) {
+    const filas = S.enlaces.filter(l => l.fav).slice(0, c.filas).map(l => `<li><span class="x"><a href="${esc(urlSegura(l.url))}" target="_blank" rel="noopener noreferrer">${esc(l.nombre)}</a></span><span class="m">${esc(Acc.host(l.url))}</span></li>`).join('');
+    return { t: 'Accesos favoritos', ir: 'accesos', h: this.lista(filas, 'Sin favoritos', 'Marca con ★ tus accesos directos.') };
+  }
 };
+
+/** Historial de cambios de estatus. */
+const Hist = {
+  tabla(l) {
+    return l.length ? `<table class="lista"><thead><tr><th>Fecha y hora</th><th>Registro</th><th>Tipo</th><th>Cambio</th></tr></thead><tbody>${l.map(h => `<tr><td class="d nw">${esc(h.fecha)}</td><td>${esc(h.titulo)}</td>
+      <td class="d nw">${{ proyectos: 'Proyecto', actividades: 'Actividad', escolares: 'Escolar' }[h.lista] || ''}</td><td class="nw"><span class="mut">${esc(h.de || 'Nuevo')}</span> → <b>${esc(h.a)}</b></td></tr>`).join('')}</tbody></table>`
+      : vacio('Sin cambios registrados', 'Aquí aparecerá cada cambio de estatus con su fecha y hora.');
+  },
+  ver(lista) {
+    const l = S.historial.filter(h => !lista || h.lista === lista).reverse().slice(0, 400);
+    Modal.abrir(`<div class="form"><h2>Historial de cambios de estatus</h2><div class="campos" style="display:block;padding:0">${this.tabla(l)}</div>
+      <div class="acciones"><span class="d">${l.length} cambio(s)</span><span class="esp"></span><button class="btn" onclick="Datos.exportarUna('historial_estatus.csv')">Descargar CSV</button><button class="btn pri" onclick="Modal.cerrar()">Cerrar</button></div></div>`, 760);
+  },
+  /** Resumen para mostrar dentro del formulario de un registro. */
+  de(ref) {
+    const l = S.historial.filter(h => h.ref === ref).reverse();
+    return l.length ? `<div class="campo"><label>Historial de estatus</label><div class="d">${l.slice(0, 12).map(h => `${esc(h.fecha)} · ${esc(h.de || 'Nuevo')} → <b>${esc(h.a)}</b>`).join('<br>')}</div></div>` : '';
+  }
+};
+const btnCarga = tipo => `<button class="btn" onclick="Carga.abrir('${tipo}')">Carga masiva</button>`;
+const btnHist = lista => `<button class="btn" onclick="Hist.ver('${lista}')">Historial</button>`;
+const campoBuscar = (obj, id, ph) => `<input type="search" id="${id}" placeholder="${ph}" value="${esc(UI[obj].q)}" oninput="buscar('${obj}',this.value,'${id}')" style="width:220px">`;
+const coincide = (q, ...textos) => !q || textos.join(' ').toLowerCase().includes(q.toLowerCase());
 
 /* ==========================================================================
    PROYECTOS
@@ -732,12 +840,12 @@ const Proy = {
   ],
   nuevo() {
     Form.abrir({ titulo: 'Nuevo proyecto', campos: this.campos(), valores: { ambito: 'Trabajo', estatus: idInicial(), inicio: hoyISO() },
-      guardar: v => { if (v.inicio && v.objetivo && v.objetivo < v.inicio) return 'La fecha objetivo no puede ser anterior al inicio'; poner('proyectos', { id: uid(), creado: hoyISO(), ...v }); toast('Proyecto creado'); } });
+      guardar: v => { if (v.inicio && v.objetivo && v.objetivo < v.inicio) return 'La fecha objetivo no puede ser anterior al inicio'; const p = { id: uid(), creado: hoyISO(), ...v }; regEstatus('proyectos', p, '', p.estatus); poner('proyectos', p); toast('Proyecto creado'); } });
   },
   editar(id) {
     const p = por('proyectos', id);
-    Form.abrir({ titulo: 'Editar proyecto', campos: this.campos(), valores: p,
-      guardar: v => { if (v.inicio && v.objetivo && v.objetivo < v.inicio) return 'La fecha objetivo no puede ser anterior al inicio'; poner('proyectos', { ...p, ...v }); },
+    Form.abrir({ titulo: 'Editar proyecto', campos: this.campos(), valores: p, nota: Hist.de(id),
+      guardar: v => { if (v.inicio && v.objetivo && v.objetivo < v.inicio) return 'La fecha objetivo no puede ser anterior al inicio'; regEstatus('proyectos', p, p.estatus, v.estatus); poner('proyectos', { ...p, ...v }); },
       eliminar: async () => {
         for (const b of S.bitacora.filter(b => b.proyecto === id)) for (const i of b.imgs || []) await Img.quitar(i);
         S.bitacora = S.bitacora.filter(b => b.proyecto !== id);
@@ -750,14 +858,18 @@ const Proy = {
 Vistas.proyectos = () => {
   let l = S.proyectos.filter(p => UI.proy.f === 'todos' ? true : UI.proy.f === 'activos' ? !estFinal(p.estatus) : estFinal(p.estatus));
   if (UI.proy.amb) l = l.filter(p => p.ambito === UI.proy.amb);
+  if (UI.proy.pri) l = l.filter(p => (p.prioridad || '3') === UI.proy.pri);
+  l = l.filter(p => coincide(UI.proy.q, p.nombre, p.descripcion, p.asignadoPor));
   l.sort((a, b) => (a.prioridad || '3').localeCompare(b.prioridad || '3') || (a.objetivo || '9').localeCompare(b.objetivo || '9'));
-  return `${cab('Proyectos', `${S.proyectos.filter(p => !estFinal(p.estatus)).length} activos de ${S.proyectos.length}`, '<button class="btn pri" onclick="Proy.nuevo()">+ Proyecto</button>')}
+  return `${cab('Proyectos', `${S.proyectos.filter(p => !estFinal(p.estatus)).length} activos de ${S.proyectos.length}`, btnHist('proyectos') + btnCarga('proyectos') + '<button class="btn pri" onclick="Proy.nuevo()">+ Proyecto</button>')}
   <div class="barra">${filtro('proy', 'f', [['activos', 'Activos'], ['terminados', 'Terminados'], ['todos', 'Todos']])}
-    <select onchange="UI.proy.amb=this.value;App.pintar()"><option value="">Todos los ámbitos</option>${AMBITOS.map(a => `<option ${UI.proy.amb === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
-  <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Proyecto</th><th>Ámbito</th><th>Estatus</th><th>Avance</th><th class="num">Actividades</th><th>Fecha objetivo</th><th>Asignado por</th></tr></thead><tbody>
+    <select onchange="UI.proy.amb=this.value;App.pintar()"><option value="">Todos los ámbitos</option>${AMBITOS.map(a => `<option ${UI.proy.amb === a ? 'selected' : ''}>${a}</option>`).join('')}</select>
+    <select onchange="UI.proy.pri=this.value;App.pintar()"><option value="">Todas las prioridades</option>${PRIORIDADES.map(([v, t]) => `<option value="${v}" ${UI.proy.pri === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
+    ${campoBuscar('proy', 'pBuscar', 'Buscar proyecto…')}<span class="d">${l.length} resultado(s)</span></div>
+  <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Proyecto</th><th>Ámbito</th><th>Prioridad</th><th>Estatus</th><th>Avance</th><th class="num">Actividades</th><th>Fecha objetivo</th><th>Asignado por</th></tr></thead><tbody>
     ${l.map(p => { const a = Proy.acts(p), h = a.filter(x => estFinal(x.estatus)).length, av = Proy.avance(p), e = por('estatus', p.estatus) || {};
       return `<tr><td><div class="t" onclick="App.ir('proyecto','${p.id}')">${esc(p.nombre)}</div>${p.descripcion ? `<div class="d">${esc(p.descripcion.slice(0, 90))}</div>` : ''}</td>
-      <td class="nw">${esc(p.ambito || '')}</td><td class="nw">${punto(e.color)}${selEstatus('proyectos', p.id, p.estatus)}</td>
+      <td class="nw">${esc(p.ambito || '')}</td><td class="nw d">${esc((PRIORIDADES.find(x => x[0] === (p.prioridad || '3')) || ['', ''])[1])}</td><td class="nw">${punto(e.color)}${selEstatus('proyectos', p.id, p.estatus)}</td>
       <td><div class="av"><div><i style="width:${av}%"></i></div><span>${av}%</span></div></td><td class="num">${h} / ${a.length}</td>
       <td class="nw">${fechaLim(p.objetivo, estFinal(p.estatus))}</td><td class="nw d">${esc(p.asignadoPor || '—')}</td></tr>`; }).join('')}
     </tbody></table>` : vacio('Sin proyectos en esta vista', 'Crea uno con el botón “+ Proyecto”.')}</div>`;
@@ -780,6 +892,7 @@ Vistas.proyecto = () => {
       ${bit.length ? `<ul class="bit">${bit.map(b => `<li><div class="mt"><span class="et ac">${esc(b.tipo)}</span><span>${esc(fFecha(b.fecha.slice(0, 10)))} · ${esc(b.fecha.slice(11, 16))}</span><span class="esp"></span>
         <button class="lnk gris" onclick="Bit.editar('${b.id}')">Editar</button><button class="lnk gris" onclick="Bit.borrar('${b.id}')">Eliminar</button></div>
         <div class="tx">${esc(b.texto)}</div>${(b.imgs || []).length ? `<div class="minis">${b.imgs.map(i => `<img src="${Img.url(i)}" alt="Imagen de bitácora" onclick="verImagen(this.src)">`).join('')}</div>` : ''}</li>`).join('')}</ul>` : vacio('Bitácora vacía', 'Registra aquí tus avances, decisiones y acuerdos de revisión.')}</div>`;
+  else if (tab === 'historial') cuerpo = `<div class="panel scrollx">${Hist.tabla(S.historial.filter(h => h.proyecto === p.id).reverse())}</div>`;
   else cuerpo = `<div class="barra"><button class="btn" onclick="Notas.nueva('${p.id}')">+ Nota del proyecto</button></div>
       <div class="panel">${notas.length ? `<ul class="filas">${notas.map(n => `<li><span class="x clic" onclick="UI.notas.id='${n.id}';UI.notas.f='todas';App.ir('notas')">${esc(n.titulo || 'Sin título')}</span><span class="m">${esc((n.texto || '').slice(0, 70))}</span><span class="m">${esc(fFecha((n.actualizado || '').slice(0, 10)))}</span></li>`).join('')}</ul>` : vacio('Sin notas ligadas', 'Puedes crear una aquí o clasificar una nota general desde “Notas”.')}</div>`;
   return `<div class="miga"><a href="#/proyectos">Proyectos</a> / ${esc(p.ambito || '')}</div>
@@ -790,7 +903,7 @@ Vistas.proyecto = () => {
     <span class="d">Inicio: <b>${esc(fFecha(p.inicio) || '—')}</b></span><span class="d">Objetivo: <b>${p.objetivo ? esc(fFecha(p.objetivo)) : '—'}</b> ${p.objetivo && !estFinal(p.estatus) && fRel(p.objetivo) !== fFecha(p.objetivo) ? '(' + fechaLim(p.objetivo) + ')' : ''}</span>
     <span class="d">Asignado por: <b>${esc(p.asignadoPor || '—')}</b></span></div>
     ${p.descripcion ? `<div style="margin-top:8px;white-space:pre-wrap">${esc(p.descripcion)}</div>` : ''}</div>
-  <div class="tabs">${[['actividades', `Actividades (${acts.length})`], ['bitacora', `Bitácora (${bit.length})`], ['notas', `Notas (${notas.length})`]].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" onclick="UI.proy.tab='${k}';App.pintar()">${t}</button>`).join('')}</div>
+  <div class="tabs">${[['actividades', `Actividades (${acts.length})`], ['bitacora', `Bitácora (${bit.length})`], ['notas', `Notas (${notas.length})`], ['historial', 'Historial de estatus']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" onclick="UI.proy.tab='${k}';App.pintar()">${t}</button>`).join('')}</div>
   ${cuerpo}`;
 };
 
@@ -837,17 +950,19 @@ const Act = {
   _validar: v => (v.inicio && v.limite && v.limite < v.inicio) ? 'La fecha límite no puede ser anterior al inicio' : null,
   nueva(proyecto = '') {
     Form.abrir({ titulo: 'Nueva actividad', campos: this.campos(), valores: { proyecto, estatus: idInicial(), prioridad: '3' },
-      guardar: v => { const er = this._validar(v); if (er) return er; poner('actividades', { id: uid(), creado: hoyISO(), completada: estFinal(v.estatus) ? hoyISO() : '', ...v }); } });
+      guardar: v => { const er = this._validar(v); if (er) return er; const a = { id: uid(), creado: hoyISO(), completada: estFinal(v.estatus) ? hoyISO() : '', ...v }; regEstatus('actividades', a, '', a.estatus); poner('actividades', a); } });
   },
   editar(id) {
     const a = por('actividades', id);
-    Form.abrir({ titulo: 'Editar actividad', campos: this.campos(), valores: a,
-      guardar: v => { const er = this._validar(v); if (er) return er; poner('actividades', { ...a, ...v, completada: estFinal(v.estatus) ? (a.completada || hoyISO()) : '' }); },
+    Form.abrir({ titulo: 'Editar actividad', campos: this.campos(), valores: a, nota: Hist.de(id),
+      guardar: v => { const er = this._validar(v); if (er) return er; regEstatus('actividades', { ...a, ...v }, a.estatus, v.estatus); poner('actividades', { ...a, ...v, completada: estFinal(v.estatus) ? (a.completada || hoyISO()) : '' }); },
       eliminar: () => quitar('actividades', id) });
   },
   rapida(titulo, proyecto = '') {
     titulo = titulo.trim(); if (!titulo) return;
-    poner('actividades', { id: uid(), creado: hoyISO(), titulo, proyecto, categoria: UI.act.cat || '', estatus: idInicial(), prioridad: '3', inicio: '', limite: '', hora: '', horas: null, detalle: '', checklist: '', completada: '' });
+    const cat = (App.vista === 'inicio' ? S.ajustes.inicioFiltro.cat : UI.act.cat) || '';
+    const nueva = { id: uid(), creado: hoyISO(), titulo, proyecto, categoria: cat === '-' ? '' : cat, estatus: idInicial(), prioridad: '3', inicio: '', limite: '', hora: '', horas: null, detalle: '', checklist: '', completada: '' };
+    regEstatus('actividades', nueva, '', nueva.estatus); poner('actividades', nueva);
     App.pintar(); const i = $('#rapida'); if (i) i.focus();
   },
   alternar(id, marcado) { cambiarEstatus('actividades', id, marcado ? idFinal() : idInicial()); },
@@ -874,13 +989,17 @@ Vistas.actividades = () => {
   });
   if (UI.act.proy === '-') l = l.filter(a => !a.proyecto); else if (UI.act.proy) l = l.filter(a => a.proyecto === UI.act.proy);
   if (UI.act.cat === '-') l = l.filter(a => !a.categoria); else if (UI.act.cat) l = l.filter(a => a.categoria === UI.act.cat);
+  if (UI.act.pri) l = l.filter(a => (a.prioridad || '3') === UI.act.pri);
+  l = l.filter(a => coincide(UI.act.q, a.titulo, a.detalle, Act.origen(a)));
   l.sort(Act.orden);
   const proyRapida = UI.act.proy && UI.act.proy !== '-' ? UI.act.proy : '';
-  return `${cab('Actividades', `${S.actividades.filter(a => !estFinal(a.estatus)).length} pendientes`, '<button class="btn pri" onclick="Act.nueva()">+ Actividad</button>')}
+  return `${cab('Actividades', `${S.actividades.filter(a => !estFinal(a.estatus)).length} pendientes`, btnHist('actividades') + btnCarga('actividades') + '<button class="btn pri" onclick="Act.nueva()">+ Actividad</button>')}
   <div class="barra">${filtro('act', 'f', [['pendientes', 'Pendientes'], ['hoy', 'Hoy'], ['semana', '7 días'], ['vencidas', 'Vencidas'], ['terminadas', 'Terminadas'], ['todas', 'Todas']])}
     <select onchange="UI.act.proy=this.value;App.pintar()"><option value="">Proyectos y área</option><option value="-" ${UI.act.proy === '-' ? 'selected' : ''}>Sólo actividades del área</option>${S.proyectos.map(p => `<option value="${p.id}" ${UI.act.proy === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
-    <select onchange="UI.act.cat=this.value;App.pintar()"><option value="">Todas las clasificaciones</option><option value="-" ${UI.act.cat === '-' ? 'selected' : ''}>Sin clasificar</option>${S.categorias.map(c => `<option value="${c.id}" ${UI.act.cat === c.id ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select></div>
-  <div class="barra"><input type="text" id="rapida" placeholder="Agregar actividad rápida… (Enter)" style="flex:1;max-width:560px" onkeydown="if(event.key==='Enter')Act.rapida(this.value,'${proyRapida}')"></div>
+    <select onchange="UI.act.cat=this.value;App.pintar()"><option value="">Todas las clasificaciones</option><option value="-" ${UI.act.cat === '-' ? 'selected' : ''}>Sin clasificar</option>${S.categorias.map(c => `<option value="${c.id}" ${UI.act.cat === c.id ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select>
+    <select onchange="UI.act.pri=this.value;App.pintar()"><option value="">Todas las prioridades</option>${PRIORIDADES.map(([v, t]) => `<option value="${v}" ${UI.act.pri === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+  <div class="barra"><input type="text" id="rapida" placeholder="Agregar actividad rápida… (Enter)" style="flex:1;max-width:460px" onkeydown="if(event.key==='Enter')Act.rapida(this.value,'${proyRapida}')">
+    ${campoBuscar('act', 'acBuscar', 'Buscar actividad…')}<span class="d">${l.length} resultado(s)</span></div>
   <div class="panel scrollx">${Act.tabla(l)}</div>`;
 };
 
@@ -911,18 +1030,19 @@ const Esc = {
   nueva() {
     if (!S.materias.length) { toast('Primero registra una materia'); UI.esc.tab = 'materias'; App.pintar(); return this.materia(); }
     Form.abrir({ titulo: 'Nueva actividad escolar', campos: this.campos(), valores: { materia: UI.esc.mat || S.materias[0].id, tipo: 'Buzón', estatus: 'pendiente', inicio: hoyISO(), valor: 0 },
-      guardar: v => { const er = this._validar(v); if (er) return er; poner('escolares', { id: uid(), ...v }); } });
+      guardar: v => { const er = this._validar(v); if (er) return er; const e = { id: uid(), ...v }; regEstatus('escolares', e, '', e.estatus); poner('escolares', e); } });
   },
   editar(id) {
     const e = por('escolares', id);
-    Form.abrir({ titulo: 'Editar actividad escolar', campos: this.campos(), valores: e,
-      guardar: v => { const er = this._validar(v); if (er) return er; poner('escolares', { ...e, ...v }); }, eliminar: () => quitar('escolares', id) });
+    Form.abrir({ titulo: 'Editar actividad escolar', campos: this.campos(), valores: e, nota: Hist.de(id),
+      guardar: v => { const er = this._validar(v); if (er) return er; regEstatus('escolares', e, e.estatus, v.estatus); poner('escolares', { ...e, ...v }); }, eliminar: () => quitar('escolares', id) });
   },
-  estado(id, v) { const e = por('escolares', id); e.estatus = v; if (v !== 'calificada') e.calif = null; guardar(); App.pintar(); },
+  estado(id, v) { const e = por('escolares', id); regEstatus('escolares', e, e.estatus, v); e.estatus = v; if (v !== 'calificada') e.calif = null; guardar(); App.pintar(); },
   calificar(id, txt) {
     const e = por('escolares', id), n = txt === '' ? null : Number(txt);
     if (n != null && (isNaN(n) || n < 0 || n > (e.valor || 0))) { toast(`La calificación debe estar entre 0 y ${e.valor || 0}`, 'err'); App.pintar(); return; }
-    e.calif = n; if (n != null) e.estatus = 'calificada'; else if (e.estatus === 'calificada') e.estatus = 'enviada';
+    const antes = e.estatus; e.calif = n; if (n != null) e.estatus = 'calificada'; else if (e.estatus === 'calificada') e.estatus = 'enviada';
+    regEstatus('escolares', e, antes, e.estatus);
     guardar(); App.pintar();
   },
   materia(id) {
@@ -949,7 +1069,7 @@ Vistas.escuela = () => {
   const t = UI.esc.tab;
   const selMat = `<select onchange="UI.esc.mat=this.value;App.pintar()"><option value="">Todas las materias</option>${S.materias.map(m => `<option value="${m.id}" ${UI.esc.mat === m.id ? 'selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
   const cuerpo = t === 'lista' ? escLista(selMat) : t === 'tiempo' ? escTiempo(selMat) : t === 'eval' ? escEval(selMat) : escMaterias();
-  return `${cab('Escuela', `${S.materias.length} materias · ${S.escolares.filter(e => e.tipo !== 'Vacaciones').length} actividades`, '<button class="btn" onclick="Esc.materia()">+ Materia</button><button class="btn pri" onclick="Esc.nueva()">+ Actividad</button>')}
+  return `${cab('Escuela', `${S.materias.length} materias · ${S.escolares.filter(e => e.tipo !== 'Vacaciones').length} actividades`, btnHist('escolares') + btnCarga(t === 'materias' ? 'materias' : 'escolares') + '<button class="btn" onclick="Esc.materia()">+ Materia</button><button class="btn pri" onclick="Esc.nueva()">+ Actividad</button>')}
   <div class="tabs">${[['lista', 'Actividades'], ['tiempo', 'Línea de tiempo'], ['eval', 'Evaluación'], ['materias', 'Materias']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.esc.tab='${k}';App.pintar()">${n}</button>`).join('')}</div>${cuerpo}`;
 };
 
@@ -957,8 +1077,12 @@ function escLista(selMat) {
   let l = S.escolares.filter(e => (!UI.esc.mat || e.materia === UI.esc.mat));
   const f = UI.esc.est;
   if (f === 'abiertas') l = l.filter(e => ['pendiente', 'proceso', 'guardada'].includes(e.estatus) && e.tipo !== 'Vacaciones'); else if (f) l = l.filter(e => e.estatus === f);
+  if (UI.esc.tipo) l = l.filter(e => e.tipo === UI.esc.tipo);
+  l = l.filter(e => coincide(UI.esc.q, e.titulo, e.comentario, (por('materias', e.materia) || {}).nombre));
   l.sort((a, b) => (a.entrega || '').localeCompare(b.entrega || ''));
-  return `<div class="barra">${selMat}<select onchange="UI.esc.est=this.value;App.pintar()"><option value="">Todos los estados</option><option value="abiertas" ${f === 'abiertas' ? 'selected' : ''}>Por entregar</option>${EST_ESC.map(([k, n]) => `<option value="${k}" ${f === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+  return `<div class="barra">${selMat}<select onchange="UI.esc.est=this.value;App.pintar()"><option value="">Todos los estados</option><option value="abiertas" ${f === 'abiertas' ? 'selected' : ''}>Por entregar</option>${EST_ESC.map(([k, n]) => `<option value="${k}" ${f === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
+    <select onchange="UI.esc.tipo=this.value;App.pintar()"><option value="">Todos los tipos</option>${TIPOS_ESC.map(x => `<option ${UI.esc.tipo === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
+    ${campoBuscar('esc', 'eBuscar', 'Buscar actividad…')}<span class="d">${l.length} resultado(s) · ${r1(l.reduce((s, e) => s + (e.valor || 0), 0))} pts</span></div>
   <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Actividad</th><th>Materia</th><th>Tipo</th><th class="num">Valor</th><th>Inicio</th><th>Entrega</th><th>Estado</th><th class="num">Calificación</th></tr></thead><tbody>
     ${l.map(e => { const m = por('materias', e.materia) || {}, cerr = ['enviada', 'calificada'].includes(e.estatus) || e.tipo === 'Vacaciones';
       return `<tr class="${cerr && e.tipo !== 'Vacaciones' ? 'hecho' : ''}"><td><span class="t" onclick="Esc.editar('${e.id}')">${esc(e.titulo)}</span></td><td class="nw">${punto(m.color)}${esc(m.nombre || '')}</td><td class="d nw">${esc(e.tipo || '')}</td>
@@ -1052,15 +1176,17 @@ function escMaterias() {
 const Agenda = {
   TIPOS: ['Reunión', 'Revisión', 'Clase', 'Personal', 'Otro'],
   /** Todo lo que ocurre en un día: eventos, actividades, entregas, cumpleaños y recordatorios. */
-  items(iso) {
-    const [, m, d] = iso.split('-').map(Number), r = [];
-    for (const e of S.eventos) if (e.fecha === iso) r.push({ hora: e.horaIni || '', titulo: e.titulo + (e.lugar ? ' · ' + e.lugar : ''), tipo: e.tipo || 'Evento', color: 'var(--ac)', clic: `Agenda.evento('${e.id}')`, peso: 1 });
-    for (const a of S.actividades) if (a.limite === iso && !estFinal(a.estatus)) r.push({ hora: a.hora || '', titulo: a.titulo, tipo: 'Actividad', color: (por('estatus', a.estatus) || {}).color, clic: `Act.editar('${a.id}')`, peso: 1 });
-    for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ hora: '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
-    for (const c of S.cumples) if (c.dia === d && c.mes === m) r.push({ hora: '', titulo: 'Cumpleaños de ' + c.nombre, tipo: 'Cumpleaños', color: '#db2777', clic: `Cumples.editar('${c.id}')`, peso: 0 });
-    for (const x of S.recordatorios) if (!x.hecho && Rec.ocurre(x, iso)) r.push({ hora: x.hora || '', titulo: x.texto, tipo: 'Recordatorio', color: '#c77700', clic: `Rec.editar('${x.id}')`, peso: 0 });
+  items(iso, todo) {
+    const [, m, d] = iso.split('-').map(Number), r = [], ambP = id => (por('proyectos', id) || {}).ambito;
+    for (const e of S.eventos) if (e.fecha === iso) r.push({ clase: 'evento', amb: e.tipo === 'Personal' ? 'Personal' : e.tipo === 'Clase' ? 'Escuela' : (ambP(e.proyecto) || 'Trabajo'), hora: e.horaIni || '', titulo: e.titulo + (e.lugar ? ' · ' + e.lugar : ''), tipo: e.tipo || 'Evento', color: 'var(--ac)', clic: `Agenda.evento('${e.id}')`, peso: 1 });
+    for (const a of S.actividades) if (a.limite === iso && !estFinal(a.estatus)) r.push({ clase: 'actividad', amb: ambAct(a), cat: a.categoria || '', hora: a.hora || '', titulo: a.titulo, tipo: 'Actividad', color: (por('estatus', a.estatus) || {}).color, clic: `Act.editar('${a.id}')`, peso: 1 });
+    for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ clase: 'entrega', amb: 'Escuela', hora: '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
+    for (const c of S.cumples) if (c.dia === d && c.mes === m) r.push({ clase: 'cumple', amb: 'Personal', hora: '', titulo: 'Cumpleaños de ' + c.nombre, tipo: 'Cumpleaños', color: '#db2777', clic: `Cumples.editar('${c.id}')`, peso: 0 });
+    for (const x of S.recordatorios) if (!x.hecho && Rec.ocurre(x, iso)) r.push({ clase: 'recordatorio', amb: '', hora: x.hora || '', titulo: x.texto, tipo: 'Recordatorio', color: 'var(--oro)', clic: `Rec.editar('${x.id}')`, peso: 0 });
     return r.sort((a, b) => (a.hora || '00:00').localeCompare(b.hora || '00:00'));
   },
+  /** Igual que items(), pero respetando las casillas "Mostrar" de la pantalla Agenda. */
+  visibles(iso) { return this.items(iso).filter(x => UI.ag.ver[x.clase] !== false); },
   campos: () => [
     { k: 'titulo', label: 'Evento', req: true }, { k: 'fecha', label: 'Fecha', tipo: 'date', req: true, medio: true }, { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: Agenda.TIPOS, medio: true },
     { k: 'horaIni', label: 'Hora de inicio', tipo: 'time', medio: true }, { k: 'horaFin', label: 'Hora de fin', tipo: 'time', medio: true },
@@ -1084,12 +1210,12 @@ Vistas.agenda = () => {
     const semanas = Math.ceil((desfase + new Date(y, m, 0).getDate()) / 7);
     let celdas = '';
     for (let i = 0; i < semanas * 7; i++) {
-      const iso = sumaDias(ini, i), its = Agenda.items(iso), peso = its.reduce((s, x) => s + x.peso, 0);
+      const iso = sumaDias(ini, i), its = Agenda.visibles(iso), peso = its.reduce((s, x) => s + x.peso, 0);
       const tinte = peso >= 5 ? 'color-mix(in srgb,var(--bad) 16%,transparent)' : peso >= 3 ? 'color-mix(in srgb,var(--warn) 15%,transparent)' : '';
       celdas += `<div class="c ${iso.slice(0, 7) !== UI.ag.mes ? 'fuera' : ''} ${iso === hoy ? 'hoy' : ''} ${iso === UI.ag.dia ? 'sel' : ''}" style="${tinte ? 'background:' + tinte : ''}" onclick="UI.ag.dia='${iso}';App.pintar()">
         <span class="nd">${deISO(iso).getDate()}</span>${its.slice(0, 3).map(x => `<div class="it">${punto(x.color)}${esc((x.hora ? x.hora + ' ' : '') + x.titulo)}</div>`).join('')}${its.length > 3 ? `<div class="mas">+${its.length - 3} más</div>` : ''}</div>`;
     }
-    const sel = Agenda.items(UI.ag.dia);
+    const sel = Agenda.visibles(UI.ag.dia);
     cuerpo = `<div class="ag"><div><div class="mes">${['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => `<div class="dn">${d}</div>`).join('')}${celdas}</div>
       <div class="ley"><span>Carga del día:</span><span><i style="background:color-mix(in srgb,var(--warn) 30%,transparent)"></i>3–4 pendientes</span><span><i style="background:color-mix(in srgb,var(--bad) 30%,transparent)"></i>5 o más</span></div></div>
       <section class="blq"><h3 style="text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--tx)"><span>${esc(may(fFechaLarga(UI.ag.dia)))}</span></h3>
@@ -1097,13 +1223,14 @@ Vistas.agenda = () => {
         <div class="barra" style="padding:10px 14px;margin:0;border-top:1px solid var(--bd)"><button class="btn ch" onclick="Agenda.evento()">+ Evento</button><button class="btn ch" onclick="Rec.editar(null,'${UI.ag.dia}')">+ Recordatorio</button></div></section></div>`;
   } else {
     let filas = '';
-    for (let i = 0; i < 30; i++) { const iso = sumaDias(hoy, i), its = Agenda.items(iso); if (its.length) filas += `<tr class="grupo"><td colspan="3">${esc(may(fFechaLarga(iso)))}${i === 0 ? ' · hoy' : ''}</td></tr>` + its.map(x => `<tr><td class="d nw" style="width:70px">${esc(x.hora || '—')}</td><td>${punto(x.color)}<span class="t" onclick="${x.clic}">${esc(x.titulo)}</span></td><td class="d nw">${esc(x.tipo)}</td></tr>`).join(''); }
+    for (let i = 0; i < 30; i++) { const iso = sumaDias(hoy, i), its = Agenda.visibles(iso); if (its.length) filas += `<tr class="grupo"><td colspan="3">${esc(may(fFechaLarga(iso)))}${i === 0 ? ' · hoy' : ''}</td></tr>` + its.map(x => `<tr><td class="d nw" style="width:70px">${esc(x.hora || '—')}</td><td>${punto(x.color)}<span class="t" onclick="${x.clic}">${esc(x.titulo)}</span></td><td class="d nw">${esc(x.tipo)}</td></tr>`).join(''); }
     cuerpo = `<div class="panel scrollx">${filas ? `<table class="lista"><tbody>${filas}</tbody></table>` : vacio('Sin eventos en los próximos 30 días', '')}</div>`;
   }
-  return `${cab('Agenda', '', '<button class="btn" onclick="Datos.elegir(\'ics\')">Importar .ics</button><button class="btn pri" onclick="Agenda.evento()">+ Evento</button>')}
+  return `${cab('Agenda', '', btnCarga('eventos') + '<button class="btn pri" onclick="Agenda.evento()">+ Evento</button>')}
   <div class="barra">${filtro('ag', 'modo', [['mes', 'Mes'], ['lista', 'Próximos 30 días']])}
     ${UI.ag.modo === 'mes' ? `<button class="btn ch" onclick="UI.ag.mes='${mover(-1)}';App.pintar()">‹</button><b style="min-width:130px;text-align:center">${may(MESES[m - 1])} ${y}</b><button class="btn ch" onclick="UI.ag.mes='${mover(1)}';App.pintar()">›</button>
-    <button class="btn ch" onclick="UI.ag.mes='${hoy.slice(0, 7)}';UI.ag.dia='${hoy}';App.pintar()">Hoy</button>` : ''}</div>${cuerpo}`;
+    <button class="btn ch" onclick="UI.ag.mes='${hoy.slice(0, 7)}';UI.ag.dia='${hoy}';App.pintar()">Hoy</button>` : ''}
+    <span class="esp"></span><span class="d">Mostrar:</span>${[['evento', 'Eventos'], ['actividad', 'Actividades'], ['entrega', 'Entregas'], ['cumple', 'Cumpleaños'], ['recordatorio', 'Recordatorios']].map(([k, n]) => `<label class="d" style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" ${UI.ag.ver[k] !== false ? 'checked' : ''} onchange="UI.ag.ver.${k}=this.checked;App.pintar()">${n}</label>`).join('')}</div>${cuerpo}`;
 };
 
 /* ==========================================================================
@@ -1122,7 +1249,7 @@ const Rec = {
     const r = id ? por('recordatorios', id) : null;
     Form.abrir({ titulo: r ? 'Editar recordatorio' : 'Nuevo recordatorio', valores: r || { fecha: fecha || hoyISO(), hora: '09:00', repetir: '' },
       campos: [{ k: 'texto', label: 'Recordarme', req: true }, { k: 'fecha', label: 'Fecha', tipo: 'date', req: true, medio: true }, { k: 'hora', label: 'Hora', tipo: 'time', medio: true }, { k: 'repetir', label: 'Repetición', tipo: 'select', opciones: this.REP }],
-      guardar: v => { poner('recordatorios', { id: r ? r.id : uid(), hecho: false, ...v, avisado: '' }); }, eliminar: r ? () => quitar('recordatorios', r.id) : null });
+      guardar: v => { poner('recordatorios', { id: r ? r.id : uid(), hecho: r ? r.hecho : false, ...v, avisado: '' }); }, eliminar: r ? () => quitar('recordatorios', r.id) : null });
   },
   hecho(id) {
     const r = por('recordatorios', id);
@@ -1148,13 +1275,14 @@ const Rec = {
 };
 Vistas.recordatorios = () => {
   const hoy = hoyISO(), ord = (a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || ''));
-  const grupos = [['Vencidos y de hoy', S.recordatorios.filter(r => !r.hecho && r.fecha <= hoy).sort(ord)], ['Próximos', S.recordatorios.filter(r => !r.hecho && r.fecha > hoy).sort(ord)], ['Hechos', S.recordatorios.filter(r => r.hecho).sort(ord).reverse().slice(0, 30)]];
+  const R = S.recordatorios.filter(r => coincide(UI.rec.q, r.texto));
+  const grupos = [['Vencidos y de hoy', R.filter(r => !r.hecho && r.fecha <= hoy).sort(ord)], ['Próximos', R.filter(r => !r.hecho && r.fecha > hoy).sort(ord)], ['Hechos', R.filter(r => r.hecho).sort(ord).reverse().slice(0, 30)]];
   const filas = grupos.filter(g => g[1].length).map(([t, l]) => `<tr class="grupo"><td colspan="5">${t} (${l.length})</td></tr>` + l.map(r => `<tr class="${r.hecho ? 'hecho' : ''}">
     <td style="width:30px"><input type="checkbox" ${r.hecho ? 'checked' : ''} onchange="Rec.hecho('${r.id}')" aria-label="Hecho"></td><td><span class="t" onclick="Rec.editar('${r.id}')">${esc(r.texto)}</span></td>
     <td class="nw">${fechaLim(r.fecha, r.hecho)}</td><td class="d nw">${esc(r.hora || '')}</td><td class="d nw">${esc((Rec.REP.find(x => x[0] === (r.repetir || '')) || ['', ''])[1])}</td></tr>`).join('')).join('');
   const sinPermiso = 'Notification' in window && Notification.permission !== 'granted';
-  return `${cab('Recordatorios', '', `${sinPermiso ? '<button class="btn" onclick="Rec.permiso()">Activar notificaciones</button>' : ''}<button class="btn pri" onclick="Rec.editar()">+ Recordatorio</button>`)}
-  <p class="d" style="margin-bottom:12px">Los avisos aparecen mientras la plataforma esté abierta en el navegador.</p>
+  return `${cab('Recordatorios', '', `${sinPermiso ? '<button class="btn" onclick="Rec.permiso()">Activar notificaciones</button>' : ''}${btnCarga('recordatorios')}<button class="btn pri" onclick="Rec.editar()">+ Recordatorio</button>`)}
+  <div class="barra">${campoBuscar('rec', 'rBuscar', 'Buscar recordatorio…')}<span class="d">Los avisos aparecen mientras la plataforma esté abierta en el navegador.</span></div>
   <div class="panel scrollx">${filas ? `<table class="lista"><thead><tr><th></th><th>Recordatorio</th><th>Fecha</th><th>Hora</th><th>Repetición</th></tr></thead><tbody>${filas}</tbody></table>` : vacio('Sin recordatorios', 'Crea uno con el botón “+ Recordatorio”.')}</div>`;
 };
 
@@ -1231,7 +1359,7 @@ Vistas.notas = () => {
   const filtros = `<div class="barra">${filtro('notas', 'f', [['todas', 'Todas'], ['sin', 'Sin clasificar'], ['priv', 'Privadas']])}
     <select onchange="UI.notas.f=this.value||'todas';UI.notas.id=null;App.pintar()"><option value="">Por proyecto…</option>${S.proyectos.map(p => `<option value="${p.id}" ${UI.notas.f === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
     ${priv && Boveda.abierta() ? '<button class="btn" onclick="Notas.bloquear()">Bloquear ahora</button>' : ''}</div>`;
-  const encabezado = cab('Notas', `${S.notas.length} notas · ${S.notas.filter(n => !n.proyecto).length} sin clasificar · ${S.notasPriv.length} privadas`, (!priv || Boveda.abierta()) ? '<button class="btn pri" onclick="Notas.nueva()">+ Nota</button>' : '');
+  const encabezado = cab('Notas', `${S.notas.length} notas · ${S.notas.filter(n => !n.proyecto).length} sin clasificar · ${S.notasPriv.length} privadas`, (priv ? '' : btnCarga('notas')) + ((!priv || Boveda.abierta()) ? '<button class="btn pri" onclick="Notas.nueva()">+ Nota</button>' : ''));
   // --- Estados de la bóveda ---
   if (priv && !Boveda.disponible()) return encabezado + filtros + `<div class="panel">${vacio('Cifrado no disponible', 'Abre la plataforma con https:// o desde un archivo local en un navegador actualizado para usar notas privadas.')}</div>`;
   if (priv && !S.boveda) return encabezado + filtros + `<div class="panel" style="max-width:520px"><div class="cuerpo">
@@ -1302,7 +1430,7 @@ Vistas.accesos = () => {
   if (q) l = l.filter(x => (x.nombre + ' ' + x.url + ' ' + (x.tags || '') + ' ' + (x.desc || '')).toLowerCase().includes(q));
   l.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const n = UI.acc.sel.size, carp = S.carpetas.find(c => c.id === f);
-  return `${cab('Accesos directos', `${S.enlaces.length} accesos · ${S.enlaces.filter(x => x.fav).length} favoritos`, '<button class="btn" onclick="Acc.carpeta()">+ Carpeta</button><button class="btn pri" onclick="Acc.editar()">+ Acceso</button>')}
+  return `${cab('Accesos directos', `${S.enlaces.length} accesos · ${S.enlaces.filter(x => x.fav).length} favoritos`, btnCarga('enlaces') + '<button class="btn" onclick="Acc.carpeta()">+ Carpeta</button><button class="btn pri" onclick="Acc.editar()">+ Acceso</button>')}
   <div class="barra"><input type="search" id="aBuscar" placeholder="Buscar por nombre, dirección o etiqueta…" style="width:300px" value="${esc(UI.acc.q)}" oninput="buscar('acc',this.value,'aBuscar')">
     <select onchange="UI.acc.f=this.value;App.pintar()"><option value="todos">Todas las carpetas</option><option value="fav" ${f === 'fav' ? 'selected' : ''}>★ Favoritos</option><option value="sin" ${f === 'sin' ? 'selected' : ''}>Sin carpeta</option>
       ${S.carpetas.map(c => `<option value="${c.id}" ${f === c.id ? 'selected' : ''}>${esc(c.nombre)} (${S.enlaces.filter(x => x.carpeta === c.id).length})</option>`).join('')}</select>
@@ -1341,8 +1469,10 @@ const Cumples = {
   }
 };
 Vistas.cumples = () => {
-  const l = Cumples.proximos();
-  return `${cab('Cumpleaños', `${l.length} personas · ${l.filter(c => c.faltan <= 30).length} en los próximos 30 días`, '<button class="btn pri" onclick="Cumples.editar()">+ Cumpleaños</button>')}
+  const todos = Cumples.proximos(), rels = [...new Set(S.cumples.map(c => c.relacion).filter(Boolean))].sort();
+  const l = todos.filter(c => (!UI.cum.rel || c.relacion === UI.cum.rel) && coincide(UI.cum.q, c.nombre, c.nota, c.relacion));
+  return `${cab('Cumpleaños', `${todos.length} personas · ${todos.filter(c => c.faltan <= 30).length} en los próximos 30 días`, btnCarga('cumples') + '<button class="btn pri" onclick="Cumples.editar()">+ Cumpleaños</button>')}
+  <div class="barra">${campoBuscar('cum', 'cBuscar', 'Buscar persona…')}<select onchange="UI.cum.rel=this.value;App.pintar()"><option value="">Todas las relaciones</option>${rels.map(r => `<option ${UI.cum.rel === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>
   <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Nombre</th><th>Fecha</th><th>Faltan</th><th>Cumple</th><th>Relación</th><th>Notas</th></tr></thead><tbody>
     ${l.map(c => `<tr><td><span class="t" onclick="Cumples.editar('${c.id}')">${esc(c.nombre)}</span></td><td class="nw">${c.dia} de ${MESES[c.mes - 1]}</td>
       <td class="nw ${c.faltan === 0 ? 'rojo' : c.faltan <= 7 ? 'ambar' : ''}">${c.faltan === 0 ? '<b>Hoy</b>' : c.faltan === 1 ? 'Mañana' : c.faltan + ' días'}</td>
@@ -1377,7 +1507,7 @@ const Frases = {
 Vistas.frases = () => {
   const hoy = fraseDelDia();
   return `${cab('Frases del día', `${S.frases.length} cargadas · se muestra una distinta cada día en Inicio`,
-    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button><button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
+    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button>' + btnCarga('frases') + '<button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
   <div class="panel scrollx">${S.frases.length ? `<table class="lista"><thead><tr><th style="width:110px">Imagen</th><th>Frase</th><th>Autor</th><th></th></tr></thead><tbody>
     ${S.frases.map(f => `<tr><td>${f.img ? `<img src="${Img.url(f.img)}" alt="" style="height:48px;width:86px;object-fit:cover;border-radius:5px;display:block;cursor:zoom-in" onclick="verImagen(this.src)">` : '<span class="mut">—</span>'}</td>
       <td><span class="t" onclick="Frases.editar('${f.id}')">${esc(f.texto || '(sólo imagen)')}</span></td><td class="d">${esc(f.autor || '')}</td><td class="num">${hoy && hoy.id === f.id ? '<span class="et ac">Hoy</span>' : ''}</td></tr>`).join('')}</tbody></table>`
@@ -1390,9 +1520,14 @@ Vistas.frases = () => {
    AJUSTES (apariencia, catálogos, seguridad) + DATOS (exportar, importar, respaldo)
    ========================================================================== */
 const Aj = {
-  texto(k, v) { S.ajustes[k] = v.trim() || (k === 'nombre' ? 'Plataforma de Gestión' : ''); guardar(); aplicarTema(); App.pintar(); },
+  texto(k, v) { S.ajustes[k] = v.trim() || (k === 'nombre' ? 'Nova Organización' : ''); guardar(); aplicarTema(); App.pintar(); },
   numero(k, v, min, max) { const n = Math.min(max, Math.max(min, Number(v) || min)); S.ajustes[k] = n; guardar(); aplicarTema(); },
-  preset(id) { const { nombre, ...c } = TEMAS[id]; S.ajustes.temaId = id; S.ajustes.tema = { ...c }; guardar(); aplicarTema(); App.pintar(); },
+  preset(id) { S.ajustes.temaId = id; S.ajustes.tema = temaDe(id); guardar(); aplicarTema(); App.pintar(); },
+  escala(v) { S.ajustes.escala = Number(v); guardar(); aplicarTema(); App.pintar(); },
+  /* --- Bloques de Inicio: orden, tamaño, filas y periodo --- */
+  wMover(i, d) { const l = S.ajustes.inicio, j = i + d; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; guardar(); App.pintar(); },
+  wSet(i, k, v) { S.ajustes.inicio[i][k] = k === 'on' ? v : Number(v); guardar(); App.pintar(); },
+  wRestablecer() { S.ajustes.inicio = inicioDefecto(); guardar(); App.pintar(); toast('Inicio restablecido'); },
   color(k, v) { S.ajustes.tema[k] = v; S.ajustes.temaId = 'personal'; guardar(); aplicarTema(); App.pintar(); },
   async imagen(campo, input) {
     const a = input.files[0]; if (!a) return;
@@ -1441,16 +1576,28 @@ Vistas.ajustes = () => {
   if (t === 'apariencia') cuerpo = `
     <section class="blq"><h3>General</h3><div class="cu">
       <div class="reng"><label for="ajNombre">Nombre de la plataforma</label><input type="text" id="ajNombre" value="${esc(a.nombre)}" onchange="Aj.texto('nombre',this.value)" style="width:280px"></div>
-      <div class="reng"><label for="ajUsuario">Tu nombre (para el saludo)</label><input type="text" id="ajUsuario" value="${esc(a.usuario)}" onchange="Aj.texto('usuario',this.value)" style="width:280px"></div></div></section>
+      <div class="reng"><label for="ajLema">Lema</label><input type="text" id="ajLema" value="${esc(a.lema || '')}" onchange="Aj.texto('lema',this.value)" style="width:280px"></div>
+      <div class="reng"><label for="ajUsuario">Tu nombre (para el saludo)</label><input type="text" id="ajUsuario" value="${esc(a.usuario)}" onchange="Aj.texto('usuario',this.value)" style="width:280px"></div>
+      <div class="reng"><label for="ajEscala">Tamaño general</label><select id="ajEscala" onchange="Aj.escala(this.value)">${[[85, 'Compacto (85 %)'], [92, 'Reducido (92 %)'], [100, 'Normal (100 %)'], [110, 'Grande (110 %)'], [125, 'Muy grande (125 %)']].map(([v, t]) => `<option value="${v}" ${(a.escala || 100) === v ? 'selected' : ''}>${t}</option>`).join('')}</select><span class="d">Cambia el tamaño de textos, filas y controles de toda la plataforma.</span></div></div></section>
     <section class="blq"><h3>Colores</h3><div class="cu">
-      <div class="reng"><label>Tema</label><div class="pres">${Object.entries(TEMAS).map(([id, x]) => `<button class="${a.temaId === id ? 'on' : ''}" onclick="Aj.preset('${id}')"><i style="background:${x.bg}"></i><i style="background:${x.ac}"></i>${x.nombre}</button>`).join('')}
+      <div class="reng"><label>Tema</label><div class="pres">${Object.entries(TEMAS).map(([id, x]) => `<button class="${a.temaId === id ? 'on' : ''}" onclick="Aj.preset('${id}')"><i style="background:${x.lat}"></i><i style="background:${x.ac}"></i><i style="background:${x.oro}"></i>${x.nombre}</button>`).join('')}
         ${a.temaId === 'personal' ? '<button class="on">Personalizado</button>' : ''}</div></div>
-      ${[['ac', 'Color de acento'], ['bg', 'Fondo'], ['sup', 'Superficies (paneles)'], ['tx', 'Texto'], ['mut', 'Texto secundario'], ['bd', 'Bordes']].map(([k, n]) => `<div class="reng"><label for="c_${k}">${n}</label><input type="color" id="c_${k}" value="${esc(a.tema[k])}" onchange="Aj.color('${k}',this.value)"><span class="d">${esc(a.tema[k])}</span></div>`).join('')}</div></section>
+      ${COLORES_TEMA.map(([k, n]) => `<div class="reng"><label for="c_${k}">${n}</label><input type="color" id="c_${k}" value="${esc(a.tema[k])}" onchange="Aj.color('${k}',this.value)"><span class="d">${esc(a.tema[k])}</span></div>`).join('')}</div></section>
     <section class="blq"><h3>Imágenes de la interfaz</h3><div class="cu">
       ${img('bandaImg', 'Imagen de encabezado', 'Franja superior en todas las pantallas.')}
       ${img('fondoImg', 'Imagen de fondo', 'Se muestra tenue detrás del contenido.')}
       <div class="reng"><label for="ajOp">Intensidad del fondo</label><input type="range" id="ajOp" min="4" max="45" value="${a.fondoOp}" oninput="Aj.numero('fondoOp',this.value,4,45)"></div>
       <div class="reng"><label>Frases del día</label><a href="#/frases">Administrar frases e imágenes</a></div></div></section>`;
+  else if (t === 'inicio') cuerpo = `
+    <section class="blq"><h3>Bloques de la pantalla de Inicio <button class="lnk" onclick="Aj.wRestablecer()">Restablecer</button></h3>
+      <div class="scrollx"><table class="lista"><thead><tr><th style="width:84px">Orden</th><th style="width:60px">Visible</th><th>Bloque</th><th>Tamaño</th><th>Filas</th><th>Periodo</th></tr></thead><tbody>
+      ${a.inicio.map((w, i) => `<tr><td class="nw"><button class="btn ch" title="Subir" ${i === 0 ? 'disabled' : ''} onclick="Aj.wMover(${i},-1)">↑</button> <button class="btn ch" title="Bajar" ${i === a.inicio.length - 1 ? 'disabled' : ''} onclick="Aj.wMover(${i},1)">↓</button></td>
+        <td><input type="checkbox" ${w.on ? 'checked' : ''} onchange="Aj.wSet(${i},'on',this.checked)" aria-label="Visible"></td><td><b>${esc(WIDGETS[w.id] || w.id)}</b></td>
+        <td><select onchange="Aj.wSet(${i},'ancho',this.value)" style="border-color:var(--bd)">${[[2, 'Un tercio'], [3, 'Mitad'], [4, 'Dos tercios'], [6, 'Ancho completo']].map(([v, n]) => `<option value="${v}" ${w.ancho === v ? 'selected' : ''}>${n}</option>`).join('')}</select></td>
+        <td>${w.id === 'frase' ? '<span class="mut">—</span>' : `<select onchange="Aj.wSet(${i},'filas',this.value)" style="border-color:var(--bd)">${[3, 5, 6, 8, 10, 12, 15, 20, 30].map(v => `<option ${w.filas === v ? 'selected' : ''}>${v}</option>`).join('')}</select>`}</td>
+        <td>${'dias' in w ? `<select onchange="Aj.wSet(${i},'dias',this.value)" style="border-color:var(--bd)">${(w.id === 'agenda' ? [[1, 'Sólo hoy'], [2, 'Hoy y mañana'], [3, '3 días'], [7, '7 días'], [14, '14 días']] : w.id === 'actividades' ? [[0, 'Todas las pendientes'], [1, 'Vencen hoy o mañana'], [7, 'Vencen en 7 días'], [14, 'Vencen en 14 días'], [30, 'Vencen en 30 días']] : [[7, '7 días'], [14, '14 días'], [30, '30 días'], [60, '60 días']]).map(([v, n]) => `<option value="${v}" ${w.dias === v ? 'selected' : ''}>${n}</option>`).join('')}</select>` : '<span class="mut">—</span>'}</td></tr>`).join('')}</tbody></table></div></section>
+    <section class="blq"><h3>Cómo funciona</h3><div class="cu d"><p>• El orden de la lista es el orden en pantalla (de izquierda a derecha y de arriba abajo). Los tamaños se acomodan en una rejilla: dos mitades, tres tercios o un tercio + dos tercios por renglón.</p>
+      <p>• En Inicio, la barra superior filtra todos los bloques por <b>ámbito</b> (Trabajo, Escuela, Personal) y por <b>clasificación</b>.</p><p>• <a href="#/inicio">Ver Inicio</a></p></div></section>`;
   else if (t === 'catalogos') cuerpo = `
     <section class="blq"><h3>Estatus de proyectos y actividades <button class="lnk" onclick="Aj.estatus()">+ Agregar</button></h3>
       <ul class="filas">${S.estatus.map(e => `<li>${punto(e.color)}<span class="x clic" onclick="Aj.estatus('${e.id}')">${esc(e.nombre)}</span>${e.final ? '<span class="et">Final</span>' : ''}<span class="m">${S.proyectos.filter(p => p.estatus === e.id).length + S.actividades.filter(x => x.estatus === e.id).length} en uso</span></li>`).join('')}</ul></section>
@@ -1464,11 +1611,9 @@ Vistas.ajustes = () => {
       <div class="reng"><label>Respaldo completo</label><button class="btn" onclick="Datos.respaldo()">Descargar respaldo (.json)</button><span class="d">Incluye imágenes, ajustes y notas privadas (cifradas). Úsalo para pasar tus datos a otro equipo.</span></div></div></section>
     <section class="blq"><h3>Importar</h3><div class="cu">
       <div class="reng"><label>Respaldo completo</label><button class="btn" onclick="Datos.elegir('respaldo')">Restaurar respaldo (.json)</button><span class="d">Reemplaza todo el contenido actual.</span></div>
-      <div class="reng"><label>Actividades escolares</label><button class="btn" onclick="Datos.elegir('escolares')">Importar CSV</button><span class="d">Materia, Actividad, Tipo, Valor, FechaInicio, FechaEntrega, Estado, Calificacion (formato AcadTrack).</span></div>
-      <div class="reng"><label>Accesos directos</label><button class="btn" onclick="Datos.elegir('enlaces')">Importar CSV</button><span class="d">Nombre, URL, Carpeta, Descripcion, Favorito, Tags (formato LinkManager).</span></div>
-      <div class="reng"><label>Actividades</label><button class="btn" onclick="Datos.elegir('actividades')">Importar CSV</button><span class="d">Titulo, Proyecto, Clasificacion, Estatus, Prioridad, FechaInicio, FechaLimite, Horas, Detalle.</span></div>
-      <div class="reng"><label>Cumpleaños</label><button class="btn" onclick="Datos.elegir('cumples')">Importar CSV</button><span class="d">Nombre, Fecha (dd/mm/aaaa o dd/mm), Relacion, Nota.</span></div>
-      <div class="reng"><label>Agenda</label><button class="btn" onclick="Datos.elegir('ics')">Importar calendario (.ics)</button><span class="d">Archivo exportado de Outlook, Teams o Google Calendar.</span></div>
+      ${Object.entries(LAYOUTS).map(([k, L]) => `<div class="reng"><label>${esc(L.t)}</label><button class="btn" onclick="Carga.abrir('${k}')">Carga masiva</button><button class="lnk" onclick="Carga.plantilla('${k}')">Plantilla</button><span class="d">${L.cols.map(c => c[0]).join(', ')}</span></div>`).join('')}
+      <div class="reng"><label>Calendario</label><button class="btn" onclick="Datos.elegir('ics')">Importar .ics</button><span class="d">Archivo exportado de Outlook, Teams o Google Calendar.</span></div>
+      <div class="reng"><label>Todas las plantillas</label><button class="btn" onclick="Carga.todas()">Descargar ZIP de plantillas</button><span class="d">Un CSV de ejemplo por tabla, con la descripción de cada columna.</span></div>
       ${leg.acad || leg.links ? `<div class="reng"><label>Datos de tus HTML anteriores</label>${leg.acad ? `<button class="btn" onclick="Datos.importarLegado('acad')">Traer AcadTrack (${leg.acad} actividades)</button>` : ''}${leg.links ? `<button class="btn" onclick="Datos.importarLegado('links')">Traer LinkManager (${leg.links} enlaces)</button>` : ''}<span class="d">Detectados en este navegador.</span></div>` : ''}</div></section>
     <section class="blq"><h3>Mantenimiento</h3><div class="cu">
       <div class="reng"><label>Datos de ejemplo</label><button class="btn" onclick="Datos.demo()">Cargar datos de ejemplo</button><span class="d">Para probar la plataforma. Se agregan a lo que ya tengas.</span></div>
@@ -1485,7 +1630,7 @@ Vistas.ajustes = () => {
       <p>• Sólo las notas privadas están cifradas. El resto de la información se guarda sin cifrar en este navegador.</p>
       <p>• Cualquier persona con acceso a tu sesión del equipo puede ver lo que no sea privado: bloquea tu equipo al ausentarte.</p>
       <p>• Las notas privadas no se incluyen en la exportación CSV; en el respaldo .json viajan cifradas.</p></div></section>`;
-  return `${cab('Ajustes', '')}<div class="tabs">${[['apariencia', 'Apariencia'], ['catalogos', 'Catálogos'], ['datos', 'Datos'], ['seguridad', 'Seguridad']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.aj.tab='${k}';App.pintar()">${n}</button>`).join('')}</div><div class="aj">${cuerpo}</div>`;
+  return `${cab('Ajustes', '')}<div class="tabs">${[['apariencia', 'Apariencia'], ['inicio', 'Inicio'], ['catalogos', 'Catálogos'], ['datos', 'Datos'], ['seguridad', 'Seguridad']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.aj.tab='${k}';App.pintar()">${n}</button>`).join('')}</div><div class="aj">${cuerpo}</div>`;
 };
 
 /* ==========================================================================
@@ -1496,8 +1641,14 @@ const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ
 function columnas(encabezado) { const h = encabezado.map(norm); return (...nombres) => { for (const n of nombres) { const i = h.indexOf(norm(n)); if (i >= 0) return i; } return -1; }; }
 const celda = (f, i) => i >= 0 ? (f[i] || '').trim() : '';
 function fusionar(e) {
-  const b = estadoVacio(), r = { ...b, ...e };
-  r.ajustes = { ...b.ajustes, ...(e.ajustes || {}), tema: { ...b.ajustes.tema, ...((e.ajustes || {}).tema || {}) } };
+  const b = estadoVacio(), r = { ...b, ...e }, ae = e.ajustes || {};
+  r.ajustes = { ...b.ajustes, ...ae, tema: { ...b.ajustes.tema, ...(ae.tema || {}) }, inicioFiltro: { ...b.ajustes.inicioFiltro, ...(ae.inicioFiltro || {}) } };
+  // Versiones anteriores (sin barra lateral de color): adoptan la identidad Nova
+  if (!ae.tema || !ae.tema.lat) { r.ajustes.temaId = 'nova'; r.ajustes.tema = temaDe('nova'); if (!ae.nombre || ae.nombre === 'Plataforma de Gestión') r.ajustes.nombre = b.ajustes.nombre; }
+  // Bloques de Inicio: se conservan los guardados y se agregan los que falten
+  const ini = Array.isArray(ae.inicio) ? ae.inicio.filter(w => WIDGETS[w.id]) : [];
+  for (const w of inicioDefecto()) if (!ini.some(x => x.id === w.id)) ini.push(w);
+  r.ajustes.inicio = ini;
   for (const k of Object.keys(b)) if (Array.isArray(b[k]) && !Array.isArray(r[k])) r[k] = b[k];
   if (!r.estatus.length) r.estatus = b.estatus;
   return r;
@@ -1522,7 +1673,8 @@ const Datos = {
       { nombre: 'actividades_escolares.csv', enc: ['Materia', 'Actividad', 'Tipo', 'Valor', 'FechaInicio', 'FechaEntrega', 'Estado', 'Calificacion', 'Comentarios'],
         filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
       { nombre: 'accesos_directos.csv', enc: ['Nombre', 'URL', 'Carpeta', 'Descripcion', 'Favorito', 'Tags'], filas: S.enlaces.map(l => [l.nombre, l.url, nom('carpetas', l.carpeta), l.desc, l.fav ? 'SI' : 'NO', String(l.tags || '').replace(/,/g, ';')]) },
-      { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO']) }
+      { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO']) },
+      { nombre: 'historial_estatus.csv', enc: ['FechaHora', 'Tipo', 'Registro', 'Proyecto', 'EstatusAnterior', 'EstatusNuevo'], filas: S.historial.map(h => [h.fecha, h.lista, h.titulo, nom('proyectos', h.proyecto), h.de, h.a]) }
     ];
   },
   exportarTodo() {
@@ -1547,7 +1699,7 @@ const Datos = {
       if (tipo === 'respaldo') return this.restaurar(texto);
       const r = tipo === 'ics' ? this.leerICS(texto) : this['leer_' + tipo](parseCSV(texto));
       if (!r.n) return toast(`No se encontraron filas válidas${r.omitidas ? ` (${r.omitidas} omitidas)` : ''}. Revisa el formato del archivo.`, 'err');
-      confirmar(`Se importarán ${r.n} registro(s).${r.omitidas ? ` Se omitirán ${r.omitidas} fila(s) por datos inválidos o duplicados.` : ''}${r.nota ? ' ' + r.nota : ''} ¿Continuar?`, () => { r.aplicar(); guardar(); App.pintar(); toast(`${r.n} registro(s) importado(s)`); }, 'Importar');
+      confirmar(`Se importarán ${r.n} registro(s).${r.omitidas ? ` Se omitirán ${r.omitidas} fila(s) por datos inválidos o duplicados.` : ''}${r.nota ? ' ' + r.nota : ''} ¿Continuar?`, () => { r.aplicar(); guardar(); Modal.cerrar(); App.pintar(); toast(`${r.n} registro(s) importado(s)`); }, 'Importar');
     } catch (e) { console.error(e); toast('No se pudo leer el archivo: ' + e.message, 'err'); }
   },
   restaurar(texto) {
@@ -1602,13 +1754,14 @@ const Datos = {
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.cumples.push({ id: uid(), ...x })) };
   },
   leer_actividades(filas) {
-    const col = columnas(filas[0] || []), iT = col('titulo', 'actividad'), iP = col('proyecto'), iC = col('clasificacion', 'categoria'), iE = col('estatus', 'estado'), iPr = col('prioridad'), iI = col('fechainicio', 'inicio'), iL = col('fechalimite', 'limite', 'fechaentrega'), iH = col('horas'), iD = col('detalle', 'descripcion');
+    const col = columnas(filas[0] || []), iT = col('titulo', 'actividad'), iP = col('proyecto'), iC = col('clasificacion', 'categoria'), iE = col('estatus', 'estado'), iPr = col('prioridad'), iI = col('fechainicio', 'inicio'), iL = col('fechalimite', 'limite', 'fechaentrega'), iH = col('horas'), iD = col('detalle', 'descripcion'), iHo = col('hora'), iCk = col('checklist');
     if (iT < 0) return { n: 0, omitidas: filas.length };
     const lista = []; let omitidas = 0;
     for (const f of filas.slice(1)) {
       const titulo = celda(f, iT), inicio = parseFecha(celda(f, iI)), limite = parseFecha(celda(f, iL));
-      if (!titulo || (celda(f, iL) && !limite) || (inicio && limite && limite < inicio)) { omitidas++; continue; }
-      lista.push({ titulo, proyecto: celda(f, iP), categoria: celda(f, iC), estatus: celda(f, iE), prioridad: celda(f, iPr), inicio, limite, horas: Number(celda(f, iH).replace(',', '.')) || null, detalle: celda(f, iD) });
+      const repetida = S.actividades.some(x => norm(x.titulo) === norm(titulo) && (x.limite || '') === limite && norm((por('proyectos', x.proyecto) || {}).nombre) === norm(celda(f, iP)));
+      if (!titulo || repetida || (celda(f, iL) && !limite) || (inicio && limite && limite < inicio)) { omitidas++; continue; }
+      lista.push({ titulo, proyecto: celda(f, iP), categoria: celda(f, iC), estatus: celda(f, iE), prioridad: celda(f, iPr), inicio, limite, horas: Number(celda(f, iH).replace(',', '.')) || null, detalle: celda(f, iD), hora: parseHora(celda(f, iHo)), checklist: celda(f, iCk).split('|').map(x => x.trim()).filter(Boolean).join('\n') });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => {
       let p = x.proyecto && S.proyectos.find(y => norm(y.nombre) === norm(x.proyecto));
@@ -1616,7 +1769,8 @@ const Datos = {
       let c = x.categoria && S.categorias.find(y => norm(y.nombre) === norm(x.categoria));
       if (x.categoria && !c) { c = { id: uid(), nombre: x.categoria, color: PALETA[S.categorias.length % PALETA.length] }; S.categorias.push(c); }
       const e = S.estatus.find(y => norm(y.nombre) === norm(x.estatus)) || S.estatus[0], pr = (PRIORIDADES.find(y => norm(y[1]) === norm(x.prioridad)) || ['3'])[0];
-      S.actividades.push({ id: uid(), creado: hoyISO(), titulo: x.titulo, proyecto: p ? p.id : '', categoria: c ? c.id : '', estatus: e.id, prioridad: pr, inicio: x.inicio, limite: x.limite, hora: '', horas: x.horas, detalle: x.detalle, checklist: '', completada: e.final ? hoyISO() : '' });
+      const a = { id: uid(), creado: hoyISO(), titulo: x.titulo, proyecto: p ? p.id : '', categoria: c ? c.id : '', estatus: e.id, prioridad: pr, inicio: x.inicio, limite: x.limite, hora: x.hora, horas: x.horas, detalle: x.detalle, checklist: x.checklist, completada: e.final ? hoyISO() : '' };
+      regEstatus('actividades', a, '', a.estatus); S.actividades.push(a);
     }) };
   },
   /** Lee eventos de un archivo iCalendar (.ics). No expande eventos repetitivos. */
@@ -1674,6 +1828,120 @@ const Datos = {
   }
 };
 
+/* ==========================================================================
+   CARGA MASIVA: layout (columnas) de cada tabla, plantillas con ejemplos y lectura
+   ========================================================================== */
+const parseHora = t => { const r = String(t || '').trim().match(/^(\d{1,2})[:.](\d{2})/); return r && +r[1] < 24 && +r[2] < 60 ? `${p2(+r[1])}:${r[2]}` : ''; };
+const LAYOUTS = {
+  proyectos: { t: 'Proyectos', cols: [['Nombre', 1, 'Texto. No se repite.'], ['Ambito', 0, 'Trabajo, Escuela o Personal'], ['Estatus', 0, 'Nombre de un estatus del catálogo'], ['Prioridad', 0, 'Urgente, Alta, Media o Baja'], ['AsignadoPor', 0, 'Texto'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaObjetivo', 0, 'dd/mm/aaaa; no anterior al inicio'], ['Descripcion', 0, 'Texto']],
+    ej: d => [['Migración de reportes a Power BI', 'Trabajo', 'En curso', 'Alta', 'Gerencia de operaciones', d(0), d(45), 'Sustituir reportes de Excel por tableros'], ['Curso de SQL avanzado', 'Personal', 'Pendiente', 'Media', '', d(7), d(60), '']] },
+  actividades: { t: 'Actividades', cols: [['Titulo', 1, 'Texto'], ['Proyecto', 0, 'Nombre del proyecto; vacío = actividad del área. Si no existe, se crea.'], ['Clasificacion', 0, 'Nombre de la clasificación; si no existe, se crea'], ['Estatus', 0, 'Nombre de un estatus del catálogo'], ['Prioridad', 0, 'Urgente, Alta, Media o Baja'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaLimite', 0, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Horas', 0, 'Horas estimadas, número'], ['Detalle', 0, 'Texto'], ['Checklist', 0, 'Elementos separados por | ']],
+    ej: d => [['Preparar reporte mensual', '', 'Reportes', 'Pendiente', 'Alta', d(0), d(3), '12:00', '2', 'Incluir comparativo', 'Extraer datos | Validar cifras | Enviar'], ['Diseñar modelo de datos', 'Migración de reportes a Power BI', '', 'En curso', 'Media', d(1), d(10), '', '6', '', '']] },
+  materias: { t: 'Materias', cols: [['Materia', 1, 'Texto. No se repite.'], ['Profesor', 0, 'Texto'], ['Ciclo', 0, 'Texto, p. ej. 2026-B'], ['Color', 0, 'Hexadecimal #RRGGBB'], ['Meta', 0, 'Puntos que quieres alcanzar (0–100)']],
+    ej: () => [['Programación Web', 'Mtra. Laura Gómez', '2026-B', '#0B84F3', '85'], ['Bases de Datos', 'Mtro. Jorge Pérez', '2026-B', '#19C3C8', '80']] },
+  escolares: { t: 'Actividades escolares', cols: [['Materia', 1, 'Nombre de la materia; si no existe, se crea'], ['Actividad', 1, 'Texto'], ['Tipo', 0, TIPOS_ESC.join(', ')], ['Valor', 0, 'Puntos (número)'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaEntrega', 1, 'dd/mm/aaaa; no anterior al inicio'], ['Estado', 0, 'Pendiente, En proceso, Guardada, Enviada o Calificada'], ['Calificacion', 0, 'Puntos obtenidos; vacío si no está calificada']],
+    nota: 'Es el mismo formato que exporta AcadTrack.',
+    ej: d => [['Programación Web', 'Act. 1.1 El desarrollo web hoy', 'Buzón', '5', d(-10), d(-5), 'Calificada', '5'], ['Programación Web', 'Integradora 1', 'Buzón', '15', d(0), d(8), 'Pendiente', ''], ['Bases de Datos', 'Examen parcial', 'Examen', '25', d(5), d(12), 'Pendiente', '']] },
+  eventos: { t: 'Agenda (eventos)', cols: [['Evento', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['HoraInicio', 0, 'hh:mm (24 h)'], ['HoraFin', 0, 'hh:mm; no anterior al inicio'], ['Tipo', 0, 'Reunión, Revisión, Clase, Personal u Otro'], ['Proyecto', 0, 'Nombre de un proyecto existente'], ['Lugar', 0, 'Texto o enlace'], ['Notas', 0, 'Texto']],
+    nota: 'También puedes importar un calendario .ics exportado de Outlook, Teams o Google Calendar.',
+    ej: d => [['Revisión de avance', d(1), '10:00', '11:00', 'Revisión', '', 'Teams', ''], ['Junta de área', d(4), '09:30', '11:00', 'Reunión', '', 'Sala 2', 'Llevar indicadores']] },
+  recordatorios: { t: 'Recordatorios', cols: [['Recordatorio', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Repeticion', 0, 'Vacío, Diario, Semanal, Mensual o Anual']],
+    ej: d => [['Enviar reporte semanal', d(2), '17:00', 'Semanal'], ['Renovar licencia de software', d(20), '10:00', '']] },
+  notas: { t: 'Notas', cols: [['Titulo', 0, 'Texto (título o texto es obligatorio)'], ['Texto', 0, 'Contenido de la nota'], ['Proyecto', 0, 'Nombre de un proyecto existente; vacío = sin clasificar'], ['Etiquetas', 0, 'Separadas por coma']],
+    ej: () => [['Ideas para la junta', 'Proponer tablero único de pendientes', '', 'junta, ideas'], ['Pendiente con proveedor', 'Enviar cotización antes del viernes', '', '']] },
+  enlaces: { t: 'Accesos directos', cols: [['Nombre', 1, 'Texto'], ['URL', 1, 'Dirección http(s). No se repite.'], ['Carpeta', 0, 'Nombre de carpeta; si no existe, se crea'], ['Descripcion', 0, 'Texto'], ['Favorito', 0, 'SI o NO'], ['Tags', 0, 'Etiquetas separadas por ;']],
+    nota: 'Es el mismo formato que exporta LinkManager.',
+    ej: () => [['Outlook', 'https://outlook.office.com', 'Trabajo', 'Correo', 'SI', 'correo;diario'], ['Power BI', 'https://app.powerbi.com', 'Trabajo', '', 'NO', 'reportes']] },
+  cumples: { t: 'Cumpleaños', cols: [['Nombre', 1, 'Texto. No se repite.'], ['Fecha', 1, 'dd/mm/aaaa, o dd/mm si no sabes el año'], ['Relacion', 0, 'Familia, Amigos, Trabajo…'], ['Nota', 0, 'Texto']],
+    ej: () => [['Ana Ramírez', '11/11/1996', 'Amigos', 'Le gustan los libros'], ['Luis Mendoza', '15/11', 'Trabajo', '']] },
+  frases: { t: 'Frases del día', cols: [['Frase', 1, 'Texto. No se repite.'], ['Autor', 0, 'Texto']],
+    nota: 'Las imágenes se cargan con el botón “Subir varias imágenes”.',
+    ej: () => [['Primero funcionalidad, después complejidad.', ''], ['Lo que no se mide no se puede mejorar.', 'Peter Drucker']] }
+};
+const Carga = {
+  csv(tipo) { const L = LAYOUTS[tipo], d = n => aDMY(sumaDias(hoyISO(), n)); return csvTexto(L.cols.map(c => c[0]), L.ej(d)); },
+  abrir(tipo) {
+    const L = LAYOUTS[tipo];
+    Modal.abrir(`<div class="form"><h2>Carga masiva · ${esc(L.t)}</h2><div class="campos" style="display:block">
+      <p class="d" style="margin-bottom:10px"><b>1.</b> Descarga la plantilla con ejemplos. <b>2.</b> Llénala en Excel y guárdala como <b>CSV UTF-8 (delimitado por comas)</b>. <b>3.</b> Elige el archivo: antes de guardar verás cuántas filas son válidas y cuántas se omiten.</p>
+      <div class="panel scrollx"><table class="lista"><thead><tr><th>Columna</th><th>Obligatoria</th><th>Formato / regla</th></tr></thead><tbody>
+        ${L.cols.map(([n, req, f]) => `<tr><td><b>${esc(n)}</b></td><td>${req ? '<span class="et ac">Sí</span>' : '<span class="mut">No</span>'}</td><td class="d">${esc(f)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="d" style="margin-top:10px">El orden de las columnas no importa; se reconocen por su nombre (sin distinguir acentos ni mayúsculas). Los registros repetidos se omiten.${L.nota ? ' ' + esc(L.nota) : ''}</p></div>
+      <div class="acciones"><button class="btn" onclick="Carga.plantilla('${tipo}')">Descargar plantilla con ejemplos</button>${tipo === 'eventos' ? '<button class="btn" onclick="Datos.elegir(\'ics\')">Importar .ics</button>' : ''}
+        <span class="esp"></span><button class="btn" onclick="Modal.cerrar()">Cerrar</button><button class="btn pri" onclick="Datos.elegir('${tipo}')">Elegir archivo CSV…</button></div></div>`, 720);
+  },
+  plantilla(tipo) { descargar(`plantilla_${tipo}.csv`, new Blob([this.csv(tipo)], { type: 'text/csv;charset=utf-8' })); toast('Plantilla descargada'); },
+  todas() {
+    const arch = Object.keys(LAYOUTS).map(t => ({ nombre: `plantilla_${t}.csv`, texto: this.csv(t) }));
+    arch.push({ nombre: 'LEEME.txt', texto: 'Plantillas de carga masiva de ' + S.ajustes.nombre + '\r\n\r\n' + Object.entries(LAYOUTS).map(([k, L]) => `plantilla_${k}.csv — ${L.t}\r\n` + L.cols.map(([n, r, f]) => `   ${n}${r ? ' (obligatoria)' : ''}: ${f}`).join('\r\n')).join('\r\n\r\n') + '\r\n\r\nGuarda cada archivo como CSV UTF-8 (delimitado por comas). Fechas en dd/mm/aaaa.\r\n' });
+    descargar('plantillas_carga_masiva.zip', crearZip(arch)); toast('Plantillas descargadas');
+  }
+};
+Object.assign(Datos, {
+  leer_proyectos(filas) {
+    const col = columnas(filas[0] || []), iN = col('nombre', 'proyecto'); if (iN < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0; const vistos = new Set(S.proyectos.map(p => norm(p.nombre)));
+    for (const f of filas.slice(1)) {
+      const nombre = celda(f, iN), ti = celda(f, col('fechainicio', 'inicio')), to = celda(f, col('fechaobjetivo', 'objetivo')), inicio = parseFecha(ti), objetivo = parseFecha(to);
+      if (!nombre || vistos.has(norm(nombre)) || (ti && !inicio) || (to && !objetivo) || (inicio && objetivo && objetivo < inicio)) { omitidas++; continue; } vistos.add(norm(nombre));
+      const amb = AMBITOS.find(a => norm(a) === norm(celda(f, col('ambito')))) || 'Trabajo';
+      lista.push({ nombre, ambito: amb, est: celda(f, col('estatus', 'estado')), pri: celda(f, col('prioridad')), asignadoPor: celda(f, col('asignadopor')), inicio, objetivo, descripcion: celda(f, col('descripcion')) });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(({ est, pri, ...x }) => {
+      const p = { id: uid(), creado: hoyISO(), ...x, estatus: (S.estatus.find(e => norm(e.nombre) === norm(est)) || S.estatus[0]).id, prioridad: (PRIORIDADES.find(y => norm(y[1]) === norm(pri)) || ['3'])[0] };
+      regEstatus('proyectos', p, '', p.estatus); S.proyectos.push(p); }) };
+  },
+  leer_materias(filas) {
+    const col = columnas(filas[0] || []), iN = col('materia', 'nombre'); if (iN < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0; const vistos = new Set(S.materias.map(m => norm(m.nombre)));
+    for (const f of filas.slice(1)) {
+      const nombre = celda(f, iN); if (!nombre || vistos.has(norm(nombre))) { omitidas++; continue; } vistos.add(norm(nombre));
+      const color = celda(f, col('color')), meta = Number(celda(f, col('meta')));
+      lista.push({ nombre, profesor: celda(f, col('profesor')), ciclo: celda(f, col('ciclo')), color: /^#[0-9a-f]{6}$/i.test(color) ? color : '', meta: meta > 0 && meta <= 100 ? meta : S.ajustes.metaEscolar });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.materias.push({ id: uid(), ...x, color: x.color || PALETA[S.materias.length % PALETA.length] })) };
+  },
+  leer_eventos(filas) {
+    const col = columnas(filas[0] || []), iT = col('evento', 'titulo'), iF = col('fecha'); if (iT < 0 || iF < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0;
+    for (const f of filas.slice(1)) {
+      const titulo = celda(f, iT), fecha = parseFecha(celda(f, iF)), horaIni = parseHora(celda(f, col('horainicio', 'hora'))), horaFin = parseHora(celda(f, col('horafin')));
+      if (!titulo || !fecha || (horaIni && horaFin && horaFin < horaIni) || S.eventos.some(e => e.fecha === fecha && norm(e.titulo) === norm(titulo) && (e.horaIni || '') === horaIni)) { omitidas++; continue; }
+      const p = S.proyectos.find(y => norm(y.nombre) === norm(celda(f, col('proyecto'))));
+      lista.push({ titulo, fecha, horaIni, horaFin, tipo: Agenda.TIPOS.find(t => norm(t) === norm(celda(f, col('tipo')))) || 'Reunión', proyecto: p ? p.id : '', lugar: celda(f, col('lugar')), nota: celda(f, col('notas', 'nota')), origen: 'csv' });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.eventos.push({ id: uid(), ...x })) };
+  },
+  leer_recordatorios(filas) {
+    const col = columnas(filas[0] || []), iT = col('recordatorio', 'texto'), iF = col('fecha'); if (iT < 0 || iF < 0) return { n: 0, omitidas: filas.length };
+    const REP = { diario: 'diario', cadadia: 'diario', semanal: 'semanal', cadasemana: 'semanal', mensual: 'mensual', cadames: 'mensual', anual: 'anual', cadaano: 'anual' };
+    const lista = []; let omitidas = 0;
+    for (const f of filas.slice(1)) {
+      const texto = celda(f, iT), fecha = parseFecha(celda(f, iF));
+      if (!texto || !fecha || S.recordatorios.some(r => r.fecha === fecha && norm(r.texto) === norm(texto))) { omitidas++; continue; }
+      lista.push({ texto, fecha, hora: parseHora(celda(f, col('hora'))), repetir: REP[norm(celda(f, col('repeticion', 'repetir')))] || '', hecho: false, avisado: '' });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.recordatorios.push({ id: uid(), ...x })) };
+  },
+  leer_notas(filas) {
+    const col = columnas(filas[0] || []), iT = col('titulo'), iX = col('texto', 'contenido', 'nota'); if (iT < 0 && iX < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0;
+    for (const f of filas.slice(1)) {
+      const titulo = celda(f, iT), texto = celda(f, iX);
+      if ((!titulo && !texto) || S.notas.some(n => norm(n.titulo) === norm(titulo) && norm(n.texto) === norm(texto))) { omitidas++; continue; }
+      const p = S.proyectos.find(y => norm(y.nombre) === norm(celda(f, col('proyecto'))));
+      lista.push({ titulo, texto, proyecto: p ? p.id : '', etiquetas: celda(f, col('etiquetas', 'tags')), fijada: false, creado: ahoraTxt(), actualizado: ahoraTxt() });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.notas.push({ id: uid(), ...x })) };
+  },
+  leer_frases(filas) {
+    const col = columnas(filas[0] || []), iT = col('frase', 'texto'); if (iT < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0; const vistos = new Set(S.frases.map(x => norm(x.texto)));
+    for (const f of filas.slice(1)) { const texto = celda(f, iT); if (!texto || vistos.has(norm(texto))) { omitidas++; continue; } vistos.add(norm(texto)); lista.push({ texto, autor: celda(f, col('autor')), img: null }); }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.frases.push({ id: uid(), ...x })) };
+  }
+});
+
 /* ===== 06-inicio.js ===== */
 'use strict';
 /* ==========================================================================
@@ -1721,7 +1989,7 @@ Datos.demo = function () {
     const f = n => deISO(d(n)); const C = (nombre, dias, anio, relacion, nota = '') => S.cumples.push({ id: uid(), nombre, dia: f(dias).getDate(), mes: f(dias).getMonth() + 1, anio, relacion, nota });
     C('Ana Ramírez', 0, 1996, 'Amigos', 'Libro de diseño UX'); C('Luis Mendoza', 4, 1992, 'Trabajo', 'Le gusta el café de especialidad'); C('Mamá', 21, null, 'Familia', 'Reservar comida'); C('Daniela Castro', 36, 2001, 'Escuela'); C('Ricardo Salas', 120, 1988, 'Trabajo');
     const M = (nombre, color, profesor) => { const m = { id: uid(), nombre, color, profesor, ciclo: '2026-B', meta: 80 }; S.materias.push(m); return m.id; };
-    const m1 = M('Programación Web', '#2f5fd0', 'Mtra. Laura Gómez'), m2 = M('Bases de Datos', '#7c3aed', 'Mtro. Jorge Pérez'), m3 = M('Diseño Gráfico para la Web', '#0d9488', 'Mtra. Ana Torres');
+    const m1 = M('Programación Web', '#0b84f3', 'Mtra. Laura Gómez'), m2 = M('Bases de Datos', '#7c3aed', 'Mtro. Jorge Pérez'), m3 = M('Diseño Gráfico para la Web', '#19c3c8', 'Mtra. Ana Torres');
     const X = (materia, titulo, tipo, valor, i, e, estatus = 'pendiente', calif = null) => S.escolares.push({ id: uid(), materia, titulo, tipo, valor, inicio: d(i), entrega: d(e), estatus, calif, comentario: '' });
     X(m1, 'Act. 1.1 El desarrollo web hoy', 'Buzón', 5, -40, -36, 'calificada', 5); X(m1, 'Act. 1.2 Elementos de una página', 'Buzón', 5, -35, -30, 'calificada', 4.5); X(m1, 'Integradora 1 Sitio HTML', 'Buzón', 15, -29, -20, 'calificada', 13);
     X(m1, 'Act. 2.1 Diseño con CSS', 'Foro', 5, -19, -14, 'calificada', 5); X(m1, 'Act. 2.2 Selectores CSS', 'Buzón', 5, -13, -7, 'enviada'); X(m1, 'Integradora 2 Maquetación', 'Buzón', 15, -6, 2, 'proceso');
@@ -1736,7 +2004,7 @@ Datos.demo = function () {
     L('Power Automate', 'https://make.powerautomate.com', k3, false, 'flujos'); L('GitHub', 'https://github.com', k3, true, 'código'); L('Azure Portal', 'https://portal.azure.com', k3, false, 'nube'); L('UDG Virtual', 'https://www.udgvirtual.udg.mx', k2, true, 'clases', 'Plataforma de la licenciatura');
     S.grupos.push({ id: uid(), nombre: 'Inicio de jornada', ids: ids.slice(0, 3) });
     S.frases.push({ id: uid(), texto: 'Primero funcionalidad, después complejidad.', autor: '', img: null }, { id: uid(), texto: 'Lo que no se mide no se puede mejorar.', autor: 'Peter Drucker', img: null });
-    try { S.frases.unshift({ id: uid(), texto: 'La disciplina es el puente entre las metas y los logros.', autor: 'Jim Rohn', img: await imagenDegradado('#1e3a8a', '#0d9488') }); } catch (e) { /* sin imágenes */ }
+    try { S.frases.unshift({ id: uid(), texto: 'La disciplina es el puente entre las metas y los logros.', autor: 'Jim Rohn', img: await imagenDegradado('#073763', '#19c3c8') }); } catch (e) { /* sin imágenes */ }
     guardar(); App.pintar(); toast('Datos de ejemplo cargados');
   }, 'Cargar ejemplo');
 };
@@ -1745,6 +2013,10 @@ async function iniciar() {
   await DB.abrir();
   try { await Img.cargar(); const e = await DB.leerEstado(); if (e) S = fusionar(e); }
   catch (err) { console.error(err); toast('No se pudieron leer los datos guardados: ' + err.message, 'err'); }
+  // Filtros recordados de la sesión anterior
+  try { const u = JSON.parse(localStorage.getItem('nova_ui') || 'null'); if (u) for (const k of Object.keys(u)) if (UI[k] && typeof UI[k] === 'object' && typeof u[k] === 'object') Object.assign(UI[k], u[k]); } catch (e) { /* se ignora */ }
+  if (UI.notas.f !== 'todas' && UI.notas.f !== 'sin' && !por('proyectos', UI.notas.f)) UI.notas.f = 'todas';
+  const ico = document.createElement('link'); ico.rel = 'icon'; ico.href = 'data:image/svg+xml,' + encodeURIComponent(LOGO.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')); document.head.appendChild(ico);
   aplicarTema();
   window.addEventListener('hashchange', () => App.ruta());
   $('#archivo').addEventListener('change', e => Datos.archivo(e.target));

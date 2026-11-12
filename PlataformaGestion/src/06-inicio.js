@@ -44,7 +44,7 @@ Datos.demo = function () {
     const f = n => deISO(d(n)); const C = (nombre, dias, anio, relacion, nota = '') => S.cumples.push({ id: uid(), nombre, dia: f(dias).getDate(), mes: f(dias).getMonth() + 1, anio, relacion, nota });
     C('Ana Ramírez', 0, 1996, 'Amigos', 'Libro de diseño UX'); C('Luis Mendoza', 4, 1992, 'Trabajo', 'Le gusta el café de especialidad'); C('Mamá', 21, null, 'Familia', 'Reservar comida'); C('Daniela Castro', 36, 2001, 'Escuela'); C('Ricardo Salas', 120, 1988, 'Trabajo');
     const M = (nombre, color, profesor) => { const m = { id: uid(), nombre, color, profesor, ciclo: '2026-B', meta: 80 }; S.materias.push(m); return m.id; };
-    const m1 = M('Programación Web', '#2f5fd0', 'Mtra. Laura Gómez'), m2 = M('Bases de Datos', '#7c3aed', 'Mtro. Jorge Pérez'), m3 = M('Diseño Gráfico para la Web', '#0d9488', 'Mtra. Ana Torres');
+    const m1 = M('Programación Web', '#0b84f3', 'Mtra. Laura Gómez'), m2 = M('Bases de Datos', '#7c3aed', 'Mtro. Jorge Pérez'), m3 = M('Diseño Gráfico para la Web', '#19c3c8', 'Mtra. Ana Torres');
     const X = (materia, titulo, tipo, valor, i, e, estatus = 'pendiente', calif = null) => S.escolares.push({ id: uid(), materia, titulo, tipo, valor, inicio: d(i), entrega: d(e), estatus, calif, comentario: '' });
     X(m1, 'Act. 1.1 El desarrollo web hoy', 'Buzón', 5, -40, -36, 'calificada', 5); X(m1, 'Act. 1.2 Elementos de una página', 'Buzón', 5, -35, -30, 'calificada', 4.5); X(m1, 'Integradora 1 Sitio HTML', 'Buzón', 15, -29, -20, 'calificada', 13);
     X(m1, 'Act. 2.1 Diseño con CSS', 'Foro', 5, -19, -14, 'calificada', 5); X(m1, 'Act. 2.2 Selectores CSS', 'Buzón', 5, -13, -7, 'enviada'); X(m1, 'Integradora 2 Maquetación', 'Buzón', 15, -6, 2, 'proceso');
@@ -59,7 +59,7 @@ Datos.demo = function () {
     L('Power Automate', 'https://make.powerautomate.com', k3, false, 'flujos'); L('GitHub', 'https://github.com', k3, true, 'código'); L('Azure Portal', 'https://portal.azure.com', k3, false, 'nube'); L('UDG Virtual', 'https://www.udgvirtual.udg.mx', k2, true, 'clases', 'Plataforma de la licenciatura');
     S.grupos.push({ id: uid(), nombre: 'Inicio de jornada', ids: ids.slice(0, 3) });
     S.frases.push({ id: uid(), texto: 'Primero funcionalidad, después complejidad.', autor: '', img: null }, { id: uid(), texto: 'Lo que no se mide no se puede mejorar.', autor: 'Peter Drucker', img: null });
-    try { S.frases.unshift({ id: uid(), texto: 'La disciplina es el puente entre las metas y los logros.', autor: 'Jim Rohn', img: await imagenDegradado('#1e3a8a', '#0d9488') }); } catch (e) { /* sin imágenes */ }
+    try { S.frases.unshift({ id: uid(), texto: 'La disciplina es el puente entre las metas y los logros.', autor: 'Jim Rohn', img: await imagenDegradado('#073763', '#19c3c8') }); } catch (e) { /* sin imágenes */ }
     guardar(); App.pintar(); toast('Datos de ejemplo cargados');
   }, 'Cargar ejemplo');
 };
@@ -68,6 +68,10 @@ async function iniciar() {
   await DB.abrir();
   try { await Img.cargar(); const e = await DB.leerEstado(); if (e) S = fusionar(e); }
   catch (err) { console.error(err); toast('No se pudieron leer los datos guardados: ' + err.message, 'err'); }
+  // Filtros recordados de la sesión anterior
+  try { const u = JSON.parse(localStorage.getItem('nova_ui') || 'null'); if (u) for (const k of Object.keys(u)) if (UI[k] && typeof UI[k] === 'object' && typeof u[k] === 'object') Object.assign(UI[k], u[k]); } catch (e) { /* se ignora */ }
+  if (UI.notas.f !== 'todas' && UI.notas.f !== 'sin' && !por('proyectos', UI.notas.f)) UI.notas.f = 'todas';
+  const ico = document.createElement('link'); ico.rel = 'icon'; ico.href = 'data:image/svg+xml,' + encodeURIComponent(LOGO.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')); document.head.appendChild(ico);
   aplicarTema();
   window.addEventListener('hashchange', () => App.ruta());
   $('#archivo').addEventListener('change', e => Datos.archivo(e.target));

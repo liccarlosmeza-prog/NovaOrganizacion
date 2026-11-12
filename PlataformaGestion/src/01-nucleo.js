@@ -114,12 +114,28 @@ const Img = {
 
 /* ---------- Estado ---------- */
 const TEMAS = {
-  claro:  { nombre: 'Claro',      bg: '#f6f7f9', sup: '#ffffff', tx: '#1a2230', mut: '#6b7686', bd: '#e3e7ee', ac: '#2f5fd0' },
-  gris:   { nombre: 'Gris',       bg: '#eceef1', sup: '#f8f9fa', tx: '#22262c', mut: '#69717d', bd: '#d6dae0', ac: '#3d4f6b' },
-  arena:  { nombre: 'Arena',      bg: '#f6f3ee', sup: '#fffdfa', tx: '#2b2620', mut: '#7c7366', bd: '#e6dfd3', ac: '#9a5b2b' },
-  oscuro: { nombre: 'Oscuro',     bg: '#14171c', sup: '#1c2027', tx: '#e6e9ee', mut: '#8d96a5', bd: '#2c323c', ac: '#6a9bff' },
-  noche:  { nombre: 'Azul noche', bg: '#0f1626', sup: '#172033', tx: '#e3e8f2', mut: '#8a97b0', bd: '#27324a', ac: '#4fb3ff' }
+  nova:   { nombre: 'Nova',       bg: '#f4f7fa', sup: '#ffffff', tx: '#0b2a4a', mut: '#5d6f84', bd: '#dde5ee', ac: '#0b84f3', lat: '#073763', oro: '#e6a817' },
+  claro:  { nombre: 'Claro',      bg: '#f6f7f9', sup: '#ffffff', tx: '#1a2230', mut: '#6b7686', bd: '#e3e7ee', ac: '#2f5fd0', lat: '#ffffff', oro: '#2f5fd0' },
+  gris:   { nombre: 'Gris',       bg: '#eceef1', sup: '#f8f9fa', tx: '#22262c', mut: '#69717d', bd: '#d6dae0', ac: '#3d4f6b', lat: '#3d4f6b', oro: '#19c3c8' },
+  arena:  { nombre: 'Arena',      bg: '#f6f3ee', sup: '#fffdfa', tx: '#2b2620', mut: '#7c7366', bd: '#e6dfd3', ac: '#9a5b2b', lat: '#fffdfa', oro: '#9a5b2b' },
+  oscuro: { nombre: 'Oscuro',     bg: '#14171c', sup: '#1c2027', tx: '#e6e9ee', mut: '#8d96a5', bd: '#2c323c', ac: '#6a9bff', lat: '#1c2027', oro: '#e6a817' },
+  noche:  { nombre: 'Nova noche', bg: '#061a30', sup: '#0b2a4a', tx: '#e8eef6', mut: '#8ea3bd', bd: '#17406b', ac: '#19c3c8', lat: '#073763', oro: '#e6a817' }
 };
+const COLORES_TEMA = [['ac', 'Color de acento'], ['lat', 'Barra lateral'], ['oro', 'Detalle (línea y marcas)'], ['bg', 'Fondo'], ['sup', 'Superficies (paneles)'], ['tx', 'Texto'], ['mut', 'Texto secundario'], ['bd', 'Bordes']];
+/** Bloques de la pantalla de Inicio (el orden, tamaño y filas se editan en Ajustes → Inicio). */
+const WIDGETS = { frase: 'Frase del día', agenda: 'Agenda', actividades: 'Actividades por atender', entregas: 'Entregas escolares', proyectos: 'Proyectos activos', recordatorios: 'Recordatorios', cumples: 'Cumpleaños próximos', accesos: 'Accesos favoritos' };
+const inicioDefecto = () => [
+  { id: 'agenda', on: true, ancho: 3, filas: 12, dias: 1 }, { id: 'actividades', on: true, ancho: 3, filas: 12, dias: 7 },
+  { id: 'frase', on: true, ancho: 6, filas: 0 },
+  { id: 'entregas', on: true, ancho: 3, filas: 6, dias: 14 }, { id: 'proyectos', on: true, ancho: 3, filas: 6 },
+  { id: 'recordatorios', on: true, ancho: 2, filas: 5, dias: 7 }, { id: 'cumples', on: true, ancho: 2, filas: 5, dias: 30 }, { id: 'accesos', on: true, ancho: 2, filas: 8 }
+];
+const temaDe = id => { const { nombre, ...c } = TEMAS[id]; return c; };
+const esOscuro = hex => { const n = parseInt(String(hex).slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 140; };
+/** Logotipo Nova: infinito con barras de crecimiento. */
+const LOGO = `<svg viewBox="0 0 64 64" role="img" aria-label="Nova"><defs><linearGradient id="lgN" x1="0" x2="1"><stop offset="0" stop-color="#19C3C8"/><stop offset="1" stop-color="#0B84F3"/></linearGradient></defs>
+<rect width="64" height="64" rx="14" fill="#073763"/><path d="M32 32C26.5 22.5 11 22.5 11 32s15.5 9.5 21 0c5.500-9.500 21-9.500 21 0s-15.500 9.500-21 0z" fill="none" stroke="url(#lgN)" stroke-width="5.200" stroke-linecap="round"/>
+<rect x="38.600" y="32" width="2.600" height="4.500" rx=".6" fill="#0B84F3"/><rect x="42.300" y="29.500" width="2.600" height="7" rx=".6" fill="#0B84F3"/><rect x="46" y="27" width="2.600" height="9.500" rx=".6" fill="#0B84F3"/></svg>`;
 const AMBITOS = ['Trabajo', 'Escuela', 'Personal'];
 const PRIORIDADES = [['1', 'Urgente'], ['2', 'Alta'], ['3', 'Media'], ['4', 'Baja']];
 const EST_ESC = [['pendiente', 'Pendiente'], ['proceso', 'En proceso'], ['guardada', 'Guardada'], ['enviada', 'Enviada'], ['calificada', 'Calificada']];
@@ -129,7 +145,8 @@ const PALETA = ['#2f5fd0', '#7c3aed', '#0d9488', '#c77700', '#d23b3b', '#0ea5e9'
 function estadoVacio() {
   return {
     v: 1,
-    ajustes: { nombre: 'Plataforma de Gestión', usuario: '', temaId: 'claro', tema: { ...TEMAS.claro }, fondoImg: null, fondoOp: 14, bandaImg: null, metaEscolar: 60, avisoCumple: 7 },
+    ajustes: { nombre: 'Nova Organización', lema: 'Evolución sin límites.', usuario: '', temaId: 'nova', tema: temaDe('nova'), escala: 100, fondoImg: null, fondoOp: 14, bandaImg: null, metaEscolar: 60, avisoCumple: 7,
+               inicio: inicioDefecto(), inicioFiltro: { amb: '', cat: '' } },
     estatus: [
       { id: 'pend', nombre: 'Pendiente', color: '#64748b' }, { id: 'curso', nombre: 'En curso', color: '#2f5fd0' },
       { id: 'rev', nombre: 'En revisión', color: '#c77700' }, { id: 'pausa', nombre: 'En pausa', color: '#94a3b8' },
@@ -141,7 +158,7 @@ function estadoVacio() {
     ],
     proyectos: [], actividades: [], bitacora: [], notas: [], boveda: null, notasPriv: [],
     recordatorios: [], eventos: [], cumples: [], materias: [], escolares: [],
-    carpetas: [], enlaces: [], grupos: [], frases: []
+    carpetas: [], enlaces: [], grupos: [], frases: [], historial: []
   };
 }
 let S = estadoVacio();
@@ -162,14 +179,21 @@ function quitar(lista, id) { S[lista] = S[lista].filter(x => x.id !== id); guard
 const estFinal = id => !!(por('estatus', id) || {}).final;
 const idFinal = () => (S.estatus.find(e => e.final) || S.estatus[S.estatus.length - 1]).id;
 const idInicial = () => S.estatus[0].id;
+/** Bitácora automática de cambios de estatus (proyectos, actividades y actividades escolares). */
+function regEstatus(lista, o, antes, despues) {
+  if (antes === despues || !despues) return;
+  const nom = v => !v ? '' : lista === 'escolares' ? (EST_ESC.find(x => x[0] === v) || ['', v])[1] : (por('estatus', v) || { nombre: v }).nombre;
+  S.historial.push({ id: uid(), lista, ref: o.id, titulo: o.nombre || o.titulo || '', proyecto: lista === 'proyectos' ? o.id : (o.proyecto || ''), de: nom(antes), a: nom(despues), fecha: ahoraTxt() });
+  if (S.historial.length > 5000) S.historial.splice(0, S.historial.length - 5000);
+}
 
 /* ---------- Tema ---------- */
 function aplicarTema() {
   const t = S.ajustes.tema, r = document.documentElement.style;
-  for (const k of ['bg', 'sup', 'tx', 'mut', 'bd', 'ac']) r.setProperty('--' + k, t[k]);
-  // Detecta si el fondo es oscuro para que los controles nativos combinen
-  const n = parseInt(t.sup.slice(1), 16), luz = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255));
-  r.setProperty('color-scheme', luz < 128 ? 'dark' : 'light');
+  for (const [k] of COLORES_TEMA) r.setProperty('--' + k, t[k]);
+  r.setProperty('color-scheme', esOscuro(t.sup) ? 'dark' : 'light');   // para que los controles nativos combinen
+  r.setProperty('--lat-tx', esOscuro(t.lat) ? '#ffffff' : t.tx);
+  const z = (S.ajustes.escala || 100) / 100; r.setProperty('--z', z); document.body.style.zoom = z;
   const f = $('#fondo'), u = Img.url(S.ajustes.fondoImg);
   f.style.backgroundImage = u ? `url("${u}")` : 'none'; f.style.opacity = (S.ajustes.fondoOp || 14) / 100;
   document.title = S.ajustes.nombre;
@@ -181,7 +205,7 @@ function toast(msg, tipo = '') {
   const av = $('#avisos'); while (av.children.length >= 3) av.firstChild.remove(); av.appendChild(d); setTimeout(() => d.remove(), tipo === 'err' ? 5000 : 2600);
 }
 const Modal = {
-  abrir(html, ancho) { const c = $('#modal .caja'); c.style.maxWidth = (ancho || 560) + 'px'; c.innerHTML = html; $('#modal').classList.add('on'); },
+  abrir(html, ancho) { const c = $('#modal .caja'); c.style.maxWidth = (ancho || 620) + 'px'; c.innerHTML = html; $('#modal').classList.add('on'); },
   cerrar() { $('#modal').classList.remove('on'); $('#modal .caja').innerHTML = ''; }
 };
 let _siConfirma = null;
@@ -199,10 +223,10 @@ function verImagen(url) { $('#visor img').src = url; $('#visor').classList.add('
    tipo: text | textarea | date | time | number | select | color | check | url | password | imagen */
 const Form = {
   _c: null,
-  abrir({ titulo, campos, valores = {}, guardar, eliminar, ancho }) {
+  abrir({ titulo, campos, valores = {}, guardar, eliminar, ancho, nota = '' }) {
     this._c = { campos, guardar, eliminar };
     Modal.abrir(`<form class="form" onsubmit="Form.enviar(event)" novalidate>
-      <h2>${esc(titulo)}</h2><div class="campos">${campos.map(c => this._campo(c, valores[c.k] ?? c.def ?? '')).join('')}</div>
+      <h2>${esc(titulo)}</h2><div class="campos">${campos.map(c => this._campo(c, valores[c.k] ?? c.def ?? '')).join('')}${nota}</div>
       <div class="acciones">${eliminar ? '<button type="button" class="btn peligro" onclick="Form.borrar()">Eliminar</button>' : ''}<span class="esp"></span>
       <button type="button" class="btn" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri">Guardar</button></div></form>`, ancho);
     const primero = $('#modal input:not([type=checkbox]):not([type=file]), #modal textarea'); if (primero) primero.focus();

@@ -70,7 +70,7 @@ Vistas.notas = () => {
   const filtros = `<div class="barra">${filtro('notas', 'f', [['todas', 'Todas'], ['sin', 'Sin clasificar'], ['priv', 'Privadas']])}
     <select onchange="UI.notas.f=this.value||'todas';UI.notas.id=null;App.pintar()"><option value="">Por proyecto…</option>${S.proyectos.map(p => `<option value="${p.id}" ${UI.notas.f === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
     ${priv && Boveda.abierta() ? '<button class="btn" onclick="Notas.bloquear()">Bloquear ahora</button>' : ''}</div>`;
-  const encabezado = cab('Notas', `${S.notas.length} notas · ${S.notas.filter(n => !n.proyecto).length} sin clasificar · ${S.notasPriv.length} privadas`, (!priv || Boveda.abierta()) ? '<button class="btn pri" onclick="Notas.nueva()">+ Nota</button>' : '');
+  const encabezado = cab('Notas', `${S.notas.length} notas · ${S.notas.filter(n => !n.proyecto).length} sin clasificar · ${S.notasPriv.length} privadas`, (priv ? '' : btnCarga('notas')) + ((!priv || Boveda.abierta()) ? '<button class="btn pri" onclick="Notas.nueva()">+ Nota</button>' : ''));
   // --- Estados de la bóveda ---
   if (priv && !Boveda.disponible()) return encabezado + filtros + `<div class="panel">${vacio('Cifrado no disponible', 'Abre la plataforma con https:// o desde un archivo local en un navegador actualizado para usar notas privadas.')}</div>`;
   if (priv && !S.boveda) return encabezado + filtros + `<div class="panel" style="max-width:520px"><div class="cuerpo">
@@ -141,7 +141,7 @@ Vistas.accesos = () => {
   if (q) l = l.filter(x => (x.nombre + ' ' + x.url + ' ' + (x.tags || '') + ' ' + (x.desc || '')).toLowerCase().includes(q));
   l.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const n = UI.acc.sel.size, carp = S.carpetas.find(c => c.id === f);
-  return `${cab('Accesos directos', `${S.enlaces.length} accesos · ${S.enlaces.filter(x => x.fav).length} favoritos`, '<button class="btn" onclick="Acc.carpeta()">+ Carpeta</button><button class="btn pri" onclick="Acc.editar()">+ Acceso</button>')}
+  return `${cab('Accesos directos', `${S.enlaces.length} accesos · ${S.enlaces.filter(x => x.fav).length} favoritos`, btnCarga('enlaces') + '<button class="btn" onclick="Acc.carpeta()">+ Carpeta</button><button class="btn pri" onclick="Acc.editar()">+ Acceso</button>')}
   <div class="barra"><input type="search" id="aBuscar" placeholder="Buscar por nombre, dirección o etiqueta…" style="width:300px" value="${esc(UI.acc.q)}" oninput="buscar('acc',this.value,'aBuscar')">
     <select onchange="UI.acc.f=this.value;App.pintar()"><option value="todos">Todas las carpetas</option><option value="fav" ${f === 'fav' ? 'selected' : ''}>★ Favoritos</option><option value="sin" ${f === 'sin' ? 'selected' : ''}>Sin carpeta</option>
       ${S.carpetas.map(c => `<option value="${c.id}" ${f === c.id ? 'selected' : ''}>${esc(c.nombre)} (${S.enlaces.filter(x => x.carpeta === c.id).length})</option>`).join('')}</select>
@@ -180,8 +180,10 @@ const Cumples = {
   }
 };
 Vistas.cumples = () => {
-  const l = Cumples.proximos();
-  return `${cab('Cumpleaños', `${l.length} personas · ${l.filter(c => c.faltan <= 30).length} en los próximos 30 días`, '<button class="btn pri" onclick="Cumples.editar()">+ Cumpleaños</button>')}
+  const todos = Cumples.proximos(), rels = [...new Set(S.cumples.map(c => c.relacion).filter(Boolean))].sort();
+  const l = todos.filter(c => (!UI.cum.rel || c.relacion === UI.cum.rel) && coincide(UI.cum.q, c.nombre, c.nota, c.relacion));
+  return `${cab('Cumpleaños', `${todos.length} personas · ${todos.filter(c => c.faltan <= 30).length} en los próximos 30 días`, btnCarga('cumples') + '<button class="btn pri" onclick="Cumples.editar()">+ Cumpleaños</button>')}
+  <div class="barra">${campoBuscar('cum', 'cBuscar', 'Buscar persona…')}<select onchange="UI.cum.rel=this.value;App.pintar()"><option value="">Todas las relaciones</option>${rels.map(r => `<option ${UI.cum.rel === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>
   <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Nombre</th><th>Fecha</th><th>Faltan</th><th>Cumple</th><th>Relación</th><th>Notas</th></tr></thead><tbody>
     ${l.map(c => `<tr><td><span class="t" onclick="Cumples.editar('${c.id}')">${esc(c.nombre)}</span></td><td class="nw">${c.dia} de ${MESES[c.mes - 1]}</td>
       <td class="nw ${c.faltan === 0 ? 'rojo' : c.faltan <= 7 ? 'ambar' : ''}">${c.faltan === 0 ? '<b>Hoy</b>' : c.faltan === 1 ? 'Mañana' : c.faltan + ' días'}</td>
@@ -216,7 +218,7 @@ const Frases = {
 Vistas.frases = () => {
   const hoy = fraseDelDia();
   return `${cab('Frases del día', `${S.frases.length} cargadas · se muestra una distinta cada día en Inicio`,
-    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button><button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
+    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button>' + btnCarga('frases') + '<button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
   <div class="panel scrollx">${S.frases.length ? `<table class="lista"><thead><tr><th style="width:110px">Imagen</th><th>Frase</th><th>Autor</th><th></th></tr></thead><tbody>
     ${S.frases.map(f => `<tr><td>${f.img ? `<img src="${Img.url(f.img)}" alt="" style="height:48px;width:86px;object-fit:cover;border-radius:5px;display:block;cursor:zoom-in" onclick="verImagen(this.src)">` : '<span class="mut">—</span>'}</td>
       <td><span class="t" onclick="Frases.editar('${f.id}')">${esc(f.texto || '(sólo imagen)')}</span></td><td class="d">${esc(f.autor || '')}</td><td class="num">${hoy && hoy.id === f.id ? '<span class="et ac">Hoy</span>' : ''}</td></tr>`).join('')}</tbody></table>`

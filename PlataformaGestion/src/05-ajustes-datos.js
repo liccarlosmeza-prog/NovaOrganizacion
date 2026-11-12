@@ -3,9 +3,14 @@
    AJUSTES (apariencia, catálogos, seguridad) + DATOS (exportar, importar, respaldo)
    ========================================================================== */
 const Aj = {
-  texto(k, v) { S.ajustes[k] = v.trim() || (k === 'nombre' ? 'Plataforma de Gestión' : ''); guardar(); aplicarTema(); App.pintar(); },
+  texto(k, v) { S.ajustes[k] = v.trim() || (k === 'nombre' ? 'Nova Organización' : ''); guardar(); aplicarTema(); App.pintar(); },
   numero(k, v, min, max) { const n = Math.min(max, Math.max(min, Number(v) || min)); S.ajustes[k] = n; guardar(); aplicarTema(); },
-  preset(id) { const { nombre, ...c } = TEMAS[id]; S.ajustes.temaId = id; S.ajustes.tema = { ...c }; guardar(); aplicarTema(); App.pintar(); },
+  preset(id) { S.ajustes.temaId = id; S.ajustes.tema = temaDe(id); guardar(); aplicarTema(); App.pintar(); },
+  escala(v) { S.ajustes.escala = Number(v); guardar(); aplicarTema(); App.pintar(); },
+  /* --- Bloques de Inicio: orden, tamaño, filas y periodo --- */
+  wMover(i, d) { const l = S.ajustes.inicio, j = i + d; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; guardar(); App.pintar(); },
+  wSet(i, k, v) { S.ajustes.inicio[i][k] = k === 'on' ? v : Number(v); guardar(); App.pintar(); },
+  wRestablecer() { S.ajustes.inicio = inicioDefecto(); guardar(); App.pintar(); toast('Inicio restablecido'); },
   color(k, v) { S.ajustes.tema[k] = v; S.ajustes.temaId = 'personal'; guardar(); aplicarTema(); App.pintar(); },
   async imagen(campo, input) {
     const a = input.files[0]; if (!a) return;
@@ -54,16 +59,28 @@ Vistas.ajustes = () => {
   if (t === 'apariencia') cuerpo = `
     <section class="blq"><h3>General</h3><div class="cu">
       <div class="reng"><label for="ajNombre">Nombre de la plataforma</label><input type="text" id="ajNombre" value="${esc(a.nombre)}" onchange="Aj.texto('nombre',this.value)" style="width:280px"></div>
-      <div class="reng"><label for="ajUsuario">Tu nombre (para el saludo)</label><input type="text" id="ajUsuario" value="${esc(a.usuario)}" onchange="Aj.texto('usuario',this.value)" style="width:280px"></div></div></section>
+      <div class="reng"><label for="ajLema">Lema</label><input type="text" id="ajLema" value="${esc(a.lema || '')}" onchange="Aj.texto('lema',this.value)" style="width:280px"></div>
+      <div class="reng"><label for="ajUsuario">Tu nombre (para el saludo)</label><input type="text" id="ajUsuario" value="${esc(a.usuario)}" onchange="Aj.texto('usuario',this.value)" style="width:280px"></div>
+      <div class="reng"><label for="ajEscala">Tamaño general</label><select id="ajEscala" onchange="Aj.escala(this.value)">${[[85, 'Compacto (85 %)'], [92, 'Reducido (92 %)'], [100, 'Normal (100 %)'], [110, 'Grande (110 %)'], [125, 'Muy grande (125 %)']].map(([v, t]) => `<option value="${v}" ${(a.escala || 100) === v ? 'selected' : ''}>${t}</option>`).join('')}</select><span class="d">Cambia el tamaño de textos, filas y controles de toda la plataforma.</span></div></div></section>
     <section class="blq"><h3>Colores</h3><div class="cu">
-      <div class="reng"><label>Tema</label><div class="pres">${Object.entries(TEMAS).map(([id, x]) => `<button class="${a.temaId === id ? 'on' : ''}" onclick="Aj.preset('${id}')"><i style="background:${x.bg}"></i><i style="background:${x.ac}"></i>${x.nombre}</button>`).join('')}
+      <div class="reng"><label>Tema</label><div class="pres">${Object.entries(TEMAS).map(([id, x]) => `<button class="${a.temaId === id ? 'on' : ''}" onclick="Aj.preset('${id}')"><i style="background:${x.lat}"></i><i style="background:${x.ac}"></i><i style="background:${x.oro}"></i>${x.nombre}</button>`).join('')}
         ${a.temaId === 'personal' ? '<button class="on">Personalizado</button>' : ''}</div></div>
-      ${[['ac', 'Color de acento'], ['bg', 'Fondo'], ['sup', 'Superficies (paneles)'], ['tx', 'Texto'], ['mut', 'Texto secundario'], ['bd', 'Bordes']].map(([k, n]) => `<div class="reng"><label for="c_${k}">${n}</label><input type="color" id="c_${k}" value="${esc(a.tema[k])}" onchange="Aj.color('${k}',this.value)"><span class="d">${esc(a.tema[k])}</span></div>`).join('')}</div></section>
+      ${COLORES_TEMA.map(([k, n]) => `<div class="reng"><label for="c_${k}">${n}</label><input type="color" id="c_${k}" value="${esc(a.tema[k])}" onchange="Aj.color('${k}',this.value)"><span class="d">${esc(a.tema[k])}</span></div>`).join('')}</div></section>
     <section class="blq"><h3>Imágenes de la interfaz</h3><div class="cu">
       ${img('bandaImg', 'Imagen de encabezado', 'Franja superior en todas las pantallas.')}
       ${img('fondoImg', 'Imagen de fondo', 'Se muestra tenue detrás del contenido.')}
       <div class="reng"><label for="ajOp">Intensidad del fondo</label><input type="range" id="ajOp" min="4" max="45" value="${a.fondoOp}" oninput="Aj.numero('fondoOp',this.value,4,45)"></div>
       <div class="reng"><label>Frases del día</label><a href="#/frases">Administrar frases e imágenes</a></div></div></section>`;
+  else if (t === 'inicio') cuerpo = `
+    <section class="blq"><h3>Bloques de la pantalla de Inicio <button class="lnk" onclick="Aj.wRestablecer()">Restablecer</button></h3>
+      <div class="scrollx"><table class="lista"><thead><tr><th style="width:84px">Orden</th><th style="width:60px">Visible</th><th>Bloque</th><th>Tamaño</th><th>Filas</th><th>Periodo</th></tr></thead><tbody>
+      ${a.inicio.map((w, i) => `<tr><td class="nw"><button class="btn ch" title="Subir" ${i === 0 ? 'disabled' : ''} onclick="Aj.wMover(${i},-1)">↑</button> <button class="btn ch" title="Bajar" ${i === a.inicio.length - 1 ? 'disabled' : ''} onclick="Aj.wMover(${i},1)">↓</button></td>
+        <td><input type="checkbox" ${w.on ? 'checked' : ''} onchange="Aj.wSet(${i},'on',this.checked)" aria-label="Visible"></td><td><b>${esc(WIDGETS[w.id] || w.id)}</b></td>
+        <td><select onchange="Aj.wSet(${i},'ancho',this.value)" style="border-color:var(--bd)">${[[2, 'Un tercio'], [3, 'Mitad'], [4, 'Dos tercios'], [6, 'Ancho completo']].map(([v, n]) => `<option value="${v}" ${w.ancho === v ? 'selected' : ''}>${n}</option>`).join('')}</select></td>
+        <td>${w.id === 'frase' ? '<span class="mut">—</span>' : `<select onchange="Aj.wSet(${i},'filas',this.value)" style="border-color:var(--bd)">${[3, 5, 6, 8, 10, 12, 15, 20, 30].map(v => `<option ${w.filas === v ? 'selected' : ''}>${v}</option>`).join('')}</select>`}</td>
+        <td>${'dias' in w ? `<select onchange="Aj.wSet(${i},'dias',this.value)" style="border-color:var(--bd)">${(w.id === 'agenda' ? [[1, 'Sólo hoy'], [2, 'Hoy y mañana'], [3, '3 días'], [7, '7 días'], [14, '14 días']] : w.id === 'actividades' ? [[0, 'Todas las pendientes'], [1, 'Vencen hoy o mañana'], [7, 'Vencen en 7 días'], [14, 'Vencen en 14 días'], [30, 'Vencen en 30 días']] : [[7, '7 días'], [14, '14 días'], [30, '30 días'], [60, '60 días']]).map(([v, n]) => `<option value="${v}" ${w.dias === v ? 'selected' : ''}>${n}</option>`).join('')}</select>` : '<span class="mut">—</span>'}</td></tr>`).join('')}</tbody></table></div></section>
+    <section class="blq"><h3>Cómo funciona</h3><div class="cu d"><p>• El orden de la lista es el orden en pantalla (de izquierda a derecha y de arriba abajo). Los tamaños se acomodan en una rejilla: dos mitades, tres tercios o un tercio + dos tercios por renglón.</p>
+      <p>• En Inicio, la barra superior filtra todos los bloques por <b>ámbito</b> (Trabajo, Escuela, Personal) y por <b>clasificación</b>.</p><p>• <a href="#/inicio">Ver Inicio</a></p></div></section>`;
   else if (t === 'catalogos') cuerpo = `
     <section class="blq"><h3>Estatus de proyectos y actividades <button class="lnk" onclick="Aj.estatus()">+ Agregar</button></h3>
       <ul class="filas">${S.estatus.map(e => `<li>${punto(e.color)}<span class="x clic" onclick="Aj.estatus('${e.id}')">${esc(e.nombre)}</span>${e.final ? '<span class="et">Final</span>' : ''}<span class="m">${S.proyectos.filter(p => p.estatus === e.id).length + S.actividades.filter(x => x.estatus === e.id).length} en uso</span></li>`).join('')}</ul></section>
@@ -77,11 +94,9 @@ Vistas.ajustes = () => {
       <div class="reng"><label>Respaldo completo</label><button class="btn" onclick="Datos.respaldo()">Descargar respaldo (.json)</button><span class="d">Incluye imágenes, ajustes y notas privadas (cifradas). Úsalo para pasar tus datos a otro equipo.</span></div></div></section>
     <section class="blq"><h3>Importar</h3><div class="cu">
       <div class="reng"><label>Respaldo completo</label><button class="btn" onclick="Datos.elegir('respaldo')">Restaurar respaldo (.json)</button><span class="d">Reemplaza todo el contenido actual.</span></div>
-      <div class="reng"><label>Actividades escolares</label><button class="btn" onclick="Datos.elegir('escolares')">Importar CSV</button><span class="d">Materia, Actividad, Tipo, Valor, FechaInicio, FechaEntrega, Estado, Calificacion (formato AcadTrack).</span></div>
-      <div class="reng"><label>Accesos directos</label><button class="btn" onclick="Datos.elegir('enlaces')">Importar CSV</button><span class="d">Nombre, URL, Carpeta, Descripcion, Favorito, Tags (formato LinkManager).</span></div>
-      <div class="reng"><label>Actividades</label><button class="btn" onclick="Datos.elegir('actividades')">Importar CSV</button><span class="d">Titulo, Proyecto, Clasificacion, Estatus, Prioridad, FechaInicio, FechaLimite, Horas, Detalle.</span></div>
-      <div class="reng"><label>Cumpleaños</label><button class="btn" onclick="Datos.elegir('cumples')">Importar CSV</button><span class="d">Nombre, Fecha (dd/mm/aaaa o dd/mm), Relacion, Nota.</span></div>
-      <div class="reng"><label>Agenda</label><button class="btn" onclick="Datos.elegir('ics')">Importar calendario (.ics)</button><span class="d">Archivo exportado de Outlook, Teams o Google Calendar.</span></div>
+      ${Object.entries(LAYOUTS).map(([k, L]) => `<div class="reng"><label>${esc(L.t)}</label><button class="btn" onclick="Carga.abrir('${k}')">Carga masiva</button><button class="lnk" onclick="Carga.plantilla('${k}')">Plantilla</button><span class="d">${L.cols.map(c => c[0]).join(', ')}</span></div>`).join('')}
+      <div class="reng"><label>Calendario</label><button class="btn" onclick="Datos.elegir('ics')">Importar .ics</button><span class="d">Archivo exportado de Outlook, Teams o Google Calendar.</span></div>
+      <div class="reng"><label>Todas las plantillas</label><button class="btn" onclick="Carga.todas()">Descargar ZIP de plantillas</button><span class="d">Un CSV de ejemplo por tabla, con la descripción de cada columna.</span></div>
       ${leg.acad || leg.links ? `<div class="reng"><label>Datos de tus HTML anteriores</label>${leg.acad ? `<button class="btn" onclick="Datos.importarLegado('acad')">Traer AcadTrack (${leg.acad} actividades)</button>` : ''}${leg.links ? `<button class="btn" onclick="Datos.importarLegado('links')">Traer LinkManager (${leg.links} enlaces)</button>` : ''}<span class="d">Detectados en este navegador.</span></div>` : ''}</div></section>
     <section class="blq"><h3>Mantenimiento</h3><div class="cu">
       <div class="reng"><label>Datos de ejemplo</label><button class="btn" onclick="Datos.demo()">Cargar datos de ejemplo</button><span class="d">Para probar la plataforma. Se agregan a lo que ya tengas.</span></div>
@@ -98,7 +113,7 @@ Vistas.ajustes = () => {
       <p>• Sólo las notas privadas están cifradas. El resto de la información se guarda sin cifrar en este navegador.</p>
       <p>• Cualquier persona con acceso a tu sesión del equipo puede ver lo que no sea privado: bloquea tu equipo al ausentarte.</p>
       <p>• Las notas privadas no se incluyen en la exportación CSV; en el respaldo .json viajan cifradas.</p></div></section>`;
-  return `${cab('Ajustes', '')}<div class="tabs">${[['apariencia', 'Apariencia'], ['catalogos', 'Catálogos'], ['datos', 'Datos'], ['seguridad', 'Seguridad']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.aj.tab='${k}';App.pintar()">${n}</button>`).join('')}</div><div class="aj">${cuerpo}</div>`;
+  return `${cab('Ajustes', '')}<div class="tabs">${[['apariencia', 'Apariencia'], ['inicio', 'Inicio'], ['catalogos', 'Catálogos'], ['datos', 'Datos'], ['seguridad', 'Seguridad']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.aj.tab='${k}';App.pintar()">${n}</button>`).join('')}</div><div class="aj">${cuerpo}</div>`;
 };
 
 /* ==========================================================================
@@ -109,8 +124,14 @@ const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ
 function columnas(encabezado) { const h = encabezado.map(norm); return (...nombres) => { for (const n of nombres) { const i = h.indexOf(norm(n)); if (i >= 0) return i; } return -1; }; }
 const celda = (f, i) => i >= 0 ? (f[i] || '').trim() : '';
 function fusionar(e) {
-  const b = estadoVacio(), r = { ...b, ...e };
-  r.ajustes = { ...b.ajustes, ...(e.ajustes || {}), tema: { ...b.ajustes.tema, ...((e.ajustes || {}).tema || {}) } };
+  const b = estadoVacio(), r = { ...b, ...e }, ae = e.ajustes || {};
+  r.ajustes = { ...b.ajustes, ...ae, tema: { ...b.ajustes.tema, ...(ae.tema || {}) }, inicioFiltro: { ...b.ajustes.inicioFiltro, ...(ae.inicioFiltro || {}) } };
+  // Versiones anteriores (sin barra lateral de color): adoptan la identidad Nova
+  if (!ae.tema || !ae.tema.lat) { r.ajustes.temaId = 'nova'; r.ajustes.tema = temaDe('nova'); if (!ae.nombre || ae.nombre === 'Plataforma de Gestión') r.ajustes.nombre = b.ajustes.nombre; }
+  // Bloques de Inicio: se conservan los guardados y se agregan los que falten
+  const ini = Array.isArray(ae.inicio) ? ae.inicio.filter(w => WIDGETS[w.id]) : [];
+  for (const w of inicioDefecto()) if (!ini.some(x => x.id === w.id)) ini.push(w);
+  r.ajustes.inicio = ini;
   for (const k of Object.keys(b)) if (Array.isArray(b[k]) && !Array.isArray(r[k])) r[k] = b[k];
   if (!r.estatus.length) r.estatus = b.estatus;
   return r;
@@ -135,7 +156,8 @@ const Datos = {
       { nombre: 'actividades_escolares.csv', enc: ['Materia', 'Actividad', 'Tipo', 'Valor', 'FechaInicio', 'FechaEntrega', 'Estado', 'Calificacion', 'Comentarios'],
         filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
       { nombre: 'accesos_directos.csv', enc: ['Nombre', 'URL', 'Carpeta', 'Descripcion', 'Favorito', 'Tags'], filas: S.enlaces.map(l => [l.nombre, l.url, nom('carpetas', l.carpeta), l.desc, l.fav ? 'SI' : 'NO', String(l.tags || '').replace(/,/g, ';')]) },
-      { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO']) }
+      { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO']) },
+      { nombre: 'historial_estatus.csv', enc: ['FechaHora', 'Tipo', 'Registro', 'Proyecto', 'EstatusAnterior', 'EstatusNuevo'], filas: S.historial.map(h => [h.fecha, h.lista, h.titulo, nom('proyectos', h.proyecto), h.de, h.a]) }
     ];
   },
   exportarTodo() {
@@ -160,7 +182,7 @@ const Datos = {
       if (tipo === 'respaldo') return this.restaurar(texto);
       const r = tipo === 'ics' ? this.leerICS(texto) : this['leer_' + tipo](parseCSV(texto));
       if (!r.n) return toast(`No se encontraron filas válidas${r.omitidas ? ` (${r.omitidas} omitidas)` : ''}. Revisa el formato del archivo.`, 'err');
-      confirmar(`Se importarán ${r.n} registro(s).${r.omitidas ? ` Se omitirán ${r.omitidas} fila(s) por datos inválidos o duplicados.` : ''}${r.nota ? ' ' + r.nota : ''} ¿Continuar?`, () => { r.aplicar(); guardar(); App.pintar(); toast(`${r.n} registro(s) importado(s)`); }, 'Importar');
+      confirmar(`Se importarán ${r.n} registro(s).${r.omitidas ? ` Se omitirán ${r.omitidas} fila(s) por datos inválidos o duplicados.` : ''}${r.nota ? ' ' + r.nota : ''} ¿Continuar?`, () => { r.aplicar(); guardar(); Modal.cerrar(); App.pintar(); toast(`${r.n} registro(s) importado(s)`); }, 'Importar');
     } catch (e) { console.error(e); toast('No se pudo leer el archivo: ' + e.message, 'err'); }
   },
   restaurar(texto) {
@@ -215,13 +237,14 @@ const Datos = {
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.cumples.push({ id: uid(), ...x })) };
   },
   leer_actividades(filas) {
-    const col = columnas(filas[0] || []), iT = col('titulo', 'actividad'), iP = col('proyecto'), iC = col('clasificacion', 'categoria'), iE = col('estatus', 'estado'), iPr = col('prioridad'), iI = col('fechainicio', 'inicio'), iL = col('fechalimite', 'limite', 'fechaentrega'), iH = col('horas'), iD = col('detalle', 'descripcion');
+    const col = columnas(filas[0] || []), iT = col('titulo', 'actividad'), iP = col('proyecto'), iC = col('clasificacion', 'categoria'), iE = col('estatus', 'estado'), iPr = col('prioridad'), iI = col('fechainicio', 'inicio'), iL = col('fechalimite', 'limite', 'fechaentrega'), iH = col('horas'), iD = col('detalle', 'descripcion'), iHo = col('hora'), iCk = col('checklist');
     if (iT < 0) return { n: 0, omitidas: filas.length };
     const lista = []; let omitidas = 0;
     for (const f of filas.slice(1)) {
       const titulo = celda(f, iT), inicio = parseFecha(celda(f, iI)), limite = parseFecha(celda(f, iL));
-      if (!titulo || (celda(f, iL) && !limite) || (inicio && limite && limite < inicio)) { omitidas++; continue; }
-      lista.push({ titulo, proyecto: celda(f, iP), categoria: celda(f, iC), estatus: celda(f, iE), prioridad: celda(f, iPr), inicio, limite, horas: Number(celda(f, iH).replace(',', '.')) || null, detalle: celda(f, iD) });
+      const repetida = S.actividades.some(x => norm(x.titulo) === norm(titulo) && (x.limite || '') === limite && norm((por('proyectos', x.proyecto) || {}).nombre) === norm(celda(f, iP)));
+      if (!titulo || repetida || (celda(f, iL) && !limite) || (inicio && limite && limite < inicio)) { omitidas++; continue; }
+      lista.push({ titulo, proyecto: celda(f, iP), categoria: celda(f, iC), estatus: celda(f, iE), prioridad: celda(f, iPr), inicio, limite, horas: Number(celda(f, iH).replace(',', '.')) || null, detalle: celda(f, iD), hora: parseHora(celda(f, iHo)), checklist: celda(f, iCk).split('|').map(x => x.trim()).filter(Boolean).join('\n') });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => {
       let p = x.proyecto && S.proyectos.find(y => norm(y.nombre) === norm(x.proyecto));
@@ -229,7 +252,8 @@ const Datos = {
       let c = x.categoria && S.categorias.find(y => norm(y.nombre) === norm(x.categoria));
       if (x.categoria && !c) { c = { id: uid(), nombre: x.categoria, color: PALETA[S.categorias.length % PALETA.length] }; S.categorias.push(c); }
       const e = S.estatus.find(y => norm(y.nombre) === norm(x.estatus)) || S.estatus[0], pr = (PRIORIDADES.find(y => norm(y[1]) === norm(x.prioridad)) || ['3'])[0];
-      S.actividades.push({ id: uid(), creado: hoyISO(), titulo: x.titulo, proyecto: p ? p.id : '', categoria: c ? c.id : '', estatus: e.id, prioridad: pr, inicio: x.inicio, limite: x.limite, hora: '', horas: x.horas, detalle: x.detalle, checklist: '', completada: e.final ? hoyISO() : '' });
+      const a = { id: uid(), creado: hoyISO(), titulo: x.titulo, proyecto: p ? p.id : '', categoria: c ? c.id : '', estatus: e.id, prioridad: pr, inicio: x.inicio, limite: x.limite, hora: x.hora, horas: x.horas, detalle: x.detalle, checklist: x.checklist, completada: e.final ? hoyISO() : '' };
+      regEstatus('actividades', a, '', a.estatus); S.actividades.push(a);
     }) };
   },
   /** Lee eventos de un archivo iCalendar (.ics). No expande eventos repetitivos. */
@@ -286,3 +310,117 @@ const Datos = {
     }, 'Borrar todo');
   }
 };
+
+/* ==========================================================================
+   CARGA MASIVA: layout (columnas) de cada tabla, plantillas con ejemplos y lectura
+   ========================================================================== */
+const parseHora = t => { const r = String(t || '').trim().match(/^(\d{1,2})[:.](\d{2})/); return r && +r[1] < 24 && +r[2] < 60 ? `${p2(+r[1])}:${r[2]}` : ''; };
+const LAYOUTS = {
+  proyectos: { t: 'Proyectos', cols: [['Nombre', 1, 'Texto. No se repite.'], ['Ambito', 0, 'Trabajo, Escuela o Personal'], ['Estatus', 0, 'Nombre de un estatus del catálogo'], ['Prioridad', 0, 'Urgente, Alta, Media o Baja'], ['AsignadoPor', 0, 'Texto'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaObjetivo', 0, 'dd/mm/aaaa; no anterior al inicio'], ['Descripcion', 0, 'Texto']],
+    ej: d => [['Migración de reportes a Power BI', 'Trabajo', 'En curso', 'Alta', 'Gerencia de operaciones', d(0), d(45), 'Sustituir reportes de Excel por tableros'], ['Curso de SQL avanzado', 'Personal', 'Pendiente', 'Media', '', d(7), d(60), '']] },
+  actividades: { t: 'Actividades', cols: [['Titulo', 1, 'Texto'], ['Proyecto', 0, 'Nombre del proyecto; vacío = actividad del área. Si no existe, se crea.'], ['Clasificacion', 0, 'Nombre de la clasificación; si no existe, se crea'], ['Estatus', 0, 'Nombre de un estatus del catálogo'], ['Prioridad', 0, 'Urgente, Alta, Media o Baja'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaLimite', 0, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Horas', 0, 'Horas estimadas, número'], ['Detalle', 0, 'Texto'], ['Checklist', 0, 'Elementos separados por | ']],
+    ej: d => [['Preparar reporte mensual', '', 'Reportes', 'Pendiente', 'Alta', d(0), d(3), '12:00', '2', 'Incluir comparativo', 'Extraer datos | Validar cifras | Enviar'], ['Diseñar modelo de datos', 'Migración de reportes a Power BI', '', 'En curso', 'Media', d(1), d(10), '', '6', '', '']] },
+  materias: { t: 'Materias', cols: [['Materia', 1, 'Texto. No se repite.'], ['Profesor', 0, 'Texto'], ['Ciclo', 0, 'Texto, p. ej. 2026-B'], ['Color', 0, 'Hexadecimal #RRGGBB'], ['Meta', 0, 'Puntos que quieres alcanzar (0–100)']],
+    ej: () => [['Programación Web', 'Mtra. Laura Gómez', '2026-B', '#0B84F3', '85'], ['Bases de Datos', 'Mtro. Jorge Pérez', '2026-B', '#19C3C8', '80']] },
+  escolares: { t: 'Actividades escolares', cols: [['Materia', 1, 'Nombre de la materia; si no existe, se crea'], ['Actividad', 1, 'Texto'], ['Tipo', 0, TIPOS_ESC.join(', ')], ['Valor', 0, 'Puntos (número)'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaEntrega', 1, 'dd/mm/aaaa; no anterior al inicio'], ['Estado', 0, 'Pendiente, En proceso, Guardada, Enviada o Calificada'], ['Calificacion', 0, 'Puntos obtenidos; vacío si no está calificada']],
+    nota: 'Es el mismo formato que exporta AcadTrack.',
+    ej: d => [['Programación Web', 'Act. 1.1 El desarrollo web hoy', 'Buzón', '5', d(-10), d(-5), 'Calificada', '5'], ['Programación Web', 'Integradora 1', 'Buzón', '15', d(0), d(8), 'Pendiente', ''], ['Bases de Datos', 'Examen parcial', 'Examen', '25', d(5), d(12), 'Pendiente', '']] },
+  eventos: { t: 'Agenda (eventos)', cols: [['Evento', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['HoraInicio', 0, 'hh:mm (24 h)'], ['HoraFin', 0, 'hh:mm; no anterior al inicio'], ['Tipo', 0, 'Reunión, Revisión, Clase, Personal u Otro'], ['Proyecto', 0, 'Nombre de un proyecto existente'], ['Lugar', 0, 'Texto o enlace'], ['Notas', 0, 'Texto']],
+    nota: 'También puedes importar un calendario .ics exportado de Outlook, Teams o Google Calendar.',
+    ej: d => [['Revisión de avance', d(1), '10:00', '11:00', 'Revisión', '', 'Teams', ''], ['Junta de área', d(4), '09:30', '11:00', 'Reunión', '', 'Sala 2', 'Llevar indicadores']] },
+  recordatorios: { t: 'Recordatorios', cols: [['Recordatorio', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Repeticion', 0, 'Vacío, Diario, Semanal, Mensual o Anual']],
+    ej: d => [['Enviar reporte semanal', d(2), '17:00', 'Semanal'], ['Renovar licencia de software', d(20), '10:00', '']] },
+  notas: { t: 'Notas', cols: [['Titulo', 0, 'Texto (título o texto es obligatorio)'], ['Texto', 0, 'Contenido de la nota'], ['Proyecto', 0, 'Nombre de un proyecto existente; vacío = sin clasificar'], ['Etiquetas', 0, 'Separadas por coma']],
+    ej: () => [['Ideas para la junta', 'Proponer tablero único de pendientes', '', 'junta, ideas'], ['Pendiente con proveedor', 'Enviar cotización antes del viernes', '', '']] },
+  enlaces: { t: 'Accesos directos', cols: [['Nombre', 1, 'Texto'], ['URL', 1, 'Dirección http(s). No se repite.'], ['Carpeta', 0, 'Nombre de carpeta; si no existe, se crea'], ['Descripcion', 0, 'Texto'], ['Favorito', 0, 'SI o NO'], ['Tags', 0, 'Etiquetas separadas por ;']],
+    nota: 'Es el mismo formato que exporta LinkManager.',
+    ej: () => [['Outlook', 'https://outlook.office.com', 'Trabajo', 'Correo', 'SI', 'correo;diario'], ['Power BI', 'https://app.powerbi.com', 'Trabajo', '', 'NO', 'reportes']] },
+  cumples: { t: 'Cumpleaños', cols: [['Nombre', 1, 'Texto. No se repite.'], ['Fecha', 1, 'dd/mm/aaaa, o dd/mm si no sabes el año'], ['Relacion', 0, 'Familia, Amigos, Trabajo…'], ['Nota', 0, 'Texto']],
+    ej: () => [['Ana Ramírez', '11/11/1996', 'Amigos', 'Le gustan los libros'], ['Luis Mendoza', '15/11', 'Trabajo', '']] },
+  frases: { t: 'Frases del día', cols: [['Frase', 1, 'Texto. No se repite.'], ['Autor', 0, 'Texto']],
+    nota: 'Las imágenes se cargan con el botón “Subir varias imágenes”.',
+    ej: () => [['Primero funcionalidad, después complejidad.', ''], ['Lo que no se mide no se puede mejorar.', 'Peter Drucker']] }
+};
+const Carga = {
+  csv(tipo) { const L = LAYOUTS[tipo], d = n => aDMY(sumaDias(hoyISO(), n)); return csvTexto(L.cols.map(c => c[0]), L.ej(d)); },
+  abrir(tipo) {
+    const L = LAYOUTS[tipo];
+    Modal.abrir(`<div class="form"><h2>Carga masiva · ${esc(L.t)}</h2><div class="campos" style="display:block">
+      <p class="d" style="margin-bottom:10px"><b>1.</b> Descarga la plantilla con ejemplos. <b>2.</b> Llénala en Excel y guárdala como <b>CSV UTF-8 (delimitado por comas)</b>. <b>3.</b> Elige el archivo: antes de guardar verás cuántas filas son válidas y cuántas se omiten.</p>
+      <div class="panel scrollx"><table class="lista"><thead><tr><th>Columna</th><th>Obligatoria</th><th>Formato / regla</th></tr></thead><tbody>
+        ${L.cols.map(([n, req, f]) => `<tr><td><b>${esc(n)}</b></td><td>${req ? '<span class="et ac">Sí</span>' : '<span class="mut">No</span>'}</td><td class="d">${esc(f)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="d" style="margin-top:10px">El orden de las columnas no importa; se reconocen por su nombre (sin distinguir acentos ni mayúsculas). Los registros repetidos se omiten.${L.nota ? ' ' + esc(L.nota) : ''}</p></div>
+      <div class="acciones"><button class="btn" onclick="Carga.plantilla('${tipo}')">Descargar plantilla con ejemplos</button>${tipo === 'eventos' ? '<button class="btn" onclick="Datos.elegir(\'ics\')">Importar .ics</button>' : ''}
+        <span class="esp"></span><button class="btn" onclick="Modal.cerrar()">Cerrar</button><button class="btn pri" onclick="Datos.elegir('${tipo}')">Elegir archivo CSV…</button></div></div>`, 720);
+  },
+  plantilla(tipo) { descargar(`plantilla_${tipo}.csv`, new Blob([this.csv(tipo)], { type: 'text/csv;charset=utf-8' })); toast('Plantilla descargada'); },
+  todas() {
+    const arch = Object.keys(LAYOUTS).map(t => ({ nombre: `plantilla_${t}.csv`, texto: this.csv(t) }));
+    arch.push({ nombre: 'LEEME.txt', texto: 'Plantillas de carga masiva de ' + S.ajustes.nombre + '\r\n\r\n' + Object.entries(LAYOUTS).map(([k, L]) => `plantilla_${k}.csv — ${L.t}\r\n` + L.cols.map(([n, r, f]) => `   ${n}${r ? ' (obligatoria)' : ''}: ${f}`).join('\r\n')).join('\r\n\r\n') + '\r\n\r\nGuarda cada archivo como CSV UTF-8 (delimitado por comas). Fechas en dd/mm/aaaa.\r\n' });
+    descargar('plantillas_carga_masiva.zip', crearZip(arch)); toast('Plantillas descargadas');
+  }
+};
+Object.assign(Datos, {
+  leer_proyectos(filas) {
+    const col = columnas(filas[0] || []), iN = col('nombre', 'proyecto'); if (iN < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0; const vistos = new Set(S.proyectos.map(p => norm(p.nombre)));
+    for (const f of filas.slice(1)) {
+      const nombre = celda(f, iN), ti = celda(f, col('fechainicio', 'inicio')), to = celda(f, col('fechaobjetivo', 'objetivo')), inicio = parseFecha(ti), objetivo = parseFecha(to);
+      if (!nombre || vistos.has(norm(nombre)) || (ti && !inicio) || (to && !objetivo) || (inicio && objetivo && objetivo < inicio)) { omitidas++; continue; } vistos.add(norm(nombre));
+      const amb = AMBITOS.find(a => norm(a) === norm(celda(f, col('ambito')))) || 'Trabajo';
+      lista.push({ nombre, ambito: amb, est: celda(f, col('estatus', 'estado')), pri: celda(f, col('prioridad')), asignadoPor: celda(f, col('asignadopor')), inicio, objetivo, descripcion: celda(f, col('descripcion')) });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(({ est, pri, ...x }) => {
+      const p = { id: uid(), creado: hoyISO(), ...x, estatus: (S.estatus.find(e => norm(e.nombre) === norm(est)) || S.estatus[0]).id, prioridad: (PRIORIDADES.find(y => norm(y[1]) === norm(pri)) || ['3'])[0] };
+      regEstatus('proyectos', p, '', p.estatus); S.proyectos.push(p); }) };
+  },
+  leer_materias(filas) {
+    const col = columnas(filas[0] || []), iN = col('materia', 'nombre'); if (iN < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0; const vistos = new Set(S.materias.map(m => norm(m.nombre)));
+    for (const f of filas.slice(1)) {
+      const nombre = celda(f, iN); if (!nombre || vistos.has(norm(nombre))) { omitidas++; continue; } vistos.add(norm(nombre));
+      const color = celda(f, col('color')), meta = Number(celda(f, col('meta')));
+      lista.push({ nombre, profesor: celda(f, col('profesor')), ciclo: celda(f, col('ciclo')), color: /^#[0-9a-f]{6}$/i.test(color) ? color : '', meta: meta > 0 && meta <= 100 ? meta : S.ajustes.metaEscolar });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.materias.push({ id: uid(), ...x, color: x.color || PALETA[S.materias.length % PALETA.length] })) };
+  },
+  leer_eventos(filas) {
+    const col = columnas(filas[0] || []), iT = col('evento', 'titulo'), iF = col('fecha'); if (iT < 0 || iF < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0;
+    for (const f of filas.slice(1)) {
+      const titulo = celda(f, iT), fecha = parseFecha(celda(f, iF)), horaIni = parseHora(celda(f, col('horainicio', 'hora'))), horaFin = parseHora(celda(f, col('horafin')));
+      if (!titulo || !fecha || (horaIni && horaFin && horaFin < horaIni) || S.eventos.some(e => e.fecha === fecha && norm(e.titulo) === norm(titulo) && (e.horaIni || '') === horaIni)) { omitidas++; continue; }
+      const p = S.proyectos.find(y => norm(y.nombre) === norm(celda(f, col('proyecto'))));
+      lista.push({ titulo, fecha, horaIni, horaFin, tipo: Agenda.TIPOS.find(t => norm(t) === norm(celda(f, col('tipo')))) || 'Reunión', proyecto: p ? p.id : '', lugar: celda(f, col('lugar')), nota: celda(f, col('notas', 'nota')), origen: 'csv' });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.eventos.push({ id: uid(), ...x })) };
+  },
+  leer_recordatorios(filas) {
+    const col = columnas(filas[0] || []), iT = col('recordatorio', 'texto'), iF = col('fecha'); if (iT < 0 || iF < 0) return { n: 0, omitidas: filas.length };
+    const REP = { diario: 'diario', cadadia: 'diario', semanal: 'semanal', cadasemana: 'semanal', mensual: 'mensual', cadames: 'mensual', anual: 'anual', cadaano: 'anual' };
+    const lista = []; let omitidas = 0;
+    for (const f of filas.slice(1)) {
+      const texto = celda(f, iT), fecha = parseFecha(celda(f, iF));
+      if (!texto || !fecha || S.recordatorios.some(r => r.fecha === fecha && norm(r.texto) === norm(texto))) { omitidas++; continue; }
+      lista.push({ texto, fecha, hora: parseHora(celda(f, col('hora'))), repetir: REP[norm(celda(f, col('repeticion', 'repetir')))] || '', hecho: false, avisado: '' });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.recordatorios.push({ id: uid(), ...x })) };
+  },
+  leer_notas(filas) {
+    const col = columnas(filas[0] || []), iT = col('titulo'), iX = col('texto', 'contenido', 'nota'); if (iT < 0 && iX < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0;
+    for (const f of filas.slice(1)) {
+      const titulo = celda(f, iT), texto = celda(f, iX);
+      if ((!titulo && !texto) || S.notas.some(n => norm(n.titulo) === norm(titulo) && norm(n.texto) === norm(texto))) { omitidas++; continue; }
+      const p = S.proyectos.find(y => norm(y.nombre) === norm(celda(f, col('proyecto'))));
+      lista.push({ titulo, texto, proyecto: p ? p.id : '', etiquetas: celda(f, col('etiquetas', 'tags')), fijada: false, creado: ahoraTxt(), actualizado: ahoraTxt() });
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.notas.push({ id: uid(), ...x })) };
+  },
+  leer_frases(filas) {
+    const col = columnas(filas[0] || []), iT = col('frase', 'texto'); if (iT < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0; const vistos = new Set(S.frases.map(x => norm(x.texto)));
+    for (const f of filas.slice(1)) { const texto = celda(f, iT); if (!texto || vistos.has(norm(texto))) { omitidas++; continue; } vistos.add(norm(texto)); lista.push({ texto, autor: celda(f, col('autor')), img: null }); }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.frases.push({ id: uid(), ...x })) };
+  }
+});
