@@ -1,0 +1,224 @@
+'use strict';
+/* ==========================================================================
+   NOTAS (generales, por proyecto y privadas) + ACCESOS DIRECTOS + CUMPLEAÑOS + FRASES
+   ========================================================================== */
+const ahoraTxt = () => { const d = new Date(); return `${aISO(d)} ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
+/** Repinta conservando el cursor en un campo de búsqueda. */
+function buscar(obj, valor, idInput) { UI[obj].q = valor; App.pintar(); const i = $('#' + idInput); if (i) { i.focus(); i.setSelectionRange(valor.length, valor.length); } }
+
+const Notas = {
+  _t: null,
+  priv: () => UI.notas.f === 'priv',
+  visibles() {
+    const f = UI.notas.f, q = UI.notas.q.toLowerCase();
+    let l = this.priv() ? (Boveda.abierta() ? Boveda.notas.slice() : []) : S.notas.filter(n => f === 'todas' ? true : f === 'sin' ? !n.proyecto : n.proyecto === f);
+    if (q) l = l.filter(n => ((n.titulo || '') + ' ' + (n.texto || '') + ' ' + (n.etiquetas || '')).toLowerCase().includes(q));
+    return l.sort((a, b) => (!!b.fijada - !!a.fijada) || (b.actualizado || '').localeCompare(a.actualizado || ''));
+  },
+  actual() { return this.priv() ? Boveda.notas.find(n => n.id === UI.notas.id) : por('notas', UI.notas.id); },
+  async nueva(proyecto) {
+    const n = { id: uid(), titulo: '', texto: '', creado: ahoraTxt(), actualizado: ahoraTxt() };
+    if (proyecto) UI.notas.f = proyecto;
+    if (this.priv()) { if (!Boveda.abierta()) return toast('Primero desbloquea tus notas privadas', 'err'); await Boveda.guardarNota(n); }
+    else poner('notas', { ...n, proyecto: proyecto || (['todas', 'sin'].includes(UI.notas.f) ? '' : UI.notas.f), etiquetas: '', fijada: false });
+    UI.notas.id = n.id; UI.notas.q = '';
+    if (App.vista !== 'notas') App.ir('notas'); else App.pintar();
+    const t = $('#nTitulo'); if (t) t.focus();
+  },
+  /** Guarda mientras escribes, sin repintar toda la pantalla (para no perder el cursor). */
+  cambio(campo, valor) {
+    const n = this.actual(); if (!n) return;
+    n[campo] = valor; n.actualizado = ahoraTxt();
+    if (this.priv()) { clearTimeout(this._t); this._t = setTimeout(() => Boveda.guardarNota(n).catch(e => toast('No se pudo cifrar la nota: ' + e.message, 'err')), 400); }
+    else guardar();
+    const it = $('#ni_' + n.id);
+    if (it) { it.querySelector('b').textContent = (n.fijada ? '★ ' : '') + (n.titulo || 'Sin título'); it.querySelector('span').textContent = (n.texto || '').slice(0, 60) || 'Sin contenido'; }
+  },
+  clasificar(valor) { const n = this.actual(); n.proyecto = valor; n.actualizado = ahoraTxt(); guardar(); App.pintar(); toast(valor ? 'Nota clasificada en el proyecto' : 'Nota sin clasificar'); },
+  fijar() { const n = this.actual(); n.fijada = !n.fijada; guardar(); App.pintar(); },
+  borrar() {
+    confirmar('¿Eliminar esta nota?', () => { if (this.priv()) Boveda.quitarNota(UI.notas.id); else quitar('notas', UI.notas.id); UI.notas.id = null; App.pintar(); });
+  },
+  async hacerPrivada() {
+    if (!S.boveda) { UI.notas.f = 'priv'; App.pintar(); return toast('Primero crea la contraseña de tus notas privadas'); }
+    if (!Boveda.abierta()) return toast('Desbloquea tus notas privadas (filtro “Privadas”) y vuelve a intentarlo', 'err');
+    const n = this.actual();
+    await Boveda.guardarNota({ id: n.id, titulo: n.titulo, texto: n.texto, creado: n.creado, actualizado: ahoraTxt() });
+    quitar('notas', n.id); UI.notas.f = 'priv'; App.pintar(); toast('La nota ahora es privada y está cifrada');
+  },
+  quitarPrivacidad() {
+    confirmar('La nota dejará de estar cifrada y quedará como nota general. ¿Continuar?', () => {
+      const n = this.actual(); poner('notas', { ...n, proyecto: '', etiquetas: '', fijada: false }); Boveda.quitarNota(n.id); UI.notas.f = 'sin'; App.pintar();
+    }, 'Quitar privacidad');
+  },
+  async crearBoveda() {
+    const a = $('#bvA').value, b = $('#bvB').value;
+    if (a.length < 8) return toast('La contraseña debe tener al menos 8 caracteres', 'err');
+    if (a !== b) return toast('Las contraseñas no coinciden', 'err');
+    await Boveda.crear(a); App.pintar(); toast('Notas privadas activadas');
+  },
+  async desbloquear() {
+    const ok = await Boveda.abrir($('#bvP').value);
+    if (!ok) { toast('Contraseña incorrecta', 'err'); $('#bvP').select(); return; }
+    App.pintar();
+  },
+  bloquear() { Boveda.cerrar(); UI.notas.id = null; App.pintar(); }
+};
+
+Vistas.notas = () => {
+  const priv = Notas.priv();
+  const filtros = `<div class="barra">${filtro('notas', 'f', [['todas', 'Todas'], ['sin', 'Sin clasificar'], ['priv', 'Privadas']])}
+    <select onchange="UI.notas.f=this.value||'todas';UI.notas.id=null;App.pintar()"><option value="">Por proyecto…</option>${S.proyectos.map(p => `<option value="${p.id}" ${UI.notas.f === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
+    ${priv && Boveda.abierta() ? '<button class="btn" onclick="Notas.bloquear()">Bloquear ahora</button>' : ''}</div>`;
+  const encabezado = cab('Notas', `${S.notas.length} notas · ${S.notas.filter(n => !n.proyecto).length} sin clasificar · ${S.notasPriv.length} privadas`, (!priv || Boveda.abierta()) ? '<button class="btn pri" onclick="Notas.nueva()">+ Nota</button>' : '');
+  // --- Estados de la bóveda ---
+  if (priv && !Boveda.disponible()) return encabezado + filtros + `<div class="panel">${vacio('Cifrado no disponible', 'Abre la plataforma con https:// o desde un archivo local en un navegador actualizado para usar notas privadas.')}</div>`;
+  if (priv && !S.boveda) return encabezado + filtros + `<div class="panel" style="max-width:520px"><div class="cuerpo">
+      <b>Crear contraseña para notas privadas</b>
+      <p class="d" style="margin:6px 0 12px">Las notas privadas se cifran (AES-256) con esta contraseña. No se guarda en ningún lado: <b class="rojo">si la olvidas, las notas no se pueden recuperar.</b></p>
+      <div class="reng"><label for="bvA">Contraseña (mín. 8)</label><input type="password" id="bvA" autocomplete="new-password"></div>
+      <div class="reng"><label for="bvB">Repetir contraseña</label><input type="password" id="bvB" autocomplete="new-password" onkeydown="if(event.key==='Enter')Notas.crearBoveda()"></div>
+      <button class="btn pri" onclick="Notas.crearBoveda()">Activar notas privadas</button></div></div>`;
+  if (priv && !Boveda.abierta()) return encabezado + filtros + `<div class="panel" style="max-width:520px"><div class="cuerpo">
+      <b>Notas privadas bloqueadas</b><p class="d" style="margin:6px 0 12px">Hay ${S.notasPriv.length} nota(s) cifrada(s). Se bloquean solas tras 5 minutos sin uso.</p>
+      <div class="barra"><input type="password" id="bvP" placeholder="Contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter')Notas.desbloquear()"><button class="btn pri" onclick="Notas.desbloquear()">Desbloquear</button></div></div></div>`;
+  // --- Lista + editor ---
+  const l = Notas.visibles();
+  if (!l.some(n => n.id === UI.notas.id)) UI.notas.id = l.length ? l[0].id : null;
+  const n = Notas.actual();
+  const editor = !n ? vacio('Sin notas aquí', 'Crea una con el botón “+ Nota”. Puedes escribirla sin clasificar y asignarla a un proyecto después.') : `
+    <div class="hd">${priv ? '<span class="et ac">Privada · cifrada</span>' : `<select onchange="Notas.clasificar(this.value)" aria-label="Proyecto"><option value="">Sin clasificar</option>${S.proyectos.map(p => `<option value="${p.id}" ${n.proyecto === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
+      <input type="text" value="${esc(n.etiquetas || '')}" placeholder="Etiquetas" style="width:150px" oninput="Notas.cambio('etiquetas',this.value)">`}
+      <span class="esp"></span><span class="d">${esc(fFecha((n.actualizado || '').slice(0, 10)))} ${esc((n.actualizado || '').slice(11))}</span>
+      ${priv ? '<button class="lnk gris" onclick="Notas.quitarPrivacidad()">Quitar privacidad</button>' : `<button class="lnk gris" onclick="Notas.fijar()">${n.fijada ? 'Quitar fijado' : 'Fijar'}</button><button class="lnk gris" onclick="Notas.hacerPrivada()">Hacer privada</button>`}
+      <button class="lnk rojo" onclick="Notas.borrar()">Eliminar</button></div>
+    <input class="tit" id="nTitulo" type="text" value="${esc(n.titulo || '')}" placeholder="Título" oninput="Notas.cambio('titulo',this.value)">
+    <textarea placeholder="Escribe aquí…" oninput="Notas.cambio('texto',this.value)">${esc(n.texto || '')}</textarea>`;
+  return `${encabezado}${filtros}<div class="nt"><div class="izq"><div class="bq"><input type="search" id="nBuscar" placeholder="Buscar en notas…" value="${esc(UI.notas.q)}" oninput="buscar('notas',this.value,'nBuscar')"></div>
+    <div class="ls">${l.map(x => { const p = x.proyecto && por('proyectos', x.proyecto); return `<div class="it ${x.id === UI.notas.id ? 'on' : ''}" id="ni_${x.id}" onclick="UI.notas.id='${x.id}';App.pintar()"><b>${x.fijada ? '★ ' : ''}${esc(x.titulo || 'Sin título')}</b><span>${esc((x.texto || '').slice(0, 60) || 'Sin contenido')}</span>
+      ${!priv ? `<span>${p ? esc(p.nombre) : 'Sin clasificar'}</span>` : ''}</div>`; }).join('') || '<div class="vacio">Sin resultados</div>'}</div></div>
+    <div class="der">${editor}</div></div>`;
+};
+
+/* ==========================================================================
+   ACCESOS DIRECTOS (versión integrada de LinkManager)
+   ========================================================================== */
+const Acc = {
+  host(u) { try { return new URL(urlSegura(u)).hostname.replace(/^www\./, ''); } catch (e) { return ''; } },
+  campos: () => [
+    { k: 'nombre', label: 'Nombre', req: true }, { k: 'url', label: 'Dirección (URL)', req: true, ph: 'https://…' },
+    { k: 'carpeta', label: 'Carpeta', tipo: 'select', opciones: [['', 'Sin carpeta'], ...S.carpetas.map(c => [c.id, c.nombre])], medio: true },
+    { k: 'tags', label: 'Etiquetas', medio: true, ph: 'separadas por coma' }, { k: 'desc', label: 'Descripción' }, { k: 'fav', label: 'Favorito', tipo: 'check', texto: 'Mostrar en Inicio' }
+  ],
+  editar(id) {
+    const l = id ? por('enlaces', id) : null;
+    Form.abrir({ titulo: l ? 'Editar acceso directo' : 'Nuevo acceso directo', campos: this.campos(), valores: l || { carpeta: S.carpetas.some(c => c.id === UI.acc.f) ? UI.acc.f : '' },
+      guardar: v => { const u = urlSegura(v.url); if (!u) return 'La dirección no es válida (sólo http, https o mailto)'; poner('enlaces', { id: l ? l.id : uid(), ...v, url: u }); },
+      eliminar: l ? () => { S.grupos.forEach(g => g.ids = g.ids.filter(x => x !== l.id)); quitar('enlaces', l.id); } : null });
+  },
+  carpeta(id) {
+    const c = id ? por('carpetas', id) : null;
+    Form.abrir({ titulo: c ? 'Editar carpeta' : 'Nueva carpeta', campos: [{ k: 'nombre', label: 'Nombre', req: true }, { k: 'color', label: 'Color', tipo: 'color' }], valores: c || { color: PALETA[S.carpetas.length % PALETA.length] },
+      guardar: v => { poner('carpetas', { id: c ? c.id : uid(), ...v }); },
+      eliminar: c ? () => { S.enlaces.forEach(l => { if (l.carpeta === c.id) l.carpeta = ''; }); quitar('carpetas', c.id); UI.acc.f = 'todos'; } : null });
+  },
+  fav(id) { const l = por('enlaces', id); l.fav = !l.fav; guardar(); App.pintar(); },
+  sel(id, on) { if (on) UI.acc.sel.add(id); else UI.acc.sel.delete(id); App.pintar(); },
+  abrir(ids) {
+    const urls = ids.map(i => por('enlaces', i)).filter(Boolean).map(l => urlSegura(l.url)).filter(Boolean); let abiertas = 0;
+    for (const u of urls) if (window.open(u, '_blank', 'noopener')) abiertas++;
+    if (abiertas < urls.length) toast('El navegador bloqueó algunas pestañas. Permite las ventanas emergentes para este sitio.', 'err');
+  },
+  grupoNuevo() {
+    Form.abrir({ titulo: 'Guardar selección como grupo', campos: [{ k: 'nombre', label: 'Nombre del grupo', req: true, ayuda: 'Un grupo abre todos sus accesos con un clic (p. ej. “Inicio de jornada”).' }],
+      guardar: v => { poner('grupos', { id: uid(), nombre: v.nombre, ids: [...UI.acc.sel] }); UI.acc.sel.clear(); } });
+  },
+  grupoBorrar(id) { confirmar('¿Eliminar el grupo? Los accesos no se borran.', () => { quitar('grupos', id); App.pintar(); }); }
+};
+Vistas.accesos = () => {
+  const f = UI.acc.f, q = UI.acc.q.toLowerCase();
+  let l = S.enlaces.filter(x => f === 'todos' ? true : f === 'fav' ? x.fav : f === 'sin' ? !x.carpeta : x.carpeta === f);
+  if (q) l = l.filter(x => (x.nombre + ' ' + x.url + ' ' + (x.tags || '') + ' ' + (x.desc || '')).toLowerCase().includes(q));
+  l.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const n = UI.acc.sel.size, carp = S.carpetas.find(c => c.id === f);
+  return `${cab('Accesos directos', `${S.enlaces.length} accesos · ${S.enlaces.filter(x => x.fav).length} favoritos`, '<button class="btn" onclick="Acc.carpeta()">+ Carpeta</button><button class="btn pri" onclick="Acc.editar()">+ Acceso</button>')}
+  <div class="barra"><input type="search" id="aBuscar" placeholder="Buscar por nombre, dirección o etiqueta…" style="width:300px" value="${esc(UI.acc.q)}" oninput="buscar('acc',this.value,'aBuscar')">
+    <select onchange="UI.acc.f=this.value;App.pintar()"><option value="todos">Todas las carpetas</option><option value="fav" ${f === 'fav' ? 'selected' : ''}>★ Favoritos</option><option value="sin" ${f === 'sin' ? 'selected' : ''}>Sin carpeta</option>
+      ${S.carpetas.map(c => `<option value="${c.id}" ${f === c.id ? 'selected' : ''}>${esc(c.nombre)} (${S.enlaces.filter(x => x.carpeta === c.id).length})</option>`).join('')}</select>
+    ${carp ? `<button class="lnk gris" onclick="Acc.carpeta('${carp.id}')">Editar carpeta</button>` : ''}<span class="esp"></span>
+    ${n ? `<span class="d">${n} seleccionado(s)</span><button class="btn" onclick="Acc.abrir([...UI.acc.sel])">Abrir en pestañas</button><button class="btn" onclick="Acc.grupoNuevo()">Guardar como grupo</button><button class="lnk gris" onclick="UI.acc.sel.clear();App.pintar()">Limpiar</button>` : ''}</div>
+  ${S.grupos.length ? `<div class="barra"><span class="d">Grupos:</span>${S.grupos.map(g => `<span class="fil"><button onclick="Acc.abrir(${esc(JSON.stringify(g.ids))})" title="Abrir todos">${esc(g.nombre)} (${g.ids.length}) ↗</button><button onclick="Acc.grupoBorrar('${g.id}')" title="Eliminar grupo">×</button></span>`).join('')}</div>` : ''}
+  <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th style="width:30px"></th><th style="width:30px"></th><th>Nombre</th><th>Sitio</th><th>Carpeta</th><th>Etiquetas</th><th></th></tr></thead><tbody>
+    ${l.map(x => { const c = por('carpetas', x.carpeta); return `<tr><td><input type="checkbox" ${UI.acc.sel.has(x.id) ? 'checked' : ''} onchange="Acc.sel('${x.id}',this.checked)" aria-label="Seleccionar"></td>
+      <td><button class="lnk ${x.fav ? '' : 'gris'}" onclick="Acc.fav('${x.id}')" title="Favorito" style="font-size:15px">${x.fav ? '★' : '☆'}</button></td>
+      <td><a href="${esc(urlSegura(x.url))}" target="_blank" rel="noopener noreferrer" style="font-weight:500">${esc(x.nombre)}</a>${x.desc ? `<div class="d">${esc(x.desc)}</div>` : ''}</td>
+      <td class="d">${esc(Acc.host(x.url))}</td><td class="nw">${c ? punto(c.color) + esc(c.nombre) : '<span class="mut">—</span>'}</td>
+      <td>${String(x.tags || '').split(/[,;]/).map(t => t.trim()).filter(Boolean).map(t => `<span class="et">${esc(t)}</span>`).join(' ')}</td>
+      <td class="num"><button class="lnk gris" onclick="Acc.editar('${x.id}')">Editar</button></td></tr>`; }).join('')}</tbody></table>`
+    : vacio('Sin accesos directos', 'Agrega tus sitios frecuentes o importa tu CSV de LinkManager en Ajustes → Datos.')}</div>`;
+};
+
+/* ==========================================================================
+   CUMPLEAÑOS
+   ========================================================================== */
+const Cumples = {
+  proximos() {
+    const hoy = hoyISO(), y = +hoy.slice(0, 4);
+    return S.cumples.map(c => {
+      let f = aISO(new Date(y, c.mes - 1, c.dia)); if (f < hoy) f = aISO(new Date(y + 1, c.mes - 1, c.dia));
+      return { ...c, fecha: f, faltan: difDias(hoy, f), edad: c.anio ? +f.slice(0, 4) - c.anio : null };
+    }).sort((a, b) => a.faltan - b.faltan);
+  },
+  editar(id) {
+    const c = id ? por('cumples', id) : null;
+    Form.abrir({ titulo: c ? 'Editar cumpleaños' : 'Nuevo cumpleaños', valores: c || { mes: new Date().getMonth() + 1 },
+      campos: [{ k: 'nombre', label: 'Nombre', req: true }, { k: 'dia', label: 'Día', tipo: 'number', min: 1, max: 31, req: true, medio: true },
+               { k: 'mes', label: 'Mes', tipo: 'select', opciones: MESES.map((m, i) => [i + 1, m]), medio: true }, { k: 'anio', label: 'Año de nacimiento (opcional)', tipo: 'number', min: 1900, max: 2100, medio: true },
+               { k: 'relacion', label: 'Relación', medio: true, ph: 'Familia, amigos, trabajo…' }, { k: 'nota', label: 'Notas / ideas de regalo', tipo: 'textarea', filas: 2 }],
+      guardar: v => { v.mes = +v.mes; if (v.dia > new Date(2024, v.mes, 0).getDate()) return 'Ese día no existe en el mes elegido'; poner('cumples', { id: c ? c.id : uid(), ...v }); },
+      eliminar: c ? () => quitar('cumples', c.id) : null });
+  }
+};
+Vistas.cumples = () => {
+  const l = Cumples.proximos();
+  return `${cab('Cumpleaños', `${l.length} personas · ${l.filter(c => c.faltan <= 30).length} en los próximos 30 días`, '<button class="btn pri" onclick="Cumples.editar()">+ Cumpleaños</button>')}
+  <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Nombre</th><th>Fecha</th><th>Faltan</th><th>Cumple</th><th>Relación</th><th>Notas</th></tr></thead><tbody>
+    ${l.map(c => `<tr><td><span class="t" onclick="Cumples.editar('${c.id}')">${esc(c.nombre)}</span></td><td class="nw">${c.dia} de ${MESES[c.mes - 1]}</td>
+      <td class="nw ${c.faltan === 0 ? 'rojo' : c.faltan <= 7 ? 'ambar' : ''}">${c.faltan === 0 ? '<b>Hoy</b>' : c.faltan === 1 ? 'Mañana' : c.faltan + ' días'}</td>
+      <td class="d">${c.edad ? c.edad + ' años' : '—'}</td><td class="d">${esc(c.relacion || '—')}</td><td class="d">${esc(c.nota || '')}</td></tr>`).join('')}</tbody></table>`
+    : vacio('Sin cumpleaños registrados', 'Agrégalos uno por uno o impórtalos por CSV en Ajustes → Datos.')}</div>`;
+};
+
+/* ==========================================================================
+   FRASES DEL DÍA (texto y/o imagen; cambia cada día)
+   ========================================================================== */
+const Frases = {
+  editar(id) {
+    const f = id ? por('frases', id) : null;
+    Form.abrir({ titulo: f ? 'Editar frase' : 'Nueva frase del día', valores: f || {},
+      campos: [{ k: 'texto', label: 'Frase', tipo: 'textarea', filas: 3, ayuda: 'Puedes dejarla vacía si la imagen ya contiene el texto.' }, { k: 'autor', label: 'Autor' },
+               { k: 'archivo', label: f && f.img ? 'Cambiar imagen' : 'Imagen', tipo: 'imagen', actual: f ? Img.url(f.img) : '' }],
+      guardar: async v => {
+        if (!v.texto && !v.archivo && !(f && f.img)) return 'Escribe una frase o elige una imagen';
+        let img = f ? f.img : null;
+        if (v.archivo) { const nueva = await Img.agregar(v.archivo, 1800); if (img) await Img.quitar(img); img = nueva; }
+        poner('frases', { id: f ? f.id : uid(), texto: v.texto, autor: v.autor, img });
+      },
+      eliminar: f ? async () => { await Img.quitar(f.img); quitar('frases', f.id); } : null });
+  },
+  /** Carga varias imágenes de una vez: cada una se convierte en una frase. */
+  async varias(input) {
+    let n = 0;
+    for (const a of input.files) { try { const img = await Img.agregar(a, 1800); S.frases.push({ id: uid(), texto: '', autor: '', img }); n++; } catch (e) { toast(e.message, 'err'); } }
+    input.value = ''; if (n) { guardar(); App.pintar(); toast(`${n} imagen(es) agregada(s)`); }
+  }
+};
+Vistas.frases = () => {
+  const hoy = fraseDelDia();
+  return `${cab('Frases del día', `${S.frases.length} cargadas · se muestra una distinta cada día en Inicio`,
+    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button><button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
+  <div class="panel scrollx">${S.frases.length ? `<table class="lista"><thead><tr><th style="width:110px">Imagen</th><th>Frase</th><th>Autor</th><th></th></tr></thead><tbody>
+    ${S.frases.map(f => `<tr><td>${f.img ? `<img src="${Img.url(f.img)}" alt="" style="height:48px;width:86px;object-fit:cover;border-radius:5px;display:block;cursor:zoom-in" onclick="verImagen(this.src)">` : '<span class="mut">—</span>'}</td>
+      <td><span class="t" onclick="Frases.editar('${f.id}')">${esc(f.texto || '(sólo imagen)')}</span></td><td class="d">${esc(f.autor || '')}</td><td class="num">${hoy && hoy.id === f.id ? '<span class="et ac">Hoy</span>' : ''}</td></tr>`).join('')}</tbody></table>`
+    : vacio('Aún no hay frases', 'Sube imágenes o escribe frases; cada día verás una diferente en la pantalla de Inicio.')}</div>`;
+};

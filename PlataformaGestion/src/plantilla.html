@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plataforma de Gestión</title>
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div id="fondo"></div>
+<div class="app">
+  <aside class="lat" id="lat"></aside>
+  <main class="pral" id="pral"></main>
+</div>
+<div class="velo" id="modal" onmousedown="if(event.target===this)Modal.cerrar()"><div class="caja"></div></div>
+<div class="velo" id="confirma" style="z-index:60"><div class="caja" style="max-width:440px"></div></div>
+<div id="visor" onclick="this.classList.remove('on')"><img alt="Imagen ampliada"></div>
+<div id="avisos" aria-live="polite"></div>
+<input type="file" id="archivo" hidden>
+<script>
+/*__JS__*/
+</script>
+</body>
+</html>
