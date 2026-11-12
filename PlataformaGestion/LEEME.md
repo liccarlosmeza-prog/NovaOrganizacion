@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.2
+# Nova Organización — prueba v0.3
 
 > *Evolución sin límites.*
 
@@ -59,6 +59,14 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
 
+### Novedades de la v0.3 (seguridad)
+- Revisión de seguridad completa: ver [`docs/SEGURIDAD.md`](../docs/SEGURIDAD.md). Se corrigió una falla crítica (un respaldo manipulado podía ejecutar código) y 7 hallazgos menores.
+- **Sin conexiones externas**, ahora garantizado por una política de seguridad (CSP) dentro del archivo.
+- Todo dato que entra por archivo se sanea antes de usarse; la exportación CSV neutraliza fórmulas.
+- Notas privadas con 600 000 iteraciones (cambia tu contraseña una vez para actualizar una bóveda anterior).
+- **Ajustes → Seguridad → Autodiagnóstico**: la app revisa en vivo CSP, conexiones externas, cifrado y respaldo.
+- Cada construcción (`node construir.js`) ejecuta `seguridad.js` y se detiene si algo falla.
+
 ## 4. Lo que debes saber (límites de esta prueba)
 - **Los datos viven en el navegador y equipo donde la abras** (IndexedDB). No se sincronizan entre equipos: usa el respaldo `.json` para moverlos. Si borras los datos de navegación del sitio, se pierden → **descarga un respaldo cada semana**.
 - **Notas privadas**: cifrado AES-256; la contraseña no se guarda. **Si la olvidas no hay recuperación.** Sólo las notas privadas van cifradas; el resto no.
@@ -86,7 +94,10 @@ Consideraciones:
 PlataformaGestion/
 ├── PlataformaGestion.html        ← archivo final (ábrelo o publícalo)
 ├── PowerPages-WebTemplate.html   ← mismo contenido, listo para pegar en Power Pages
-├── construir.js                  ← une los archivos de src/ (node construir.js)
+├── construir.js                  ← une los archivos de src/ y ejecuta la validación de seguridad
+├── seguridad.js                  ← validación automática de seguridad
+├── SEGURIDAD-AUTOMATICA.md       ← resultado de la última validación
+├── pruebas/ataque.js             ← pasada adversarial en navegador (Playwright)
 └── src/
     ├── plantilla.html            estructura HTML
     ├── estilos.css               estilos y variables de color

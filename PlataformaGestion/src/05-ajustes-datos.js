@@ -63,7 +63,7 @@ Vistas.ajustes = () => {
       <div class="reng"><label for="ajUsuario">Tu nombre (para el saludo)</label><input type="text" id="ajUsuario" value="${esc(a.usuario)}" onchange="Aj.texto('usuario',this.value)" style="width:280px"></div>
       <div class="reng"><label for="ajEscala">Tamaño general</label><select id="ajEscala" onchange="Aj.escala(this.value)">${[[85, 'Compacto (85 %)'], [92, 'Reducido (92 %)'], [100, 'Normal (100 %)'], [110, 'Grande (110 %)'], [125, 'Muy grande (125 %)']].map(([v, t]) => `<option value="${v}" ${(a.escala || 100) === v ? 'selected' : ''}>${t}</option>`).join('')}</select><span class="d">Cambia el tamaño de textos, filas y controles de toda la plataforma.</span></div></div></section>
     <section class="blq"><h3>Colores</h3><div class="cu">
-      <div class="reng"><label>Tema</label><div class="pres">${Object.entries(TEMAS).map(([id, x]) => `<button class="${a.temaId === id ? 'on' : ''}" onclick="Aj.preset('${id}')"><i style="background:${x.lat}"></i><i style="background:${x.ac}"></i><i style="background:${x.oro}"></i>${x.nombre}</button>`).join('')}
+      <div class="reng"><label>Tema</label><div class="pres">${Object.entries(TEMAS).map(([id, x]) => `<button class="${a.temaId === id ? 'on' : ''}" onclick="Aj.preset('${id}')"><i style="background:${x.lat}"></i><i style="background:${x.ac}"></i><i style="background:${x.oro}"></i>${esc(x.nombre)}</button>`).join('')}
         ${a.temaId === 'personal' ? '<button class="on">Personalizado</button>' : ''}</div></div>
       ${COLORES_TEMA.map(([k, n]) => `<div class="reng"><label for="c_${k}">${n}</label><input type="color" id="c_${k}" value="${esc(a.tema[k])}" onchange="Aj.color('${k}',this.value)"><span class="d">${esc(a.tema[k])}</span></div>`).join('')}</div></section>
     <section class="blq"><h3>Imágenes de la interfaz</h3><div class="cu">
@@ -90,7 +90,7 @@ Vistas.ajustes = () => {
   else if (t === 'datos') { const leg = Datos.legado(); cuerpo = `
     <section class="blq"><h3>Exportar</h3><div class="cu">
       <div class="reng"><label>Todo en CSV</label><button class="btn pri" onclick="Datos.exportarTodo()">Descargar ZIP con todos los CSV</button><span class="d">Un archivo CSV por tabla; se abre en Excel o Power BI.</span></div>
-      <div class="reng"><label>Una tabla</label><select id="expTabla">${Datos.tablas().map(x => `<option value="${x.nombre}">${x.nombre} (${x.filas.length})</option>`).join('')}</select><button class="btn" onclick="Datos.exportarUna(document.getElementById('expTabla').value)">Descargar CSV</button></div>
+      <div class="reng"><label>Una tabla</label><select id="expTabla">${Datos.tablas().map(x => `<option value="${esc(x.nombre)}">${esc(x.nombre)} (${x.filas.length})</option>`).join('')}</select><button class="btn" onclick="Datos.exportarUna(document.getElementById('expTabla').value)">Descargar CSV</button></div>
       <div class="reng"><label>Respaldo completo</label><button class="btn" onclick="Datos.respaldo()">Descargar respaldo (.json)</button><span class="d">Incluye imágenes, ajustes y notas privadas (cifradas). Úsalo para pasar tus datos a otro equipo.</span></div></div></section>
     <section class="blq"><h3>Importar</h3><div class="cu">
       <div class="reng"><label>Respaldo completo</label><button class="btn" onclick="Datos.elegir('respaldo')">Restaurar respaldo (.json)</button><span class="d">Reemplaza todo el contenido actual.</span></div>
@@ -104,11 +104,13 @@ Vistas.ajustes = () => {
       <div class="reng"><label>Almacenamiento</label><span class="d">${DB.idb ? 'IndexedDB de este navegador' : 'localStorage (sin imágenes)'} · ${Img.blobs.size} imagen(es) · ${(([...Img.blobs.values()].reduce((s, b) => s + b.size, 0)) / 1048576).toFixed(1)} MB. Los datos viven sólo en este equipo y navegador.</span></div></div></section>`; }
   else cuerpo = `
     <section class="blq"><h3>Notas privadas</h3><div class="cu">
-      <p class="d" style="margin-bottom:10px">Cifrado AES-256 con clave derivada de tu contraseña (PBKDF2, 250 000 iteraciones). La contraseña no se almacena y no existe forma de recuperarla.</p>
+      <p class="d" style="margin-bottom:10px">Cifrado AES-256 con clave derivada de tu contraseña (PBKDF2, 600 000 iteraciones). La contraseña no se almacena y no existe forma de recuperarla.</p>
       <div class="reng"><label>Estado</label><span>${!S.boveda ? 'Sin configurar' : Boveda.abierta() ? '<span class="verde">Desbloqueadas</span>' : 'Bloqueadas'} · ${S.notasPriv.length} nota(s)</span>
         ${!S.boveda ? '<button class="btn" onclick="UI.notas.f=\'priv\';App.ir(\'notas\')">Configurar</button>' : Boveda.abierta() ? '<button class="btn" onclick="Boveda.cerrar();App.pintar()">Bloquear ahora</button>' : '<button class="btn" onclick="UI.notas.f=\'priv\';App.ir(\'notas\')">Desbloquear</button>'}</div>
       ${S.boveda && Boveda.abierta() ? `<div class="reng"><label for="ncA">Nueva contraseña</label><input type="password" id="ncA" autocomplete="new-password"></div>
         <div class="reng"><label for="ncB">Repetir nueva contraseña</label><input type="password" id="ncB" autocomplete="new-password"><button class="btn" onclick="Aj.cambiarClave()">Cambiar contraseña</button></div>` : ''}</div></section>
+    <section class="blq"><h3>Autodiagnóstico de seguridad <button class="lnk" onclick="App.pintar()">Volver a revisar</button></h3>
+      <ul class="filas">${Seg.revisar().map(x => `<li><span class="et ${x.ok ? 'ac' : ''}" style="${x.ok ? '' : 'background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)'}">${x.ok ? 'Correcto' : 'Atención'}</span><span class="x" style="white-space:normal"><b>${esc(x.t)}</b> <span class="d">${esc(x.d)}</span></span></li>`).join('')}</ul></section>
     <section class="blq"><h3>Alcance de la protección</h3><div class="cu d">
       <p>• Sólo las notas privadas están cifradas. El resto de la información se guarda sin cifrar en este navegador.</p>
       <p>• Cualquier persona con acceso a tu sesión del equipo puede ver lo que no sea privado: bloquea tu equipo al ausentarte.</p>
@@ -123,8 +125,68 @@ const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ
 /** Devuelve una función que busca columnas por nombre (sin importar acentos ni mayúsculas). */
 function columnas(encabezado) { const h = encabezado.map(norm); return (...nombres) => { for (const n of nombres) { const i = h.indexOf(norm(n)); if (i >= 0) return i; } return -1; }; }
 const celda = (f, i) => i >= 0 ? (f[i] || '').trim() : '';
-function fusionar(e) {
-  const b = estadoVacio(), r = { ...b, ...e }, ae = e.ajustes || {};
+/* ---------- Saneamiento de datos que vienen de fuera (respaldo, almacenamiento) ----------
+   Un respaldo es un archivo y puede venir manipulado. Antes de usarlo se normaliza cada campo:
+   identificadores sólo con letras/números, números como números, colores como #RRGGBB,
+   fechas y horas con formato válido. Así ningún dato puede colarse como código en la pantalla. */
+const ID_OK = /^[A-Za-z0-9_-]{1,64}$/, HEX_OK = /^#[0-9a-fA-F]{6}$/, FECHA_OK = /^\d{4}-\d{2}-\d{2}$/, HORA_OK = /^\d{2}:\d{2}$/;
+const CAMPO = {
+  id: ['id', 'proyecto', 'categoria', 'estatus', 'materia', 'carpeta', 'img', 'ref', 'fondoImg', 'bandaImg', 'cat', 'temaId', 'origenId'],
+  num: ['valor', 'calif', 'horas', 'avanceManual', 'dia', 'mes', 'anio', 'meta', 'ancho', 'filas', 'dias', 'fondoOp', 'metaEscolar', 'escala', 'avisoCumple', 'iter', 'v'],
+  color: ['color', 'bg', 'sup', 'tx', 'mut', 'bd', 'ac', 'lat', 'oro'],
+  listaId: ['ids', 'imgs'], fecha: ['inicio', 'objetivo', 'limite', 'entrega', 'completada'], fechaHora: ['fecha', 'creado', 'actualizado', 'avisado', 'editado'], hora: ['hora', 'horaIni', 'horaFin'],
+  bool: ['on', 'final', 'fav', 'fijada', 'hecho']
+};
+function sanearValor(k, v) {
+  if (CAMPO.id.includes(k)) return v == null || v === '' ? '' : (ID_OK.test(String(v)) ? String(v) : (k === 'id' ? uid() : ''));
+  if (CAMPO.num.includes(k)) return v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v);
+  if (CAMPO.color.includes(k)) return HEX_OK.test(String(v)) ? String(v) : '#64748b';
+  if (CAMPO.listaId.includes(k)) return Array.isArray(v) ? v.map(String).filter(x => ID_OK.test(x)).slice(0, 500) : [];
+  if (CAMPO.fecha.includes(k)) return FECHA_OK.test(String(v)) && parseFecha(String(v)) ? String(v) : '';
+  if (CAMPO.fechaHora.includes(k)) return /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/.test(String(v)) && parseFecha(String(v).slice(0, 10)) ? String(v) : '';
+  if (CAMPO.hora.includes(k)) return HORA_OK.test(String(v)) ? String(v) : '';
+  if (CAMPO.bool.includes(k)) return v === true;
+  if (v == null) return '';
+  return typeof v === 'object' ? '' : (typeof v === 'boolean' ? v : String(v).slice(0, 200000));   // textos: se escapan al mostrarse
+}
+const sanearObjeto = (o, anidado) => {
+  const r = {};
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return r;
+  for (const [k, v] of Object.entries(o)) {
+    if (['__proto__', 'constructor', 'prototype'].includes(k)) continue;
+    r[k] = (anidado && v && typeof v === 'object' && !Array.isArray(v) && !CAMPO.listaId.includes(k)) ? sanearObjeto(v, true) : (anidado && Array.isArray(v) && !CAMPO.listaId.includes(k)) ? v.map(x => sanearObjeto(x, false)) : sanearValor(k, v);
+  }
+  return r;
+};
+function sanear(e) {
+  const b = estadoVacio(), r = {};
+  for (const k of Object.keys(b)) {
+    if (Array.isArray(b[k])) r[k] = Array.isArray(e[k]) ? e[k].slice(0, 100000).filter(x => x && typeof x === 'object').map(x => sanearObjeto(x, false)) : b[k];
+    else if (k === 'ajustes' || k === 'boveda') r[k] = e[k] && typeof e[k] === 'object' ? sanearObjeto(e[k], true) : b[k];
+    else r[k] = b[k];
+  }
+  // Reglas por tabla: lo que no cumple se corrige o se descarta
+  if (!r.estatus.some(x => x.final) || !r.estatus.some(x => !x.final)) r.estatus = b.estatus;
+  const est = new Set(r.estatus.map(x => x.id)), e0 = r.estatus[0].id, pri = v => ['1', '2', '3', '4'].includes(String(v)) ? String(v) : '3';
+  r.proyectos.forEach(p => { if (!est.has(p.estatus)) p.estatus = e0; p.prioridad = pri(p.prioridad); if (!AMBITOS.includes(p.ambito)) p.ambito = 'Trabajo'; p.avanceManual = Math.min(100, Math.max(0, p.avanceManual || 0)); });
+  r.actividades.forEach(a => { if (!est.has(a.estatus)) a.estatus = e0; a.prioridad = pri(a.prioridad); });
+  r.escolares = r.escolares.filter(x => x.entrega && x.materia); r.escolares.forEach(x => { if (!EST_ESC.some(y => y[0] === x.estatus)) x.estatus = 'pendiente'; x.valor = Math.max(0, x.valor || 0); if (!x.inicio) x.inicio = x.entrega; });
+  r.eventos = r.eventos.filter(x => FECHA_OK.test(x.fecha)); r.recordatorios = r.recordatorios.filter(x => FECHA_OK.test(x.fecha));
+  r.recordatorios.forEach(x => { if (!['', 'diario', 'semanal', 'mensual', 'anual'].includes(x.repetir)) x.repetir = ''; });
+  r.cumples = r.cumples.filter(c => c.dia >= 1 && c.dia <= 31 && c.mes >= 1 && c.mes <= 12);
+  r.bitacora = r.bitacora.filter(x => x.fecha && x.proyecto); r.notasPriv = r.notasPriv.filter(x => x.id && typeof x.iv === 'string' && typeof x.ct === 'string');
+  r.enlaces.forEach(l => { l.url = urlSegura(l.url); }); r.enlaces = r.enlaces.filter(l => l.url);
+  if (r.boveda && (typeof r.boveda.sal !== 'string' || !r.boveda.prueba)) r.boveda = null;
+  if (r.boveda) r.boveda.iter = Math.min(2000000, Math.max(100000, r.boveda.iter || 250000));
+  const a = r.ajustes; a.escala = [85, 92, 100, 110, 125].includes(a.escala) ? a.escala : 100; a.fondoOp = Math.min(45, Math.max(4, a.fondoOp || 14)); a.metaEscolar = Math.min(100, Math.max(0, a.metaEscolar ?? 60));
+  if (Array.isArray(a.inicio)) a.inicio = a.inicio.filter(w => Object.hasOwn(WIDGETS, w.id)).map(w => { const d = inicioDefecto().find(x => x.id === w.id); return { id: w.id, on: w.on === true, ancho: [2, 3, 4, 6].includes(w.ancho) ? w.ancho : d.ancho, filas: w.id === 'frase' ? 0 : Math.min(50, Math.max(1, w.filas || d.filas)), ...('dias' in d ? { dias: Math.min(366, Math.max(0, w.dias ?? d.dias)) } : {}) }; });
+  if (a.tema && !Object.hasOwn(TEMAS, a.temaId) && a.temaId !== 'personal') a.temaId = 'personal';
+  return r;
+}
+
+function fusionar(original) {
+  const e = sanear(original && typeof original === 'object' ? original : {});
+  const b = estadoVacio(), r = { ...b, ...e }, ae = (original && original.ajustes && typeof original.ajustes === 'object') ? e.ajustes : {};
   r.ajustes = { ...b.ajustes, ...ae, tema: { ...b.ajustes.tema, ...(ae.tema || {}) }, inicioFiltro: { ...b.ajustes.inicioFiltro, ...(ae.inicioFiltro || {}) } };
   // Versiones anteriores (sin barra lateral de color): adoptan la identidad Nova
   if (!ae.tema || !ae.tema.lat) { r.ajustes.temaId = 'nova'; r.ajustes.tema = temaDe('nova'); if (!ae.nombre || ae.nombre === 'Plataforma de Gestión') r.ajustes.nombre = b.ajustes.nombre; }
@@ -169,7 +231,7 @@ const Datos = {
   async respaldo() {
     const imagenes = {}; for (const [id, blob] of Img.blobs) imagenes[id] = await Img.aDataURL(blob);
     descargar(`plataforma_respaldo_${hoyISO()}.json`, new Blob([JSON.stringify({ app: 'PlataformaGestion', v: 1, fecha: ahoraTxt(), estado: S, imagenes })], { type: 'application/json' }));
-    toast('Respaldo descargado');
+    S.ajustes.ultimoRespaldo = ahoraTxt(); guardar(); toast('Respaldo descargado'); if (App.vista === 'ajustes') App.pintar();
   },
 
   /* ---------- Importación ---------- */
@@ -177,6 +239,7 @@ const Datos = {
   elegir(tipo) { this._tipo = tipo; const i = $('#archivo'); i.value = ''; i.accept = tipo === 'respaldo' ? '.json' : tipo === 'ics' ? '.ics' : '.csv,.txt'; i.click(); },
   async archivo(input) {
     const a = input.files[0]; if (!a) return;
+    if (a.size > (this._tipo === 'respaldo' ? 400 : 10) * 1048576) return toast(`El archivo es demasiado grande (máximo ${this._tipo === 'respaldo' ? 400 : 10} MB)`, 'err');
     try {
       const texto = await a.text(), tipo = this._tipo;
       if (tipo === 'respaldo') return this.restaurar(texto);
@@ -424,3 +487,25 @@ Object.assign(Datos, {
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.frases.push({ id: uid(), ...x })) };
   }
 });
+
+
+/* ==========================================================================
+   AUTODIAGNÓSTICO: comprobaciones que la propia página hace en el navegador
+   ========================================================================== */
+const Seg = {
+  revisar() {
+    const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+    // Recursos que el navegador realmente pidió a otros servidores durante esta sesión
+    const externos = [...new Set(performance.getEntriesByType('resource').map(r => r.name).filter(u => /^https?:/i.test(u) && !u.startsWith(location.origin + '/')))];
+    const ur = S.ajustes.ultimoRespaldo, dias = ur ? difDias(String(ur).slice(0, 10), hoyISO()) : null;
+    return [
+      { ok: !!csp, t: 'Política de seguridad de contenido (CSP)', d: csp ? 'Activa: la página no puede cargar ni enviar información a otros servidores.' : 'No se encontró. Vuelve a generar el HTML con construir.js.' },
+      { ok: externos.length === 0, t: 'Conexiones externas en esta sesión', d: externos.length ? 'Se detectaron: ' + externos.join(', ') : 'Ninguna. Todo se ejecuta dentro de este archivo.' },
+      { ok: window.isSecureContext, t: 'Contexto seguro (HTTPS o archivo local)', d: window.isSecureContext ? location.protocol.replace(':', '').toUpperCase() : 'La página se abrió por HTTP sin cifrar; el cifrado de notas privadas no está disponible.' },
+      { ok: Boveda.disponible(), t: 'Cifrado disponible para notas privadas', d: Boveda.disponible() ? (S.boveda ? `Configurado · ${(S.boveda.iter || 250000).toLocaleString('es-MX')} iteraciones${(S.boveda.iter || 250000) < Boveda.ITER ? ' (cambia tu contraseña para subir a ' + Boveda.ITER.toLocaleString('es-MX') + ')' : ''}` : 'Disponible; aún no has creado tu contraseña.') : 'No disponible en este navegador.' },
+      { ok: window.top === window.self, t: 'Página no incrustada en otro sitio', d: window.top === window.self ? 'Se muestra en su propia pestaña.' : 'Está dentro de un marco (normal si la abres como pestaña de Teams). Verifica que la dirección sea la tuya.' },
+      { ok: DB.idb, t: 'Almacenamiento', d: DB.idb ? 'IndexedDB de este navegador (sin cifrar, salvo las notas privadas).' : 'Modo limitado (localStorage): no se pueden guardar imágenes.' },
+      { ok: dias != null && dias <= 7, t: 'Respaldo reciente', d: ur ? `Último respaldo: ${ur} (hace ${dias} día${dias === 1 ? '' : 's'}).` : 'Aún no has descargado un respaldo desde este navegador.' }
+    ];
+  }
+};

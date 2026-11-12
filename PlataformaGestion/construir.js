@@ -12,3 +12,5 @@ fs.writeFileSync(path.join(__dirname, 'PlataformaGestion.html'), html);
 if (/\{%\s*endraw/.test(html)) throw new Error('El código contiene "{% endraw %}"');
 fs.writeFileSync(path.join(__dirname, 'PowerPages-WebTemplate.html'), '{% raw %}\n' + html + '\n{% endraw %}\n');
 console.log('PlataformaGestion.html generado:', (html.length / 1024).toFixed(0), 'KB');
+// Validación de seguridad obligatoria: si falla, la construcción termina con error
+require('./seguridad.js');

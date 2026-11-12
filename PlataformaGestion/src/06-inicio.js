@@ -69,7 +69,12 @@ async function iniciar() {
   try { await Img.cargar(); const e = await DB.leerEstado(); if (e) S = fusionar(e); }
   catch (err) { console.error(err); toast('No se pudieron leer los datos guardados: ' + err.message, 'err'); }
   // Filtros recordados de la sesión anterior
-  try { const u = JSON.parse(localStorage.getItem('nova_ui') || 'null'); if (u) for (const k of Object.keys(u)) if (UI[k] && typeof UI[k] === 'object' && typeof u[k] === 'object') Object.assign(UI[k], u[k]); } catch (e) { /* se ignora */ }
+  try {   // sólo se aceptan claves conocidas y del mismo tipo (texto o casilla)
+    const u = JSON.parse(localStorage.getItem('nova_ui') || 'null') || {};
+    const copiar = (dest, org) => { for (const k of Object.keys(dest)) if (Object.hasOwn(org, k) && ['string', 'boolean'].includes(typeof dest[k]) && typeof org[k] === typeof dest[k] && String(org[k]).length <= 64 && /^[\w-]*$/.test(String(org[k]))) dest[k] = org[k]; };
+    for (const k of Object.keys(UI)) if (UI[k] && typeof UI[k] === 'object' && u[k] && typeof u[k] === 'object') copiar(UI[k], u[k]);
+    if (u.ag && u.ag.ver && typeof u.ag.ver === 'object') copiar(UI.ag.ver, u.ag.ver);
+  } catch (e) { /* se ignora */ }
   if (UI.notas.f !== 'todas' && UI.notas.f !== 'sin' && !por('proyectos', UI.notas.f)) UI.notas.f = 'todas';
   const ico = document.createElement('link'); ico.rel = 'icon'; ico.href = 'data:image/svg+xml,' + encodeURIComponent(LOGO.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')); document.head.appendChild(ico);
   aplicarTema();

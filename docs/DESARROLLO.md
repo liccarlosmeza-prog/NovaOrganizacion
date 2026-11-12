@@ -2,7 +2,7 @@
 
 > *Evolución sin límites.*
 > Documento técnico del proyecto: qué se pidió, qué se decidió, cómo está construido, qué se probó y qué falta.
-> Última actualización: 2026-11-12 · Versión de la aplicación: **0.2**
+> Última actualización: 2026-11-12 · Versión de la aplicación: **0.3**
 
 ---
 
@@ -29,7 +29,9 @@
 | 3 | Respuestas: uso en varios dispositivos, Teams en navegador, carga propia de actividades escolares | Propuesta revisada, `docs/GUIA_AGENDA_TEAMS.md` y plantillas en `docs/plantillas/` | `7b69578` |
 | 4 | Lista de módulos, preferencia por **listas y estatus** (no tarjetas/Kanban), minimalismo, colores e imágenes personalizables, frases del día, integrar AcadTrack y LinkManager, prueba para Power Pages | **v0.1** de la plataforma en `PlataformaGestion/` | `aaef22d` |
 | 5 | Identidad Nova, Inicio configurable, carga masiva por pantalla con plantillas, guardar sin desplazarse, historial de estatus, protagonismo de Actividades y Agenda, más filtros | **v0.2** | `0e8ba1c` |
-| 6 | Documentar todo el desarrollo en el repositorio | Este documento | — |
+| 6 | Documentar todo el desarrollo en el repositorio | Este documento | `a0464ab` |
+| 7 | Publicación en GitHub Pages | Página de entrada `index.html` | `bc11293` |
+| 8 | Revisión de seguridad recurrente y reporte de conexiones externas | **v0.3**: correcciones, CSP, saneamiento, `seguridad.js`, `pruebas/ataque.js`, `docs/SEGURIDAD.md`, `CLAUDE.md` | — |
 
 ---
 

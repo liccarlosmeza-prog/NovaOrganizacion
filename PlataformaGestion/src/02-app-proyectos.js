@@ -24,7 +24,7 @@ const App = {
   ir(v, p) { const h = '#/' + v + (p ? '/' + p : ''); if (location.hash === h) this.ruta(); else location.hash = h; },
   ruta() {
     const [, v, p] = location.hash.split('/');
-    this.vista = Vistas[v] ? v : 'inicio'; this.param = p || null; this.pintar(true);
+    this.vista = Object.hasOwn(Vistas, v) ? v : 'inicio'; this.param = p || null; this.pintar(true);
   },
   contadores() {
     const hoy = hoyISO();
@@ -41,7 +41,13 @@ const App = {
       <div class="pie"><i></i><span>Guardado en este equipo</span></div>`;
     const banda = Img.url(S.ajustes.bandaImg);
     const pral = $('#pral'), y = pral.scrollTop;
-    pral.innerHTML = (banda ? `<div class="banda" style="background-image:url('${banda}')"></div>` : '') + `<div class="cont">${Vistas[this.vista]()}</div>`;
+    let cuerpo;
+    try { cuerpo = Vistas[this.vista](); }
+    catch (e) {   // un dato dañado no debe dejar la plataforma inservible
+      console.error(e);
+      cuerpo = `<div class="panel">${vacio('No se pudo mostrar esta pantalla', 'Algún dato guardado está dañado. Descarga un respaldo desde Ajustes → Datos y avisa del error: ' + e.message)}</div>`;
+    }
+    pral.innerHTML = (banda ? `<div class="banda" style="background-image:url('${banda}')"></div>` : '') + `<div class="cont">${cuerpo}</div>`;
     pral.scrollTop = arriba ? 0 : y;
     const tl = $('#tl'); if (tl && tl.dataset.hoy) tl.scrollLeft = Math.max(0, +tl.dataset.hoy - 260);
     // Recuerda los filtros elegidos (no el texto de búsqueda) para la próxima vez

@@ -93,6 +93,7 @@ const Img = {
   async agregar(archivo, maxLado = 1600) {
     if (!archivo || !archivo.type.startsWith('image/')) throw new Error('El archivo no es una imagen');
     if (!DB.idb) throw new Error('Este navegador no permite guardar imágenes (modo privado)');
+    if (archivo.size > 25 * 1048576) throw new Error('La imagen supera 25 MB');
     let blob = archivo;
     try {
       const bmp = await createImageBitmap(archivo);
@@ -109,7 +110,10 @@ const Img = {
     URL.revokeObjectURL(this.urls.get(id)); this.urls.delete(id); this.blobs.delete(id); await DB.imgQuitar(id);
   },
   aDataURL(blob) { return new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); }); },
-  async deDataURL(id, dataUrl) { const blob = await (await fetch(dataUrl)).blob(); await DB.imgPoner(id, blob); this._reg(id, blob); }
+  async deDataURL(id, dataUrl) {
+    // Sólo se aceptan imágenes incrustadas: un respaldo no puede hacer que la app descargue algo de internet
+    if (!/^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\s]+$/i.test(String(dataUrl)) || !/^[A-Za-z0-9_-]{1,64}$/.test(String(id))) throw new Error('Imagen no válida');
+    const blob = await (await fetch(dataUrl)).blob(); await DB.imgPoner(id, blob); this._reg(id, blob); }
 };
 
 /* ---------- Estado ---------- */
@@ -257,7 +261,8 @@ const Form = {
 };
 
 /* ---------- CSV ---------- */
-function csvCelda(v) { const s = String(v ?? ''); return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+/** Las celdas que empiezan con = + - @ se anteponen con ' para que Excel no las ejecute como fórmula. */
+function csvCelda(v) { let s = String(v ?? ''); if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 function csvTexto(encabezados, filas) { return '﻿' + [encabezados, ...filas].map(f => f.map(csvCelda).join(',')).join('\r\n') + '\r\n'; }
 /** Lee CSV con comillas y saltos de línea dentro de celdas. Detecta coma o punto y coma. */
 function parseCSV(texto) {
@@ -273,7 +278,7 @@ function parseCSV(texto) {
     else if (ch !== '\r') celda += ch;
   }
   if (celda !== '' || fila.length) { fila.push(celda); filas.push(fila); }
-  return filas.filter(f => f.some(c => c.trim() !== '')).map(f => f.map(c => c.trim()));
+  return filas.filter(f => f.some(c => c.trim() !== '')).map(f => f.map(c => c.trim().replace(/^'(?=[=+\-@])/, '')));
 }
 function descargar(nombre, blob) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre;
@@ -304,7 +309,7 @@ function crearZip(archivos) {
 }
 
 /* ---------- Bóveda: notas privadas cifradas con contraseña ----------
-   Clave derivada con PBKDF2 (SHA-256, 250 000 iteraciones) y cifrado AES-GCM.
+   Clave derivada con PBKDF2 (SHA-256, 600 000 iteraciones) y cifrado AES-GCM.
    La contraseña nunca se guarda; sin ella las notas no se pueden recuperar.   */
 const b64 = buf => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); };
 const deB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -312,9 +317,10 @@ const Boveda = {
   clave: null, notas: [], _tBloqueo: null,
   disponible: () => !!(window.crypto && crypto.subtle),
   abierta() { return !!this.clave; },
-  async _derivar(pass, sal) {
+  ITER: 600000,   // recomendación OWASP para PBKDF2-SHA256; las bóvedas anteriores conservan sus 250 000
+  async _derivar(pass, sal, iter) {
     const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: sal, iterations: 250000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: sal, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
   },
   async _cifrar(obj) {
     const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -327,11 +333,11 @@ const Boveda = {
   },
   async crear(pass) {
     const sal = crypto.getRandomValues(new Uint8Array(16));
-    this.clave = await this._derivar(pass, sal);
-    S.boveda = { sal: b64(sal), prueba: await this._cifrar({ ok: true }) }; S.notasPriv = []; this.notas = []; guardar(); this._temporizador();
+    this.clave = await this._derivar(pass, sal, this.ITER);
+    S.boveda = { sal: b64(sal), iter: this.ITER, prueba: await this._cifrar({ ok: true }) }; S.notasPriv = []; this.notas = []; guardar(); this._temporizador();
   },
   async abrir(pass) {
-    const clave = await this._derivar(pass, deB64(S.boveda.sal));
+    const clave = await this._derivar(pass, deB64(S.boveda.sal), S.boveda.iter || 250000);
     const previa = this.clave; this.clave = clave;
     try { await this._descifrar(S.boveda.prueba); } catch (e) { this.clave = previa; return false; }
     this.notas = [];
@@ -350,8 +356,8 @@ const Boveda = {
   quitarNota(id) { S.notasPriv = S.notasPriv.filter(x => x.id !== id); this.notas = this.notas.filter(x => x.id !== id); guardar(); },
   async cambiarClave(nueva) {
     const notas = this.notas.slice(); const sal = crypto.getRandomValues(new Uint8Array(16));
-    this.clave = await this._derivar(nueva, sal);
-    S.boveda = { sal: b64(sal), prueba: await this._cifrar({ ok: true }) }; S.notasPriv = [];
+    this.clave = await this._derivar(nueva, sal, this.ITER);
+    S.boveda = { sal: b64(sal), iter: this.ITER, prueba: await this._cifrar({ ok: true }) }; S.notasPriv = [];
     for (const n of notas) { const { id, ...d } = n; S.notasPriv.push({ id, ...(await this._cifrar(d)) }); }
     guardar();
   }

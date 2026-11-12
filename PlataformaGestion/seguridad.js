@@ -1,0 +1,60 @@
+// Validación de seguridad automática. Se ejecuta en cada construcción (node construir.js)
+// y también por separado:  node seguridad.js
+// Revisa el HTML final y el código fuente. Si encuentra un problema BLOQUEANTE, termina con error.
+const fs = require('fs'), path = require('path');
+const dir = __dirname, src = path.join(dir, 'src');
+const html = fs.readFileSync(path.join(dir, 'PlataformaGestion.html'), 'utf8');
+const fuentes = fs.readdirSync(src).map(f => ({ f, t: fs.readFileSync(path.join(src, f), 'utf8') }));
+const lineas = (t, re, filtro = () => true) => t.split('\n').map((l, i) => re.test(l) && filtro(l) ? `${i + 1}: ${l.trim().slice(0, 110)}` : null).filter(Boolean);
+const buscar = (re, filtro) => fuentes.flatMap(({ f, t }) => lineas(t, re, filtro).map(l => `src/${f}:${l}`));
+const R = [];   // {ok, bloquea, t, d}
+const regla = (t, hallazgos, bloquea = true, okTxt = 'Sin coincidencias') => R.push({ ok: hallazgos.length === 0, bloquea, t, d: hallazgos.length ? hallazgos : [okTxt] });
+
+// 1. Conexiones externas: nada debe cargarse ni enviarse a otro servidor
+const URLS = [...new Set((html.match(/(?:https?:)?\/\/[a-z0-9.-]+\.[a-z]{2,}[^\s"'`<)]*/gi) || []))];
+const carga = /(<script[^>]+src=|<link[^>]+href=|<img[^>]+src=["']https?:|<iframe|@import|url\(\s*["']?https?:|fetch\(\s*["'`]https?:|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts|import\s*\()/i;
+regla('Sin recursos ni conexiones externas (scripts, estilos, fuentes, imágenes, peticiones)', buscar(carga).concat(lineas(html.split('<script>')[0], carga).map(l => 'plantilla:' + l)));
+// 2. Política de seguridad de contenido
+const csp = (html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/) || [])[1] || '';
+regla('CSP presente y sin orígenes externos', !csp ? ['No hay meta Content-Security-Policy'] : [/default-src 'none'/.test(csp) ? null : "falta default-src 'none'", /https?:|\*/.test(csp) ? 'la CSP permite orígenes externos' : null, /unsafe-eval/.test(csp) ? 'la CSP permite unsafe-eval' : null, /connect-src data: blob:/.test(csp) ? null : 'connect-src debe limitarse a data: blob:'].filter(Boolean), true, csp);
+// 3. Funciones peligrosas
+regla('Sin eval, new Function, document.write ni temporizadores con texto', buscar(/\beval\(|new Function\(|document\.write|set(Timeout|Interval)\(\s*["'`]|\.outerHTML\s*=|insertAdjacentHTML|srcdoc/));
+// 4. Secretos
+regla('Sin claves, tokens ni contraseñas en el código', buscar(/api[_-]?key|client_secret|Bearer\s+[A-Za-z0-9]|sk-[A-Za-z0-9]{8}|AIza[0-9A-Za-z_-]{10}|AKIA[0-9A-Z]{8}|ghp_[A-Za-z0-9]{10}|xox[bp]-|AccountKey=|-----BEGIN|eyJ[A-Za-z0-9_-]{20}/i));
+// 5. Enlaces
+regla('Todo enlace en pestaña nueva usa rel="noopener noreferrer"', buscar(/target="_blank"/, l => (l.match(/target="_blank"/g) || []).length !== (l.match(/rel="noopener noreferrer"/g) || []).length));
+regla('Las direcciones del usuario pasan por urlSegura()', buscar(/href="\$\{(?!esc\(urlSegura\()[^}]*\b(url|href)\b/));
+// 6. Controles que deben seguir existiendo (evita que una edición los quite sin querer)
+const debe = [['sanear(', 'saneamiento de respaldos y datos guardados'], ['urlSegura(', 'filtro de direcciones'], ["/^data:image\\/", 'validación de imágenes del respaldo'], ["\"'\" + s", 'neutralización de fórmulas al exportar CSV'], ['Object.hasOwn(Vistas', 'enrutador protegido'], ['PBKDF2', 'derivación de clave'], ['AES-GCM', 'cifrado de notas privadas']];
+regla('Controles de seguridad presentes', debe.filter(([c]) => !html.includes(c)).map(([c, n]) => `Falta: ${n} (${c})`), true, debe.map(d => d[1]).join(' · '));
+// 7. Informativos
+const sinEsc = buscar(/\$\{[a-z]\.(titulo|nombre|texto|nota|desc|detalle|descripcion|lugar|autor|relacion|profesor|comentario|tags|etiquetas|asignadoPor|usuario|lema)\}/);
+regla('Textos del usuario escapados con esc() al mostrarse', sinEsc, true);
+regla('Sin console.log de depuración', buscar(/console\.log\(/), false);
+regla('Tamaño del archivo razonable (< 1 MB)', html.length > 1048576 ? [`${(html.length / 1024).toFixed(0)} KB`] : [], false, `${(html.length / 1024).toFixed(0)} KB`);
+
+// Reporte
+const fallos = R.filter(r => !r.ok && r.bloquea), avisos = R.filter(r => !r.ok && !r.bloquea);
+const md = `# Validación automática de seguridad
+
+> Generado por \`seguridad.js\` en cada construcción. No editar a mano.
+> Fecha: ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC · Resultado: **${fallos.length ? 'NO APTO — ' + fallos.length + ' problema(s) bloqueante(s)' : 'APTO'}**${avisos.length ? ` · ${avisos.length} aviso(s)` : ''}
+
+## Comprobaciones
+| Resultado | Comprobación | Detalle |
+|---|---|---|
+${R.map(r => `| ${r.ok ? '✅ Correcto' : r.bloquea ? '⛔ Bloqueante' : '⚠️ Aviso'} | ${r.t} | ${r.d.map(x => '`' + String(x).replace(/\|/g, '\\|').replace(/`/g, "'") + '`').join('<br>')} |`).join('\n')}
+
+## Inventario de direcciones externas que aparecen en el código
+Ninguna se carga automáticamente; son texto (enlaces de ejemplo que sólo se abren si el usuario hace clic, o identificadores).
+
+| Dirección | Uso |
+|---|---|
+${URLS.map(u => `| \`${u}\` | ${/w3\.org/.test(u) ? 'Identificador del formato SVG (no es una conexión)' : 'Enlace de ejemplo o plantilla; sólo se abre con clic del usuario'} |`).join('\n') || '| — | — |'}
+
+**Dependencias de terceros:** ninguna (sin librerías, fuentes ni CDN). No hay nada que descargar o empaquetar.
+`;
+fs.writeFileSync(path.join(dir, 'SEGURIDAD-AUTOMATICA.md'), md);
+for (const r of R) console.log(`${r.ok ? '  ok ' : r.bloquea ? ' FALLA' : ' aviso'}  ${r.t}${r.ok ? '' : '\n        ' + r.d.join('\n        ')}`);
+console.log(fallos.length ? `\nSEGURIDAD: NO APTO (${fallos.length} bloqueante/s)` : '\nSEGURIDAD: APTO');
+if (fallos.length) process.exit(1);
