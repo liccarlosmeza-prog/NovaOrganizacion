@@ -20,7 +20,8 @@ Antes de entregar o subir cualquier cambio al código de la aplicación:
 - `esc()` en todo texto del usuario que se inserta en la página; `urlSegura()` en toda dirección.
 - `sanear()` sobre cualquier dato que venga de un archivo o del almacenamiento. Todo campo nuevo debe registrarse en `CAMPO` (`05-ajustes-datos.js`) según su tipo (id, número, color, fecha, hora, casilla).
 - Identificadores generados con `uid()`; nunca tomar un identificador de un archivo sin validarlo.
-- CSP de `src/plantilla.html`: no agregar orígenes externos. Si alguna función necesita una librería, se incrusta en el archivo, no se carga de un CDN.
+- CSP de `src/plantilla.html`: la **única** conexión externa permitida es `https://api.github.com` (sincronización cifrada, autorizada por el usuario el 2026-11-12). No agregar ningún otro origen sin autorización expresa del usuario. Si alguna función necesita una librería, se incrusta en el archivo, no se carga de un CDN.
+- Sincronización (`src/055-sincronizacion.js`): sólo repositorios privados; todo lo que se envía va cifrado (AES-GCM); el token y la clave viven únicamente en el registro `sync` de IndexedDB, nunca en `S`, respaldos, exportaciones ni registros de consola; lo recibido pasa siempre por `fusionar()`/`sanear()`; `fetch()` sólo en ese módulo.
 - Sin `eval`, `new Function`, `document.write`, ni secretos en el código.
 - Notas privadas: AES-GCM + PBKDF2; no guardar la contraseña ni la clave.
 

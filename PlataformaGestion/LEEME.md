@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.4
+# Nova Organización — prueba v0.5
 
 > *Evolución sin límites.*
 
@@ -59,6 +59,11 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
 
+### Novedades de la v0.5 (sincronización)
+- **Ajustes → Sincronización**: guarda tus datos e imágenes, cifrados, en un repositorio **privado** de GitHub y los comparte entre tus equipos. Guía paso a paso: [`docs/SINCRONIZACION_GITHUB.md`](../docs/SINCRONIZACION_GITHUB.md).
+- Es opcional. Apagada, la plataforma no hace ninguna conexión; encendida, la única conexión es `api.github.com`.
+- Probada con un GitHub simulado; **falta la prueba contra GitHub real**. Descarga un respaldo antes de conectar por primera vez.
+
 ### Novedades de la v0.4 (carrusel de frases)
 - **De lunes a viernes** aparece en Inicio una frase elegida **al azar** entre las que aún no se han mostrado.
 - Al día siguiente la frase anterior queda **marcada como vista** (con su fecha) y entra otra. Cuando se terminan, el ciclo vuelve a empezar sin repetir la del último día.
@@ -74,7 +79,7 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - Cada construcción (`node construir.js`) ejecuta `seguridad.js` y se detiene si algo falla.
 
 ## 4. Lo que debes saber (límites de esta prueba)
-- **Los datos viven en el navegador y equipo donde la abras** (IndexedDB). No se sincronizan entre equipos: usa el respaldo `.json` para moverlos. Si borras los datos de navegación del sitio, se pierden → **descarga un respaldo cada semana**.
+- **Los datos viven en el navegador y equipo donde la abras** (IndexedDB). Para compartirlos entre equipos activa la sincronización (v0.5) o usa el respaldo `.json`. Si borras los datos de navegación del sitio, se pierden → **descarga un respaldo cada semana**.
 - **Notas privadas**: cifrado AES-256; la contraseña no se guarda. **Si la olvidas no hay recuperación.** Sólo las notas privadas van cifradas; el resto no.
 - Los recordatorios avisan sólo con la plataforma abierta.
 - La importación `.ics` no expande eventos repetitivos (toma la primera fecha).

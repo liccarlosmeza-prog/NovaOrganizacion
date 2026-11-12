@@ -2,7 +2,7 @@
 
 > *Evolución sin límites.*
 > Documento técnico del proyecto: qué se pidió, qué se decidió, cómo está construido, qué se probó y qué falta.
-> Última actualización: 2026-11-12 · Versión de la aplicación: **0.4**
+> Última actualización: 2026-11-12 · Versión de la aplicación: **0.5**
 
 ---
 
@@ -32,7 +32,8 @@
 | 6 | Documentar todo el desarrollo en el repositorio | Este documento | `a0464ab` |
 | 7 | Publicación en GitHub Pages | Página de entrada `index.html` | `bc11293` |
 | 8 | Revisión de seguridad recurrente y reporte de conexiones externas | **v0.3**: correcciones, CSP, saneamiento, `seguridad.js`, `pruebas/ataque.js`, `docs/SEGURIDAD.md`, `CLAUDE.md` | — |
-| 9 | Carrusel de frases aleatorio, sin repetir, sólo de lunes a viernes | **v0.4** | — |
+| 9 | Carrusel de frases aleatorio, sin repetir, sólo de lunes a viernes | **v0.4** | `04e0636` |
+| 10 | Guardar la información en GitHub para usarla en varios equipos | **v0.5**: sincronización cifrada con repositorio privado (`src/055-sincronizacion.js`), autorizando `api.github.com` como única conexión externa | — |
 
 ---
 
@@ -96,7 +97,8 @@ NovaOrganizacion/
         ├── 02-app-proyectos.js       navegación, Inicio, historial, Proyectos, Bitácora, Actividades
         ├── 03-escuela-agenda.js      Escuela, línea de tiempo, evaluación, Agenda, Recordatorios
         ├── 04-notas-accesos.js       Notas, Accesos directos, Cumpleaños, Frases
-        ├── 05-ajustes-datos.js       Ajustes, exportar/importar, respaldo, carga masiva
+        ├── 05-ajustes-datos.js       Ajustes, exportar/importar, respaldo, carga masiva, saneamiento
+        ├── 055-sincronizacion.js     Sincronización cifrada con un repositorio privado de GitHub
         └── 06-inicio.js              datos de ejemplo y arranque
 ```
 
@@ -276,7 +278,7 @@ Automatizadas con Playwright sobre Chromium (los scripts no forman parte del rep
 
 ## 9. Limitaciones conocidas
 
-1. **Sin sincronización**: los datos pertenecen al navegador y equipo donde se abre el archivo. Mover de equipo requiere el respaldo `.json`.
+1. **Sincronización opcional y sin prueba real**: la v0.5 sincroniza con un repositorio privado de GitHub (cifrado en el navegador, una sola versión sin historial, conflictos resueltos por el usuario). Sólo se probó con un GitHub simulado.
 2. **Riesgo de pérdida**: borrar los datos de navegación elimina la información. Se recomienda respaldo semanal.
 3. **Sólo las notas privadas están cifradas**; el resto es legible para quien tenga acceso a la sesión del equipo.
 4. **Recordatorios**: avisan sólo con la plataforma abierta.

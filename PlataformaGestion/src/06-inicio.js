@@ -66,7 +66,7 @@ Datos.demo = function () {
 
 async function iniciar() {
   await DB.abrir();
-  try { await Img.cargar(); const e = await DB.leerEstado(); if (e) S = fusionar(e); }
+  try { await Img.cargar(); const e = await DB.leerEstado(); if (e) S = fusionar(e); await Sync.cargar(); }
   catch (err) { console.error(err); toast('No se pudieron leer los datos guardados: ' + err.message, 'err'); }
   // Filtros recordados de la sesión anterior
   try {   // sólo se aceptan claves conocidas y del mismo tipo (texto o casilla)
@@ -87,6 +87,10 @@ async function iniciar() {
   document.addEventListener('click', () => { if (Boveda.abierta()) Boveda._temporizador(); });
   App.ruta();
   Rec.revisar(); setInterval(() => Rec.revisar(), 30000);
+  // Sincronización: al abrir, cada 5 minutos y al ocultar la pestaña con cambios pendientes
+  if (Sync.activo()) Sync.sincronizar();
+  setInterval(() => { if (Sync.activo() && !document.hidden) Sync.sincronizar(); }, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden && Sync.activo() && Sync.cfg.sucio) Sync.sincronizar(); });
   // Si la plataforma queda abierta de un día a otro, se actualiza sola
   let dia = hoyISO(); setInterval(() => { if (hoyISO() !== dia) { dia = hoyISO(); if (!$('#modal').classList.contains('on') && App.vista !== 'notas') App.pintar(); } }, 60000);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});   // pide al navegador no borrar los datos

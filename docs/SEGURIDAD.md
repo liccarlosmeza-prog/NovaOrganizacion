@@ -159,3 +159,49 @@ Desde esta versión, **cada construcción ejecuta la validación de seguridad** 
 | Fecha | Cambio | Validación automática | Pasada adversarial | Observaciones |
 |---|---|---|---|---|
 | 2026-11-12 | v0.4 — carrusel de frases (campos nuevos `frases.vista` y `ajustes.fraseHoy`) | APTO | Sin ejecución de código ni conexiones externas | Los campos nuevos se registraron en el saneamiento (`vista` como fecha; `fraseHoy` se descarta si no es válido). El sorteo usa el generador aleatorio del navegador (`crypto.getRandomValues`). Sin conexiones externas nuevas. |
+| 2026-11-12 | v0.5 — sincronización cifrada con repositorio privado de GitHub (`src/055-sincronizacion.js`) | APTO | Sin ejecución de código; con la sincronización apagada, 0 conexiones externas | Ver sección 13. |
+
+## 13. Revisión de la sincronización con GitHub (v0.5)
+
+### Cambio en las conexiones externas
+A partir de la v0.5 existe **una** conexión externa, autorizada por el usuario el 2026-11-12:
+
+| Dirección | Cuándo se usa | Qué viaja | Acción |
+|---|---|---|---|
+| `https://api.github.com` | Sólo si el usuario activa la sincronización en Ajustes | Datos e imágenes **cifrados** en el navegador, y el token en el encabezado de la petición (HTTPS) | Se mantiene como servicio en línea; no es código que se descargue, no hay nada que empaquetar |
+
+Con la sincronización apagada la plataforma sigue sin hacer ninguna conexión (comprobado). La CSP permite únicamente ese origen; la validación automática rechaza cualquier otro y cualquier `fetch()` fuera del módulo.
+
+### Controles aplicados
+| Riesgo | Control |
+|---|---|
+| Que GitHub o un tercero lean los datos | Cifrado AES-GCM de 256 bits en el navegador; clave derivada con PBKDF2 (600 000 iteraciones); la contraseña no se guarda |
+| Subir datos a un repositorio público por error | La plataforma consulta el repositorio y se niega si no es privado |
+| Archivo alterado en el repositorio | El cifrado autenticado lo detecta: se rechaza y lo local no cambia (probado) |
+| Datos recibidos con contenido malicioso | Lo recibido pasa por `fusionar()`/`sanear()`; imágenes sólo de tipos permitidos e identificadores validados |
+| Respuesta que desvíe peticiones a otra ruta | Los identificadores de Git se validan como hexadecimales antes de usarse en una dirección |
+| Fuga del token | Se guarda sólo en el registro `sync` de IndexedDB; no entra al estado, respaldos, exportaciones, pantalla ni consola (probado). Token de alcance mínimo: un repositorio, permiso Contents |
+| Envío de credenciales del navegador | `credentials: 'omit'`, sin referente |
+| Pérdida de datos por sobrescritura | Si hay cambios en ambos lados se declara conflicto y el usuario decide; nunca se sobrescribe en silencio |
+| Borrar otros archivos del repositorio | Se conservan los archivos que no son de Nova |
+
+### Hallazgos de esta revisión
+| ID | Severidad | Confianza | Problema | Estado |
+|---|---|---|---|---|
+| S-13 | Medio | Plausible (depende de que existan otras páginas en la misma cuenta de GitHub Pages) | El token y la clave quedan en el almacenamiento del navegador, que en `*.github.io` se comparte entre todas las páginas de la cuenta | Mitigado: token de alcance mínimo, datos cifrados y aviso dentro de la app. **Requiere decisión del usuario** (R-1) |
+| S-14 | Bajo | Confirmado | Al permitir `api.github.com`, la CSP ya no impide que un código inyectado envíe datos a esa dirección | Aceptado: la defensa principal sigue siendo el saneamiento y el escapado (0 de 9 vías en la pasada adversarial) |
+| S-15 | Bajo | Confirmado en revisión | Los identificadores devueltos por GitHub se usaban en direcciones sin validar | **Corregido** |
+| S-16 | Bajo | Confirmado en revisión | Sólo se conservaba el README; otros archivos del repositorio se habrían eliminado | **Corregido** |
+
+### No verificado
+- **Funcionamiento contra GitHub real** (creación de blobs, árboles y commits, límites de tamaño y de uso, mensajes de error reales). Las pruebas usaron un GitHub simulado.
+- Comportamiento con cientos de imágenes o con datos de varios MB.
+- Otras páginas publicadas en la misma cuenta de GitHub Pages (S-13).
+
+### Recomendaciones adicionales
+| # | Recomendación | Para qué |
+|---|---|---|
+| R-10 | Mantener la cuenta de GitHub Pages sólo para Nova, o mover la app a un dominio propio | Cierra S-13 |
+| R-11 | Activar verificación en dos pasos en la cuenta de GitHub | Protege el repositorio de datos |
+| R-12 | Poner vencimiento al token y renovarlo | Limita el daño si se filtra |
+| R-13 | Pedir la contraseña de sincronización al abrir en lugar de recordar la clave en el equipo | Protege en equipos compartidos; a cambio, hay que escribirla cada vez |

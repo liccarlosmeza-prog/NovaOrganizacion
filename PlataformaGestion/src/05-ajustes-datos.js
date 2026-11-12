@@ -102,6 +102,7 @@ Vistas.ajustes = () => {
       <div class="reng"><label>Datos de ejemplo</label><button class="btn" onclick="Datos.demo()">Cargar datos de ejemplo</button><span class="d">Para probar la plataforma. Se agregan a lo que ya tengas.</span></div>
       <div class="reng"><label>Borrar todo</label><button class="btn peligro" onclick="Datos.borrarTodo()">Borrar todos los datos</button><span class="d">Descarga antes un respaldo.</span></div>
       <div class="reng"><label>Almacenamiento</label><span class="d">${DB.idb ? 'IndexedDB de este navegador' : 'localStorage (sin imágenes)'} · ${Img.blobs.size} imagen(es) · ${(([...Img.blobs.values()].reduce((s, b) => s + b.size, 0)) / 1048576).toFixed(1)} MB. Los datos viven sólo en este equipo y navegador.</span></div></div></section>`; }
+  else if (t === 'sync') cuerpo = Sync.vista();
   else cuerpo = `
     <section class="blq"><h3>Notas privadas</h3><div class="cu">
       <p class="d" style="margin-bottom:10px">Cifrado AES-256 con clave derivada de tu contraseña (PBKDF2, 600 000 iteraciones). La contraseña no se almacena y no existe forma de recuperarla.</p>
@@ -115,7 +116,7 @@ Vistas.ajustes = () => {
       <p>• Sólo las notas privadas están cifradas. El resto de la información se guarda sin cifrar en este navegador.</p>
       <p>• Cualquier persona con acceso a tu sesión del equipo puede ver lo que no sea privado: bloquea tu equipo al ausentarte.</p>
       <p>• Las notas privadas no se incluyen en la exportación CSV; en el respaldo .json viajan cifradas.</p></div></section>`;
-  return `${cab('Ajustes', '')}<div class="tabs">${[['apariencia', 'Apariencia'], ['inicio', 'Inicio'], ['catalogos', 'Catálogos'], ['datos', 'Datos'], ['seguridad', 'Seguridad']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.aj.tab='${k}';App.pintar()">${n}</button>`).join('')}</div><div class="aj">${cuerpo}</div>`;
+  return `${cab('Ajustes', '')}<div class="tabs">${[['apariencia', 'Apariencia'], ['inicio', 'Inicio'], ['catalogos', 'Catálogos'], ['datos', 'Datos'], ['sync', 'Sincronización'], ['seguridad', 'Seguridad']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.aj.tab='${k}';App.pintar()">${n}</button>`).join('')}</div><div class="aj">${cuerpo}</div>`;
 };
 
 /* ==========================================================================
@@ -497,11 +498,13 @@ const Seg = {
   revisar() {
     const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
     // Recursos que el navegador realmente pidió a otros servidores durante esta sesión
-    const externos = [...new Set(performance.getEntriesByType('resource').map(r => r.name).filter(u => /^https?:/i.test(u) && !u.startsWith(location.origin + '/')))];
+    const todas = [...new Set(performance.getEntriesByType('resource').map(r => r.name).filter(u => /^https?:/i.test(u) && !u.startsWith(location.origin + '/')).map(u => new URL(u).origin))];
+    const externos = todas.filter(o => !(Sync.activo() && o === Sync.API));
     const ur = S.ajustes.ultimoRespaldo, dias = ur ? difDias(String(ur).slice(0, 10), hoyISO()) : null;
     return [
-      { ok: !!csp, t: 'Política de seguridad de contenido (CSP)', d: csp ? 'Activa: la página no puede cargar ni enviar información a otros servidores.' : 'No se encontró. Vuelve a generar el HTML con construir.js.' },
-      { ok: externos.length === 0, t: 'Conexiones externas en esta sesión', d: externos.length ? 'Se detectaron: ' + externos.join(', ') : 'Ninguna. Todo se ejecuta dentro de este archivo.' },
+      { ok: !!csp, t: 'Política de seguridad de contenido (CSP)', d: csp ? 'Activa: sólo permite comunicación con api.github.com (y sólo si activas la sincronización).' : 'No se encontró. Vuelve a generar el HTML con construir.js.' },
+      { ok: externos.length === 0, t: 'Conexiones externas en esta sesión', d: externos.length ? 'Se detectaron: ' + externos.join(', ') : (Sync.activo() ? 'Sólo api.github.com (sincronización cifrada que tú activaste).' : 'Ninguna. Todo se ejecuta dentro de este archivo.') },
+      { ok: !Sync.activo() || !['error', 'conflicto'].includes(Sync.estado), t: 'Sincronización con GitHub', d: Sync.activo() ? `${Sync.texto()} · ${Sync.cfg.owner}/${Sync.cfg.repo} · datos cifrados antes de enviarse.` : 'Desactivada: los datos viven sólo en este navegador.' },
       { ok: window.isSecureContext, t: 'Contexto seguro (HTTPS o archivo local)', d: window.isSecureContext ? location.protocol.replace(':', '').toUpperCase() : 'La página se abrió por HTTP sin cifrar; el cifrado de notas privadas no está disponible.' },
       { ok: Boveda.disponible(), t: 'Cifrado disponible para notas privadas', d: Boveda.disponible() ? (S.boveda ? `Configurado · ${(S.boveda.iter || 250000).toLocaleString('es-MX')} iteraciones${(S.boveda.iter || 250000) < Boveda.ITER ? ' (cambia tu contraseña para subir a ' + Boveda.ITER.toLocaleString('es-MX') + ')' : ''}` : 'Disponible; aún no has creado tu contraseña.') : 'No disponible en este navegador.' },
       { ok: window.top === window.self, t: 'Página no incrustada en otro sitio', d: window.top === window.self ? 'Se muestra en su propia pestaña.' : 'Está dentro de un marco (normal si la abres como pestaña de Teams). Verifica que la dirección sea la tuya.' },

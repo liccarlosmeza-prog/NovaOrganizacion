@@ -7,6 +7,8 @@ const html = fs.readFileSync(path.join(dir, 'PlataformaGestion.html'), 'utf8');
 const fuentes = fs.readdirSync(src).map(f => ({ f, t: fs.readFileSync(path.join(src, f), 'utf8') }));
 const lineas = (t, re, filtro = () => true) => t.split('\n').map((l, i) => re.test(l) && filtro(l) ? `${i + 1}: ${l.trim().slice(0, 110)}` : null).filter(Boolean);
 const buscar = (re, filtro) => fuentes.flatMap(({ f, t }) => lineas(t, re, filtro).map(l => `src/${f}:${l}`));
+// Única conexión externa permitida. Autorizada por el usuario el 2026-11-12 para la sincronización cifrada.
+const PERMITIDO = 'https://api.github.com';
 const R = [];   // {ok, bloquea, t, d}
 const regla = (t, hallazgos, bloquea = true, okTxt = 'Sin coincidencias') => R.push({ ok: hallazgos.length === 0, bloquea, t, d: hallazgos.length ? hallazgos : [okTxt] });
 
@@ -16,7 +18,17 @@ const carga = /(<script[^>]+src=|<link[^>]+href=|<img[^>]+src=["']https?:|<ifram
 regla('Sin recursos ni conexiones externas (scripts, estilos, fuentes, imágenes, peticiones)', buscar(carga).concat(lineas(html.split('<script>')[0], carga).map(l => 'plantilla:' + l)));
 // 2. Política de seguridad de contenido
 const csp = (html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/) || [])[1] || '';
-regla('CSP presente y sin orígenes externos', !csp ? ['No hay meta Content-Security-Policy'] : [/default-src 'none'/.test(csp) ? null : "falta default-src 'none'", /https?:|\*/.test(csp) ? 'la CSP permite orígenes externos' : null, /unsafe-eval/.test(csp) ? 'la CSP permite unsafe-eval' : null, /connect-src data: blob:/.test(csp) ? null : 'connect-src debe limitarse a data: blob:'].filter(Boolean), true, csp);
+regla('CSP presente y sin orígenes externos', !csp ? ['No hay meta Content-Security-Policy'] : [/default-src 'none'/.test(csp) ? null : "falta default-src 'none'", (csp.match(/https?:\/\/[^\s;]+|\*/g) || []).some(o => o !== PERMITIDO) ? 'la CSP permite un origen externo no autorizado' : null, /unsafe-eval/.test(csp) ? 'la CSP permite unsafe-eval' : null, /connect-src data: blob: https:\/\/api\.github\.com;/.test(csp) ? null : 'connect-src sólo puede ser data: blob: y api.github.com'].filter(Boolean), true, csp);
+// 2b. Peticiones de red: sólo en el módulo de sincronización (más la lectura de imágenes incrustadas del respaldo)
+const MOD = '055-sincronizacion.js', sy = (fuentes.find(x => x.f === MOD) || { t: '' }).t, todo = fuentes.map(x => x.t).join('\n');
+regla('fetch() sólo en el módulo de sincronización, hacia api.github.com', buscar(/\bfetch\(/, l => !/fetch\(dataUrl\)/.test(l)).filter(l => !l.startsWith('src/' + MOD))
+  .concat(fuentes.filter(x => x.f !== MOD && x.f !== 'plantilla.html' && /https?:\/\/api\.github\.com/.test(x.t)).map(x => `src/${x.f}: usa la dirección de la API fuera del módulo de sincronización`))
+  .concat((sy.match(/https?:\/\/[a-z0-9.-]+/gi) || []).filter(u => u !== PERMITIDO && !/github\\?\.com/.test(u)).map(u => 'origen no autorizado en sincronización: ' + u)));
+regla('Sincronización: repositorio privado obligatorio, cifrado, token fuera del estado y sin credenciales del navegador', [
+  /repo\.private !== true/.test(sy) ? null : 'falta exigir repositorio privado', /AES-GCM/.test(sy) && /_cifrar\(/.test(sy) ? null : 'falta cifrado de lo enviado',
+  /\bS\.[A-Za-z.]*(token|clave)\b|S\.ajustes\.sync/.test(todo) ? 'el token o la clave no deben guardarse en el estado S' : null,
+  /console\.[a-z]+\([^)]*(token|pass)/.test(sy) ? 'no registrar el token ni la contraseña' : null, /credentials: 'omit'/.test(sy) ? null : "falta credentials: 'omit'",
+  /fusionar\(estado\)/.test(sy) ? null : 'lo recibido debe pasar por fusionar()/sanear()'].filter(Boolean));
 // 3. Funciones peligrosas
 regla('Sin eval, new Function, document.write ni temporizadores con texto', buscar(/\beval\(|new Function\(|document\.write|set(Timeout|Interval)\(\s*["'`]|\.outerHTML\s*=|insertAdjacentHTML|srcdoc/));
 // 4. Secretos
@@ -46,13 +58,13 @@ const md = `# Validación automática de seguridad
 ${R.map(r => `| ${r.ok ? '✅ Correcto' : r.bloquea ? '⛔ Bloqueante' : '⚠️ Aviso'} | ${r.t} | ${r.d.map(x => '`' + String(x).replace(/\|/g, '\\|').replace(/`/g, "'") + '`').join('<br>')} |`).join('\n')}
 
 ## Inventario de direcciones externas que aparecen en el código
-Ninguna se carga automáticamente; son texto (enlaces de ejemplo que sólo se abren si el usuario hace clic, o identificadores).
+Sólo https://api.github.com se usa para conexiones, y únicamente si el usuario activa la sincronización. Las demás son texto: enlaces de ejemplo que sólo se abren con clic, o identificadores.
 
 | Dirección | Uso |
 |---|---|
-${URLS.map(u => `| \`${u}\` | ${/w3\.org/.test(u) ? 'Identificador del formato SVG (no es una conexión)' : 'Enlace de ejemplo o plantilla; sólo se abre con clic del usuario'} |`).join('\n') || '| — | — |'}
+${URLS.map(u => `| \`${u}\` | ${/w3\.org/.test(u) ? 'Identificador del formato SVG (no es una conexión)' : /api\.github\.com/.test(u) ? '**Conexión real**: sincronización cifrada con el repositorio privado del usuario (opcional)' : 'Enlace de ejemplo o plantilla; sólo se abre con clic del usuario'} |`).join('\n') || '| — | — |'}
 
-**Dependencias de terceros:** ninguna (sin librerías, fuentes ni CDN). No hay nada que descargar o empaquetar.
+**Dependencias de terceros:** ninguna (sin librerías, fuentes ni CDN). No hay nada que descargar o empaquetar. La sincronización usa la API de GitHub como servicio, no como código.
 `;
 fs.writeFileSync(path.join(dir, 'SEGURIDAD-AUTOMATICA.md'), md);
 for (const r of R) console.log(`${r.ok ? '  ok ' : r.bloquea ? ' FALLA' : ' aviso'}  ${r.t}${r.ok ? '' : '\n        ' + r.d.join('\n        ')}`);

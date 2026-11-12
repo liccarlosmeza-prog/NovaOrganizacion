@@ -8,7 +8,8 @@
    - El token y la clave se guardan sólo en este navegador (IndexedDB, registro "sync");
      nunca entran al estado S, a los respaldos ni a las exportaciones.
    - Cada sincronización reemplaza el contenido del repositorio por una sola versión
-     (un commit sin historial), para que el repositorio no crezca sin límite.
+     (un commit sin historial), para que el repositorio no crezca sin límite. Los demás
+     archivos que existan en el repositorio se conservan.
    ========================================================================== */
 const Sync = {
   API: 'https://api.github.com',
@@ -45,24 +46,27 @@ const Sync = {
     }
     return r.json();
   },
+  /** Un identificador de Git sólo puede ser hexadecimal: evita que una respuesta alterada desvíe la petición a otra ruta. */
+  _sha(v) { if (!/^[0-9a-f]{40,64}$/.test(String(v))) throw new Error('GitHub devolvió un identificador no válido.'); return String(v); },
   /** Lee qué hay en el repositorio: rama, versión (commit), archivo de datos e imágenes. */
   async _remoto() {
     const repo = await this._gh('GET', '');
     if (repo.private !== true) throw new Error('El repositorio es público. Por seguridad, la sincronización sólo funciona con un repositorio privado.');
     const rama = String(repo.default_branch || 'main');
     const ref = await this._gh('GET', `/git/ref/heads/${encodeURIComponent(rama)}`);
-    const cm = await this._gh('GET', `/git/commits/${ref.object.sha}`);
-    const arbol = await this._gh('GET', `/git/trees/${cm.tree.sha}?recursive=1`);
-    const m = { rama, commit: ref.object.sha, datos: null, imgs: {}, otros: [] };
+    const commit = this._sha(ref && ref.object && ref.object.sha), cm = await this._gh('GET', `/git/commits/${commit}`);
+    const arbol = await this._gh('GET', `/git/trees/${this._sha(cm && cm.tree && cm.tree.sha)}?recursive=1`);
+    const m = { rama, commit, datos: null, imgs: {}, otros: [] };
     for (const e of arbol.tree || []) {
-      if (e.type !== 'blob') continue;
-      if (e.path === 'datos.json') m.datos = e.sha;
-      else if (/^img\/[A-Za-z0-9_-]{1,64}$/.test(e.path)) m.imgs[e.path.slice(4)] = e.sha;
-      else if (e.path === 'README.md') m.otros.push({ path: e.path, mode: '100644', type: 'blob', sha: e.sha });
+      if (e.type !== 'blob' || typeof e.path !== 'string') continue;
+      const sha = this._sha(e.sha);
+      if (e.path === 'datos.json') m.datos = sha;
+      else if (/^img\/[A-Za-z0-9_-]{1,64}$/.test(e.path)) m.imgs[e.path.slice(4)] = sha;
+      else if (!e.path.startsWith('img/')) m.otros.push({ path: e.path, mode: /^100(644|755)$/.test(e.mode) ? e.mode : '100644', type: 'blob', sha });   // otros archivos del repositorio se conservan
     }
     return m;
   },
-  async _leerBlob(sha) { const b = await this._gh('GET', `/git/blobs/${sha}`); return JSON.parse(new TextDecoder().decode(deB64(String(b.content).replace(/\s/g, '')))); },
+  async _leerBlob(sha) { const b = await this._gh('GET', `/git/blobs/${this._sha(sha)}`); return JSON.parse(new TextDecoder().decode(deB64(String(b.content).replace(/\s/g, '')))); },
   async _crearBlob(obj) { return (await this._gh('POST', '/git/blobs', { content: JSON.stringify(obj), encoding: 'utf-8' })).sha; },
 
   /* ---------- Cifrado ---------- */
@@ -192,6 +196,9 @@ const Sync = {
     }, 'Desconectar');
   },
 
+  /** En github.io todas las páginas de la misma cuenta comparten el almacenamiento del navegador. */
+  _avisoOrigen() { return /\.github\.io$/i.test(location.hostname) ? `<p class="ambar">• Estás en <b>${esc(location.hostname)}</b>: cualquier otra página publicada en esa misma cuenta de GitHub Pages podría leer el token guardado aquí. No publiques otras páginas en esta cuenta mientras uses la sincronización.</p>` : ''; },
+
   /* ---------- Pantalla (Ajustes → Sincronización) ---------- */
   vista() {
     if (!this.activo()) return `
@@ -205,7 +212,8 @@ const Sync = {
       <section class="blq"><h3>Antes de conectar</h3><div class="cu d">
         <p>• <b>Si olvidas la contraseña de sincronización, los datos de GitHub no se pueden recuperar</b> (los de este equipo sí siguen aquí).</p>
         <p>• En el primer equipo se sube lo que tengas. En los siguientes, usa el mismo repositorio, un token y la misma contraseña.</p>
-        <p>• Pasos para crear el repositorio y el token: <b>docs/SINCRONIZACION_GITHUB.md</b> en el repositorio del proyecto.</p></div></section>`;
+        <p>• Pasos para crear el repositorio y el token: <b>docs/SINCRONIZACION_GITHUB.md</b> en el repositorio del proyecto.</p>
+        ${this._avisoOrigen()}</div></section>`;
     const c = this.cfg, color = { aldia: 'verde', pendiente: 'ambar', trabajando: 'ambar', conflicto: 'rojo', error: 'rojo' }[this.estado] || '';
     return `
       <section class="blq"><h3>Sincronización con GitHub</h3><div class="cu">
@@ -217,6 +225,7 @@ const Sync = {
       <section class="blq"><h3>Cómo funciona</h3><div class="cu d">
         <p>• Al abrir la plataforma se revisa si hay una versión más nueva en GitHub y se trae. Tus cambios se suben solos unos 90 segundos después de dejar de editar, y cada 5 minutos se vuelve a revisar.</p>
         <p>• Si editas en dos equipos sin sincronizar, aparece un <b>conflicto</b> y tú eliges qué versión conservar.</p>
-        <p>• El repositorio guarda una sola versión (sin historial). Para conservar copias anteriores usa el respaldo .json.</p></div></section>`;
+        <p>• El repositorio guarda una sola versión (sin historial). Para conservar copias anteriores usa el respaldo .json.</p>
+        ${this._avisoOrigen()}</div></section>`;
   }
 };

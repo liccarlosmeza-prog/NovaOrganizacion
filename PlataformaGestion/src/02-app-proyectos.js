@@ -37,7 +37,7 @@ const App = {
     const c = this.contadores(), base = this.vista === 'proyecto' ? 'proyectos' : this.vista;
     $('#lat').innerHTML = `<div class="marca">${LOGO}<div><b>${esc(S.ajustes.nombre)}</b><small>${esc(S.ajustes.lema || '')}</small></div></div><div class="regla"></div>
       <nav>${this.NAV.map(n => n ? `<a href="#/${n[0]}" class="${n[0] === base ? 'on' : ''}">${esc(n[1])}${c[n[0]] ? `<span class="n">${c[n[0]]}</span>` : ''}</a>` : '<hr>').join('')}</nav>
-      <div class="pie"><i></i><span>Guardado en este equipo</span></div>`;
+      <div class="pie ${['apagado', 'aldia'].includes(Sync.estado) ? '' : 'pend'}"><i></i><span>${esc(Sync.texto())}</span></div>`;
     const banda = Img.url(S.ajustes.bandaImg);
     const pral = $('#pral'), y = pral.scrollTop;
     let cuerpo;

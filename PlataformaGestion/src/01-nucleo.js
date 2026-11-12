@@ -171,9 +171,10 @@ let _tGuardar = null;
 /** Guarda el estado (con una pequeña espera para agrupar cambios seguidos). */
 function guardar() {
   const pie = $('.lat .pie'); if (pie) { pie.classList.add('pend'); pie.lastChild.textContent = 'Guardando…'; }
+  Sync.cambio();
   clearTimeout(_tGuardar);
   _tGuardar = setTimeout(async () => {
-    try { await DB.escribirEstado(S); const p = $('.lat .pie'); if (p) { p.classList.remove('pend'); p.lastChild.textContent = 'Guardado en este equipo'; } }
+    try { await DB.escribirEstado(S); Sync._pinta(); }
     catch (e) { console.error(e); toast('No se pudo guardar: ' + e.message, 'err'); }
   }, 250);
 }
