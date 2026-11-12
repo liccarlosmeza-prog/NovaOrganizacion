@@ -12,8 +12,7 @@ const UI = {
   rec: { q: '' }, cum: { q: '', rel: '' },
   notas: { f: 'todas', id: null, q: '' },
   acc: { f: 'todos', q: '', sel: new Set() },
-  aj: { tab: 'apariencia' },
-  fraseSalto: 0
+  aj: { tab: 'apariencia' }
 };
 
 const Vistas = {};   // cada pantalla registra aquí su función: () => html
@@ -51,7 +50,7 @@ const App = {
     pral.scrollTop = arriba ? 0 : y;
     const tl = $('#tl'); if (tl && tl.dataset.hoy) tl.scrollLeft = Math.max(0, +tl.dataset.hoy - 260);
     // Recuerda los filtros elegidos (no el texto de búsqueda) para la próxima vez
-    try { localStorage.setItem('nova_ui', JSON.stringify(UI, (k, v) => (v instanceof Set || k === 'q' || k === 'id' || k === 'dia' || k === 'mes' || k === 'fraseSalto') ? undefined : v)); } catch (e) { /* sin almacenamiento */ }
+    try { localStorage.setItem('nova_ui', JSON.stringify(UI, (k, v) => (v instanceof Set || k === 'q' || k === 'id' || k === 'dia' || k === 'mes') ? undefined : v)); } catch (e) { /* sin almacenamiento */ }
   }
 };
 
@@ -71,15 +70,32 @@ function cambiarEstatus(lista, id, valor) {
 /* ==========================================================================
    INICIO
    ========================================================================== */
+/* ---------- Carrusel de frases ----------
+   De lunes a viernes se elige al azar una frase que aún no se haya mostrado. Al llegar otro día,
+   la anterior queda marcada como vista (con su fecha) y se elige la siguiente. Cuando ya se vieron
+   todas, el ciclo vuelve a empezar. Sábados y domingos el carrusel descansa y no avanza. */
+const esFinDeSemana = iso => [0, 6].includes(deISO(iso).getDay());
+const azar = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
 function fraseDelDia() {
-  if (!S.frases.length) return null;
-  const dia = Math.floor(deISO(hoyISO()).getTime() / 864e5);   // cambia cada día, siempre igual durante el día
-  return S.frases[(dia + UI.fraseSalto) % S.frases.length];
+  const hoy = hoyISO(), a = S.ajustes;
+  if (!S.frases.length || esFinDeSemana(hoy)) return null;
+  const actual = a.fraseHoy && S.frases.find(f => f.id === a.fraseHoy.id);
+  if (actual && a.fraseHoy.fecha === hoy) return actual;
+  if (actual) actual.vista = a.fraseHoy.fecha;                       // la del día anterior ya se visualizó
+  return elegirFrase(actual ? actual.id : '');
+}
+function elegirFrase(evitar) {
+  let pend = S.frases.filter(f => !f.vista);
+  if (!pend.length) { S.frases.forEach(f => { f.vista = ''; }); pend = S.frases.slice(); }   // nuevo ciclo
+  if (pend.length > 1) pend = pend.filter(f => f.id !== evitar);     // no repetir la de ayer al reiniciar
+  const f = pend[azar(pend.length)];
+  S.ajustes.fraseHoy = { fecha: hoyISO(), id: f.id }; guardar();
+  return f;
 }
 Vistas.inicio = () => {
   const hoy = hoyISO(), f = S.ajustes.inicioFiltro, hora = new Date().getHours(), saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
   const bloques = S.ajustes.inicio.filter(w => w.on && WIDGETS[w.id]).map(w => {
-    if (w.id === 'frase') return `<div style="grid-column:span ${w.ancho}">${Ini.frase()}</div>`;
+    if (w.id === 'frase') { const h = Ini.frase(); return h ? `<div style="grid-column:span ${w.ancho}">${h}</div>` : ''; }
     const r = Ini[w.id](w);
     return `<section class="blq" style="grid-column:span ${w.ancho}"><h3>${esc(r.t)}${r.n != null ? `<span class="ct">${r.n}</span>` : ''}${r.extra || ''}<a class="lnk" href="#/${r.ir}">Ver todo</a></h3>${r.h}${r.pie || ''}</section>`;
   }).join('');
@@ -100,9 +116,10 @@ const Ini = {
   cat(c) { const f = S.ajustes.inicioFiltro.cat; return !f || c === f; },
   lista: (filas, tv, dv) => filas ? `<ul class="filas">${filas}</ul>` : vacio(tv, dv || ''),
   frase() {
+    if (esFinDeSemana(hoyISO())) return '';   // el carrusel sólo aparece de lunes a viernes
     const f = fraseDelDia(), u = f ? Img.url(f.img) : '';
     return f ? `<section class="frase ${u ? 'img' : ''}" style="margin:0;${u ? `background-image:url('${u}')` : ''}">
-      <div class="ctl">${S.frases.length > 1 ? '<button class="lnk" onclick="UI.fraseSalto++;App.pintar()">Otra</button>' : ''}<a class="lnk" href="#/frases">Administrar</a></div>
+      <div class="ctl">${S.frases.length > 1 ? '<button class="lnk" onclick="Frases.otra()" title="Marca esta como vista y muestra otra">Otra</button>' : ''}<a class="lnk" href="#/frases">Administrar</a></div>
       <div class="tx">${f.texto ? `<p>${esc(f.texto)}</p>` : ''}${f.autor ? `<span>— ${esc(f.autor)}</span>` : ''}</div></section>`
       : `<section class="frase" style="margin:0;min-height:90px"><div class="tx"><p>Agrega tus frases del día</p><span>Sube imágenes o textos y verás uno diferente cada día. <a href="#/frases">Agregar</a></span></div></section>`;
   },

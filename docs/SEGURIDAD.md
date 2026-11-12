@@ -153,3 +153,9 @@ Desde esta versión, **cada construcción ejecuta la validación de seguridad** 
 - [ ] Encabezados del servidor (no disponibles en GitHub Pages)
 - [ ] Aislamiento del origen de publicación (R-1)
 - [ ] Revisión específica de Power Pages (cuando exista el sitio)
+
+## 12. Revalidaciones posteriores
+
+| Fecha | Cambio | Validación automática | Pasada adversarial | Observaciones |
+|---|---|---|---|---|
+| 2026-11-12 | v0.4 — carrusel de frases (campos nuevos `frases.vista` y `ajustes.fraseHoy`) | APTO | Sin ejecución de código ni conexiones externas | Los campos nuevos se registraron en el saneamiento (`vista` como fecha; `fraseHoy` se descarta si no es válido). El sorteo usa el generador aleatorio del navegador (`crypto.getRandomValues`). Sin conexiones externas nuevas. |

@@ -2,7 +2,7 @@
 
 > *Evolución sin límites.*
 > Documento técnico del proyecto: qué se pidió, qué se decidió, cómo está construido, qué se probó y qué falta.
-> Última actualización: 2026-11-12 · Versión de la aplicación: **0.3**
+> Última actualización: 2026-11-12 · Versión de la aplicación: **0.4**
 
 ---
 
@@ -32,6 +32,7 @@
 | 6 | Documentar todo el desarrollo en el repositorio | Este documento | `a0464ab` |
 | 7 | Publicación en GitHub Pages | Página de entrada `index.html` | `bc11293` |
 | 8 | Revisión de seguridad recurrente y reporte de conexiones externas | **v0.3**: correcciones, CSP, saneamiento, `seguridad.js`, `pruebas/ataque.js`, `docs/SEGURIDAD.md`, `CLAUDE.md` | — |
+| 9 | Carrusel de frases aleatorio, sin repetir, sólo de lunes a viernes | **v0.4** | — |
 
 ---
 
@@ -146,7 +147,7 @@ Todas las colecciones viven dentro de `S`. Las relaciones se hacen por `id`.
 | `carpetas` | id, nombre, color | — |
 | `enlaces` | id, nombre, url, carpeta, desc, fav, tags | → carpetas |
 | `grupos` | id, nombre, ids[] | → enlaces |
-| `frases` | id, texto, autor, img | → imágenes |
+| `frases` | id, texto, autor, img, vista (fecha en que se mostró) | → imágenes |
 | `historial` | id, lista, ref, titulo, proyecto, de, a, fecha | registro de cambios de estatus |
 
 Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identificadas por UUID.
@@ -159,7 +160,7 @@ Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identif
 - Bloques: Agenda, Actividades, Frase del día, Entregas escolares, Proyectos activos, Recordatorios, Cumpleaños y Accesos favoritos.
 - Configurables en **Ajustes → Inicio**: orden, visibilidad, tamaño (rejilla de 6 columnas: tercio, mitad, dos tercios, completo), filas y periodo.
 - Barra superior de filtros por **ámbito** y **clasificación** que afecta a todos los bloques.
-- La frase del día se elige con el número de día, por lo que cambia a diario y se mantiene igual durante el día.
+- **Carrusel de frases** (lunes a viernes): se elige al azar una frase sin marca de vista; `ajustes.fraseHoy` guarda la del día para que no cambie al recargar. Al cambiar de día, la anterior recibe su fecha en `vista`. Sin pendientes, se limpian las marcas y empieza otro ciclo evitando repetir la última. Sábados y domingos no se muestra ni avanza.
 
 ### Proyectos
 - Avance = actividades terminadas / total. Si no hay actividades se usa el avance manual.

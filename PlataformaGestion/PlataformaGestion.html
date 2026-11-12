@@ -671,8 +671,7 @@ const UI = {
   rec: { q: '' }, cum: { q: '', rel: '' },
   notas: { f: 'todas', id: null, q: '' },
   acc: { f: 'todos', q: '', sel: new Set() },
-  aj: { tab: 'apariencia' },
-  fraseSalto: 0
+  aj: { tab: 'apariencia' }
 };
 
 const Vistas = {};   // cada pantalla registra aquí su función: () => html
@@ -710,7 +709,7 @@ const App = {
     pral.scrollTop = arriba ? 0 : y;
     const tl = $('#tl'); if (tl && tl.dataset.hoy) tl.scrollLeft = Math.max(0, +tl.dataset.hoy - 260);
     // Recuerda los filtros elegidos (no el texto de búsqueda) para la próxima vez
-    try { localStorage.setItem('nova_ui', JSON.stringify(UI, (k, v) => (v instanceof Set || k === 'q' || k === 'id' || k === 'dia' || k === 'mes' || k === 'fraseSalto') ? undefined : v)); } catch (e) { /* sin almacenamiento */ }
+    try { localStorage.setItem('nova_ui', JSON.stringify(UI, (k, v) => (v instanceof Set || k === 'q' || k === 'id' || k === 'dia' || k === 'mes') ? undefined : v)); } catch (e) { /* sin almacenamiento */ }
   }
 };
 
@@ -730,15 +729,32 @@ function cambiarEstatus(lista, id, valor) {
 /* ==========================================================================
    INICIO
    ========================================================================== */
+/* ---------- Carrusel de frases ----------
+   De lunes a viernes se elige al azar una frase que aún no se haya mostrado. Al llegar otro día,
+   la anterior queda marcada como vista (con su fecha) y se elige la siguiente. Cuando ya se vieron
+   todas, el ciclo vuelve a empezar. Sábados y domingos el carrusel descansa y no avanza. */
+const esFinDeSemana = iso => [0, 6].includes(deISO(iso).getDay());
+const azar = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
 function fraseDelDia() {
-  if (!S.frases.length) return null;
-  const dia = Math.floor(deISO(hoyISO()).getTime() / 864e5);   // cambia cada día, siempre igual durante el día
-  return S.frases[(dia + UI.fraseSalto) % S.frases.length];
+  const hoy = hoyISO(), a = S.ajustes;
+  if (!S.frases.length || esFinDeSemana(hoy)) return null;
+  const actual = a.fraseHoy && S.frases.find(f => f.id === a.fraseHoy.id);
+  if (actual && a.fraseHoy.fecha === hoy) return actual;
+  if (actual) actual.vista = a.fraseHoy.fecha;                       // la del día anterior ya se visualizó
+  return elegirFrase(actual ? actual.id : '');
+}
+function elegirFrase(evitar) {
+  let pend = S.frases.filter(f => !f.vista);
+  if (!pend.length) { S.frases.forEach(f => { f.vista = ''; }); pend = S.frases.slice(); }   // nuevo ciclo
+  if (pend.length > 1) pend = pend.filter(f => f.id !== evitar);     // no repetir la de ayer al reiniciar
+  const f = pend[azar(pend.length)];
+  S.ajustes.fraseHoy = { fecha: hoyISO(), id: f.id }; guardar();
+  return f;
 }
 Vistas.inicio = () => {
   const hoy = hoyISO(), f = S.ajustes.inicioFiltro, hora = new Date().getHours(), saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
   const bloques = S.ajustes.inicio.filter(w => w.on && WIDGETS[w.id]).map(w => {
-    if (w.id === 'frase') return `<div style="grid-column:span ${w.ancho}">${Ini.frase()}</div>`;
+    if (w.id === 'frase') { const h = Ini.frase(); return h ? `<div style="grid-column:span ${w.ancho}">${h}</div>` : ''; }
     const r = Ini[w.id](w);
     return `<section class="blq" style="grid-column:span ${w.ancho}"><h3>${esc(r.t)}${r.n != null ? `<span class="ct">${r.n}</span>` : ''}${r.extra || ''}<a class="lnk" href="#/${r.ir}">Ver todo</a></h3>${r.h}${r.pie || ''}</section>`;
   }).join('');
@@ -759,9 +775,10 @@ const Ini = {
   cat(c) { const f = S.ajustes.inicioFiltro.cat; return !f || c === f; },
   lista: (filas, tv, dv) => filas ? `<ul class="filas">${filas}</ul>` : vacio(tv, dv || ''),
   frase() {
+    if (esFinDeSemana(hoyISO())) return '';   // el carrusel sólo aparece de lunes a viernes
     const f = fraseDelDia(), u = f ? Img.url(f.img) : '';
     return f ? `<section class="frase ${u ? 'img' : ''}" style="margin:0;${u ? `background-image:url('${u}')` : ''}">
-      <div class="ctl">${S.frases.length > 1 ? '<button class="lnk" onclick="UI.fraseSalto++;App.pintar()">Otra</button>' : ''}<a class="lnk" href="#/frases">Administrar</a></div>
+      <div class="ctl">${S.frases.length > 1 ? '<button class="lnk" onclick="Frases.otra()" title="Marca esta como vista y muestra otra">Otra</button>' : ''}<a class="lnk" href="#/frases">Administrar</a></div>
       <div class="tx">${f.texto ? `<p>${esc(f.texto)}</p>` : ''}${f.autor ? `<span>— ${esc(f.autor)}</span>` : ''}</div></section>`
       : `<section class="frase" style="margin:0;min-height:90px"><div class="tx"><p>Agrega tus frases del día</p><span>Sube imágenes o textos y verás uno diferente cada día. <a href="#/frases">Agregar</a></span></div></section>`;
   },
@@ -1507,25 +1524,31 @@ const Frases = {
         if (!v.texto && !v.archivo && !(f && f.img)) return 'Escribe una frase o elige una imagen';
         let img = f ? f.img : null;
         if (v.archivo) { const nueva = await Img.agregar(v.archivo, 1800); if (img) await Img.quitar(img); img = nueva; }
-        poner('frases', { id: f ? f.id : uid(), texto: v.texto, autor: v.autor, img });
+        poner('frases', { id: f ? f.id : uid(), texto: v.texto, autor: v.autor, img, vista: f ? (f.vista || '') : '' });
       },
       eliminar: f ? async () => { await Img.quitar(f.img); quitar('frases', f.id); } : null });
   },
+  /** Marca la frase de hoy como vista y elige otra pendiente. */
+  otra() { const a = S.ajustes.fraseHoy, f = a && por('frases', a.id); if (f) f.vista = hoyISO(); elegirFrase(f ? f.id : ''); App.pintar(); },
+  /** Borra las marcas de "vista" para que todas vuelvan a entrar al sorteo. */
+  reiniciar() { confirmar('Todas las frases volverán a estar pendientes de mostrarse. ¿Continuar?', () => { S.frases.forEach(f => { f.vista = ''; }); S.ajustes.fraseHoy = null; guardar(); App.pintar(); toast('Ciclo reiniciado'); }, 'Reiniciar'); },
   /** Carga varias imágenes de una vez: cada una se convierte en una frase. */
   async varias(input) {
     let n = 0;
-    for (const a of input.files) { try { const img = await Img.agregar(a, 1800); S.frases.push({ id: uid(), texto: '', autor: '', img }); n++; } catch (e) { toast(e.message, 'err'); } }
+    for (const a of input.files) { try { const img = await Img.agregar(a, 1800); S.frases.push({ id: uid(), texto: '', autor: '', img, vista: '' }); n++; } catch (e) { toast(e.message, 'err'); } }
     input.value = ''; if (n) { guardar(); App.pintar(); toast(`${n} imagen(es) agregada(s)`); }
   }
 };
 Vistas.frases = () => {
-  const hoy = fraseDelDia();
-  return `${cab('Frases del día', `${S.frases.length} cargadas · se muestra una distinta cada día en Inicio`,
-    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button>' + btnCarga('frases') + '<button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
-  <div class="panel scrollx">${S.frases.length ? `<table class="lista"><thead><tr><th style="width:110px">Imagen</th><th>Frase</th><th>Autor</th><th></th></tr></thead><tbody>
+  const hoy = fraseDelDia(), finde = esFinDeSemana(hoyISO()), vistas = S.frases.filter(f => f.vista).length, pend = S.frases.length - vistas - (hoy && !hoy.vista ? 1 : 0);
+  const estado = f => hoy && hoy.id === f.id ? '<span class="et ac">Hoy</span>' : f.vista ? `<span class="d">Vista el ${esc(fFecha(f.vista))}</span>` : '<span class="et">Pendiente</span>';
+  return `${cab('Frases del día', `${S.frases.length} cargadas · ${vistas} vistas · ${Math.max(0, pend)} pendientes`,
+    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button>' + btnCarga('frases') + (vistas ? '<button class="btn" onclick="Frases.reiniciar()">Reiniciar ciclo</button>' : '') + '<button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
+  <p class="d" style="margin-bottom:12px">De lunes a viernes aparece en Inicio una frase al azar que no se haya mostrado. Al día siguiente queda marcada como vista y entra otra; cuando se terminan, el ciclo vuelve a empezar.${finde ? ' <b>Hoy es fin de semana: el carrusel descansa y no avanza.</b>' : ''}</p>
+  <div class="panel scrollx">${S.frases.length ? `<table class="lista"><thead><tr><th style="width:110px">Imagen</th><th>Frase</th><th>Autor</th><th>Estado</th></tr></thead><tbody>
     ${S.frases.map(f => `<tr><td>${f.img ? `<img src="${Img.url(f.img)}" alt="" style="height:48px;width:86px;object-fit:cover;border-radius:5px;display:block;cursor:zoom-in" onclick="verImagen(this.src)">` : '<span class="mut">—</span>'}</td>
-      <td><span class="t" onclick="Frases.editar('${f.id}')">${esc(f.texto || '(sólo imagen)')}</span></td><td class="d">${esc(f.autor || '')}</td><td class="num">${hoy && hoy.id === f.id ? '<span class="et ac">Hoy</span>' : ''}</td></tr>`).join('')}</tbody></table>`
-    : vacio('Aún no hay frases', 'Sube imágenes o escribe frases; cada día verás una diferente en la pantalla de Inicio.')}</div>`;
+      <td><span class="t" onclick="Frases.editar('${f.id}')">${esc(f.texto || '(sólo imagen)')}</span></td><td class="d">${esc(f.autor || '')}</td><td class="nw">${estado(f)}</td></tr>`).join('')}</tbody></table>`
+    : vacio('Aún no hay frases', 'Sube imágenes o escribe frases; de lunes a viernes verás una diferente en la pantalla de Inicio.')}</div>`;
 };
 
 /* ===== 05-ajustes-datos.js ===== */
@@ -1665,7 +1688,7 @@ const CAMPO = {
   id: ['id', 'proyecto', 'categoria', 'estatus', 'materia', 'carpeta', 'img', 'ref', 'fondoImg', 'bandaImg', 'cat', 'temaId', 'origenId'],
   num: ['valor', 'calif', 'horas', 'avanceManual', 'dia', 'mes', 'anio', 'meta', 'ancho', 'filas', 'dias', 'fondoOp', 'metaEscolar', 'escala', 'avisoCumple', 'iter', 'v'],
   color: ['color', 'bg', 'sup', 'tx', 'mut', 'bd', 'ac', 'lat', 'oro'],
-  listaId: ['ids', 'imgs'], fecha: ['inicio', 'objetivo', 'limite', 'entrega', 'completada'], fechaHora: ['fecha', 'creado', 'actualizado', 'avisado', 'editado'], hora: ['hora', 'horaIni', 'horaFin'],
+  listaId: ['ids', 'imgs'], fecha: ['inicio', 'objetivo', 'limite', 'entrega', 'completada', 'vista'], fechaHora: ['fecha', 'creado', 'actualizado', 'avisado', 'editado'], hora: ['hora', 'horaIni', 'horaFin'],
   bool: ['on', 'final', 'fav', 'fijada', 'hecho']
 };
 function sanearValor(k, v) {
@@ -1712,6 +1735,7 @@ function sanear(e) {
   const a = r.ajustes; a.escala = [85, 92, 100, 110, 125].includes(a.escala) ? a.escala : 100; a.fondoOp = Math.min(45, Math.max(4, a.fondoOp || 14)); a.metaEscolar = Math.min(100, Math.max(0, a.metaEscolar ?? 60));
   if (Array.isArray(a.inicio)) a.inicio = a.inicio.filter(w => Object.hasOwn(WIDGETS, w.id)).map(w => { const d = inicioDefecto().find(x => x.id === w.id); return { id: w.id, on: w.on === true, ancho: [2, 3, 4, 6].includes(w.ancho) ? w.ancho : d.ancho, filas: w.id === 'frase' ? 0 : Math.min(50, Math.max(1, w.filas || d.filas)), ...('dias' in d ? { dias: Math.min(366, Math.max(0, w.dias ?? d.dias)) } : {}) }; });
   if (a.tema && !Object.hasOwn(TEMAS, a.temaId) && a.temaId !== 'personal') a.temaId = 'personal';
+  if (a.fraseHoy && !(FECHA_OK.test(a.fraseHoy.fecha) && a.fraseHoy.id)) a.fraseHoy = null;
   return r;
 }
 
@@ -1749,7 +1773,7 @@ const Datos = {
       { nombre: 'actividades_escolares.csv', enc: ['Materia', 'Actividad', 'Tipo', 'Valor', 'FechaInicio', 'FechaEntrega', 'Estado', 'Calificacion', 'Comentarios'],
         filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
       { nombre: 'accesos_directos.csv', enc: ['Nombre', 'URL', 'Carpeta', 'Descripcion', 'Favorito', 'Tags'], filas: S.enlaces.map(l => [l.nombre, l.url, nom('carpetas', l.carpeta), l.desc, l.fav ? 'SI' : 'NO', String(l.tags || '').replace(/,/g, ';')]) },
-      { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO']) },
+      { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen', 'VistaEl'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO', aDMY(f.vista)]) },
       { nombre: 'historial_estatus.csv', enc: ['FechaHora', 'Tipo', 'Registro', 'Proyecto', 'EstatusAnterior', 'EstatusNuevo'], filas: S.historial.map(h => [h.fecha, h.lista, h.titulo, nom('proyectos', h.proyecto), h.de, h.a]) }
     ];
   },

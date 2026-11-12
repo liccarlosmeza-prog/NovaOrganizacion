@@ -134,7 +134,7 @@ const CAMPO = {
   id: ['id', 'proyecto', 'categoria', 'estatus', 'materia', 'carpeta', 'img', 'ref', 'fondoImg', 'bandaImg', 'cat', 'temaId', 'origenId'],
   num: ['valor', 'calif', 'horas', 'avanceManual', 'dia', 'mes', 'anio', 'meta', 'ancho', 'filas', 'dias', 'fondoOp', 'metaEscolar', 'escala', 'avisoCumple', 'iter', 'v'],
   color: ['color', 'bg', 'sup', 'tx', 'mut', 'bd', 'ac', 'lat', 'oro'],
-  listaId: ['ids', 'imgs'], fecha: ['inicio', 'objetivo', 'limite', 'entrega', 'completada'], fechaHora: ['fecha', 'creado', 'actualizado', 'avisado', 'editado'], hora: ['hora', 'horaIni', 'horaFin'],
+  listaId: ['ids', 'imgs'], fecha: ['inicio', 'objetivo', 'limite', 'entrega', 'completada', 'vista'], fechaHora: ['fecha', 'creado', 'actualizado', 'avisado', 'editado'], hora: ['hora', 'horaIni', 'horaFin'],
   bool: ['on', 'final', 'fav', 'fijada', 'hecho']
 };
 function sanearValor(k, v) {
@@ -181,6 +181,7 @@ function sanear(e) {
   const a = r.ajustes; a.escala = [85, 92, 100, 110, 125].includes(a.escala) ? a.escala : 100; a.fondoOp = Math.min(45, Math.max(4, a.fondoOp || 14)); a.metaEscolar = Math.min(100, Math.max(0, a.metaEscolar ?? 60));
   if (Array.isArray(a.inicio)) a.inicio = a.inicio.filter(w => Object.hasOwn(WIDGETS, w.id)).map(w => { const d = inicioDefecto().find(x => x.id === w.id); return { id: w.id, on: w.on === true, ancho: [2, 3, 4, 6].includes(w.ancho) ? w.ancho : d.ancho, filas: w.id === 'frase' ? 0 : Math.min(50, Math.max(1, w.filas || d.filas)), ...('dias' in d ? { dias: Math.min(366, Math.max(0, w.dias ?? d.dias)) } : {}) }; });
   if (a.tema && !Object.hasOwn(TEMAS, a.temaId) && a.temaId !== 'personal') a.temaId = 'personal';
+  if (a.fraseHoy && !(FECHA_OK.test(a.fraseHoy.fecha) && a.fraseHoy.id)) a.fraseHoy = null;
   return r;
 }
 
@@ -218,7 +219,7 @@ const Datos = {
       { nombre: 'actividades_escolares.csv', enc: ['Materia', 'Actividad', 'Tipo', 'Valor', 'FechaInicio', 'FechaEntrega', 'Estado', 'Calificacion', 'Comentarios'],
         filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
       { nombre: 'accesos_directos.csv', enc: ['Nombre', 'URL', 'Carpeta', 'Descripcion', 'Favorito', 'Tags'], filas: S.enlaces.map(l => [l.nombre, l.url, nom('carpetas', l.carpeta), l.desc, l.fav ? 'SI' : 'NO', String(l.tags || '').replace(/,/g, ';')]) },
-      { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO']) },
+      { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen', 'VistaEl'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO', aDMY(f.vista)]) },
       { nombre: 'historial_estatus.csv', enc: ['FechaHora', 'Tipo', 'Registro', 'Proyecto', 'EstatusAnterior', 'EstatusNuevo'], filas: S.historial.map(h => [h.fecha, h.lista, h.titulo, nom('proyectos', h.proyecto), h.de, h.a]) }
     ];
   },

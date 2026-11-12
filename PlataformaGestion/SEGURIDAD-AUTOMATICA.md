@@ -1,7 +1,7 @@
 # Validación automática de seguridad
 
 > Generado por `seguridad.js` en cada construcción. No editar a mano.
-> Fecha: 2026-11-12 22:24 UTC · Resultado: **APTO**
+> Fecha: 2026-11-12 22:27 UTC · Resultado: **APTO**
 
 ## Comprobaciones
 | Resultado | Comprobación | Detalle |
@@ -15,7 +15,7 @@
 | ✅ Correcto | Controles de seguridad presentes | `saneamiento de respaldos y datos guardados · filtro de direcciones · validación de imágenes del respaldo · neutralización de fórmulas al exportar CSV · enrutador protegido · derivación de clave · cifrado de notas privadas` |
 | ✅ Correcto | Textos del usuario escapados con esc() al mostrarse | `Sin coincidencias` |
 | ✅ Correcto | Sin console.log de depuración | `Sin coincidencias` |
-| ✅ Correcto | Tamaño del archivo razonable (< 1 MB) | `197 KB` |
+| ✅ Correcto | Tamaño del archivo razonable (< 1 MB) | `200 KB` |
 
 ## Inventario de direcciones externas que aparecen en el código
 Ninguna se carga automáticamente; son texto (enlaces de ejemplo que sólo se abren si el usuario hace clic, o identificadores).

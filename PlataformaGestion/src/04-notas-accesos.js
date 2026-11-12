@@ -204,23 +204,29 @@ const Frases = {
         if (!v.texto && !v.archivo && !(f && f.img)) return 'Escribe una frase o elige una imagen';
         let img = f ? f.img : null;
         if (v.archivo) { const nueva = await Img.agregar(v.archivo, 1800); if (img) await Img.quitar(img); img = nueva; }
-        poner('frases', { id: f ? f.id : uid(), texto: v.texto, autor: v.autor, img });
+        poner('frases', { id: f ? f.id : uid(), texto: v.texto, autor: v.autor, img, vista: f ? (f.vista || '') : '' });
       },
       eliminar: f ? async () => { await Img.quitar(f.img); quitar('frases', f.id); } : null });
   },
+  /** Marca la frase de hoy como vista y elige otra pendiente. */
+  otra() { const a = S.ajustes.fraseHoy, f = a && por('frases', a.id); if (f) f.vista = hoyISO(); elegirFrase(f ? f.id : ''); App.pintar(); },
+  /** Borra las marcas de "vista" para que todas vuelvan a entrar al sorteo. */
+  reiniciar() { confirmar('Todas las frases volverán a estar pendientes de mostrarse. ¿Continuar?', () => { S.frases.forEach(f => { f.vista = ''; }); S.ajustes.fraseHoy = null; guardar(); App.pintar(); toast('Ciclo reiniciado'); }, 'Reiniciar'); },
   /** Carga varias imágenes de una vez: cada una se convierte en una frase. */
   async varias(input) {
     let n = 0;
-    for (const a of input.files) { try { const img = await Img.agregar(a, 1800); S.frases.push({ id: uid(), texto: '', autor: '', img }); n++; } catch (e) { toast(e.message, 'err'); } }
+    for (const a of input.files) { try { const img = await Img.agregar(a, 1800); S.frases.push({ id: uid(), texto: '', autor: '', img, vista: '' }); n++; } catch (e) { toast(e.message, 'err'); } }
     input.value = ''; if (n) { guardar(); App.pintar(); toast(`${n} imagen(es) agregada(s)`); }
   }
 };
 Vistas.frases = () => {
-  const hoy = fraseDelDia();
-  return `${cab('Frases del día', `${S.frases.length} cargadas · se muestra una distinta cada día en Inicio`,
-    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button>' + btnCarga('frases') + '<button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
-  <div class="panel scrollx">${S.frases.length ? `<table class="lista"><thead><tr><th style="width:110px">Imagen</th><th>Frase</th><th>Autor</th><th></th></tr></thead><tbody>
+  const hoy = fraseDelDia(), finde = esFinDeSemana(hoyISO()), vistas = S.frases.filter(f => f.vista).length, pend = S.frases.length - vistas - (hoy && !hoy.vista ? 1 : 0);
+  const estado = f => hoy && hoy.id === f.id ? '<span class="et ac">Hoy</span>' : f.vista ? `<span class="d">Vista el ${esc(fFecha(f.vista))}</span>` : '<span class="et">Pendiente</span>';
+  return `${cab('Frases del día', `${S.frases.length} cargadas · ${vistas} vistas · ${Math.max(0, pend)} pendientes`,
+    '<input type="file" id="fVarias" accept="image/*" multiple hidden onchange="Frases.varias(this)"><button class="btn" onclick="document.getElementById(\'fVarias\').click()">Subir varias imágenes</button>' + btnCarga('frases') + (vistas ? '<button class="btn" onclick="Frases.reiniciar()">Reiniciar ciclo</button>' : '') + '<button class="btn pri" onclick="Frases.editar()">+ Frase</button>')}
+  <p class="d" style="margin-bottom:12px">De lunes a viernes aparece en Inicio una frase al azar que no se haya mostrado. Al día siguiente queda marcada como vista y entra otra; cuando se terminan, el ciclo vuelve a empezar.${finde ? ' <b>Hoy es fin de semana: el carrusel descansa y no avanza.</b>' : ''}</p>
+  <div class="panel scrollx">${S.frases.length ? `<table class="lista"><thead><tr><th style="width:110px">Imagen</th><th>Frase</th><th>Autor</th><th>Estado</th></tr></thead><tbody>
     ${S.frases.map(f => `<tr><td>${f.img ? `<img src="${Img.url(f.img)}" alt="" style="height:48px;width:86px;object-fit:cover;border-radius:5px;display:block;cursor:zoom-in" onclick="verImagen(this.src)">` : '<span class="mut">—</span>'}</td>
-      <td><span class="t" onclick="Frases.editar('${f.id}')">${esc(f.texto || '(sólo imagen)')}</span></td><td class="d">${esc(f.autor || '')}</td><td class="num">${hoy && hoy.id === f.id ? '<span class="et ac">Hoy</span>' : ''}</td></tr>`).join('')}</tbody></table>`
-    : vacio('Aún no hay frases', 'Sube imágenes o escribe frases; cada día verás una diferente en la pantalla de Inicio.')}</div>`;
+      <td><span class="t" onclick="Frases.editar('${f.id}')">${esc(f.texto || '(sólo imagen)')}</span></td><td class="d">${esc(f.autor || '')}</td><td class="nw">${estado(f)}</td></tr>`).join('')}</tbody></table>`
+    : vacio('Aún no hay frases', 'Sube imágenes o escribe frases; de lunes a viernes verás una diferente en la pantalla de Inicio.')}</div>`;
 };

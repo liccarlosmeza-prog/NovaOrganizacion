@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.3
+# Nova Organización — prueba v0.4
 
 > *Evolución sin límites.*
 
@@ -43,7 +43,7 @@ Para actualizar después: `git pull` dentro de la carpeta.
 | **Notas** | Generales sin clasificar → se asignan después a un proyecto. **Notas privadas cifradas con contraseña** |
 | **Accesos directos** | Carpetas, etiquetas, favoritos y grupos que abren varios sitios a la vez (LinkManager mejorado) |
 | **Cumpleaños** | Ordenados por cercanía, con edad y notas |
-| **Frases del día** | Carga imágenes o textos; rota uno por día |
+| **Frases del día** | Carga imágenes o textos; carrusel aleatorio sin repetir, de lunes a viernes |
 | **Ajustes** | Colores y temas, imágenes de interfaz, catálogos de estatus y clasificaciones, exportar/importar, seguridad |
 
 ### Exportación e importación
@@ -58,6 +58,12 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.4 (carrusel de frases)
+- **De lunes a viernes** aparece en Inicio una frase elegida **al azar** entre las que aún no se han mostrado.
+- Al día siguiente la frase anterior queda **marcada como vista** (con su fecha) y entra otra. Cuando se terminan, el ciclo vuelve a empezar sin repetir la del último día.
+- **Sábados y domingos** el carrusel no aparece ni avanza.
+- En *Frases del día* se ve el estado de cada una (Hoy, Vista el…, Pendiente) y hay un botón **Reiniciar ciclo**. El enlace *Otra* de Inicio marca la actual como vista y muestra otra.
 
 ### Novedades de la v0.3 (seguridad)
 - Revisión de seguridad completa: ver [`docs/SEGURIDAD.md`](../docs/SEGURIDAD.md). Se corrigió una falla crítica (un respaldo manipulado podía ejecutar código) y 7 hallazgos menores.
