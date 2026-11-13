@@ -160,6 +160,7 @@ Desde esta versión, **cada construcción ejecuta la validación de seguridad** 
 |---|---|---|---|---|
 | 2026-11-12 | v0.4 — carrusel de frases (campos nuevos `frases.vista` y `ajustes.fraseHoy`) | APTO | Sin ejecución de código ni conexiones externas | Los campos nuevos se registraron en el saneamiento (`vista` como fecha; `fraseHoy` se descarta si no es válido). El sorteo usa el generador aleatorio del navegador (`crypto.getRandomValues`). Sin conexiones externas nuevas. |
 | 2026-11-12 | v0.5 — sincronización cifrada con repositorio privado de GitHub (`src/055-sincronizacion.js`) | APTO | Sin ejecución de código; con la sincronización apagada, 0 conexiones externas | Ver sección 13. |
+| 2026-11-13 | v0.6 — «Cargar por foto» en Agenda (pegar el CSV que devuelve un asistente de IA) | APTO | El texto pegado con HTML, `<script>` y fechas inválidas no ejecuta código; filas inválidas y repetidas se omiten | Sin conexiones nuevas: la app **no** envía la foto a ningún servicio; el reconocimiento lo hace el usuario fuera de la plataforma. El texto pegado se trata como dato no confiable (límite de 300 000 caracteres, `parseCSV`, validación de fecha y hora, escapado al mostrar). |
 
 ## 13. Revisión de la sincronización con GitHub (v0.5)
 

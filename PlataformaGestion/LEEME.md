@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.5
+# Nova Organización — prueba v0.6
 
 > *Evolución sin límites.*
 
@@ -58,6 +58,10 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.6 (agenda por foto)
+- **Agenda → Cargar por foto**: copia unas instrucciones, envíalas junto con la foto de tu calendario a un asistente de IA (por ejemplo, la app de Claude), pega la respuesta y revisa la lista antes de guardar.
+- La plataforma no lee la imagen ni la envía a ningún lado; sólo recibe el texto que pegas, lo valida y omite repetidos.
 
 ### Novedades de la v0.5 (sincronización)
 - **Ajustes → Sincronización**: guarda tus datos e imágenes, cifrados, en un repositorio **privado** de GitHub y los comparte entre tus equipos. Guía paso a paso: [`docs/SINCRONIZACION_GITHUB.md`](../docs/SINCRONIZACION_GITHUB.md).

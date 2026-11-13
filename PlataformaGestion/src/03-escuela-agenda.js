@@ -220,7 +220,7 @@ Vistas.agenda = () => {
     for (let i = 0; i < 30; i++) { const iso = sumaDias(hoy, i), its = Agenda.visibles(iso); if (its.length) filas += `<tr class="grupo"><td colspan="3">${esc(may(fFechaLarga(iso)))}${i === 0 ? ' · hoy' : ''}</td></tr>` + its.map(x => `<tr><td class="d nw" style="width:70px">${esc(x.hora || '—')}</td><td>${punto(x.color)}<span class="t" onclick="${x.clic}">${esc(x.titulo)}</span></td><td class="d nw">${esc(x.tipo)}</td></tr>`).join(''); }
     cuerpo = `<div class="panel scrollx">${filas ? `<table class="lista"><tbody>${filas}</tbody></table>` : vacio('Sin eventos en los próximos 30 días', '')}</div>`;
   }
-  return `${cab('Agenda', '', btnCarga('eventos') + '<button class="btn pri" onclick="Agenda.evento()">+ Evento</button>')}
+  return `${cab('Agenda', '', '<button class="btn" onclick="Foto.abrir()">Cargar por foto</button>' + btnCarga('eventos') + '<button class="btn pri" onclick="Agenda.evento()">+ Evento</button>')}
   <div class="barra">${filtro('ag', 'modo', [['mes', 'Mes'], ['lista', 'Próximos 30 días']])}
     ${UI.ag.modo === 'mes' ? `<button class="btn ch" onclick="UI.ag.mes='${mover(-1)}';App.pintar()">‹</button><b style="min-width:130px;text-align:center">${may(MESES[m - 1])} ${y}</b><button class="btn ch" onclick="UI.ag.mes='${mover(1)}';App.pintar()">›</button>
     <button class="btn ch" onclick="UI.ag.mes='${hoy.slice(0, 7)}';UI.ag.dia='${hoy}';App.pintar()">Hoy</button>` : ''}

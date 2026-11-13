@@ -2,7 +2,7 @@
 
 > *Evolución sin límites.*
 > Documento técnico del proyecto: qué se pidió, qué se decidió, cómo está construido, qué se probó y qué falta.
-> Última actualización: 2026-11-12 · Versión de la aplicación: **0.5**
+> Última actualización: 2026-11-12 · Versión de la aplicación: **0.6**
 
 ---
 
@@ -34,6 +34,7 @@
 | 8 | Revisión de seguridad recurrente y reporte de conexiones externas | **v0.3**: correcciones, CSP, saneamiento, `seguridad.js`, `pruebas/ataque.js`, `docs/SEGURIDAD.md`, `CLAUDE.md` | — |
 | 9 | Carrusel de frases aleatorio, sin repetir, sólo de lunes a viernes | **v0.4** | `04e0636` |
 | 10 | Guardar la información en GitHub para usarla en varios equipos | **v0.5**: sincronización cifrada con repositorio privado (`src/055-sincronizacion.js`), autorizando `api.github.com` como única conexión externa | — |
+| 11 | Cargar la agenda de trabajo a partir de fotos del calendario | **v0.6**: «Cargar por foto» en Agenda (`Foto` en `05-ajustes-datos.js`): instrucciones para un asistente de IA + pegado y revisión del CSV. Sin conexiones nuevas | — |
 
 ---
 
