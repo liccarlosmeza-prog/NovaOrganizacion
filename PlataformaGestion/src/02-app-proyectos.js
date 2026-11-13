@@ -9,7 +9,7 @@ const UI = {
   act: { f: 'pendientes', proy: '', cat: '', pri: '', q: '' },
   esc: { tab: 'lista', mat: '', est: '', tipo: '', q: '', rango: 'mes', mes: hoyISO().slice(0, 7) },
   ag: { mes: hoyISO().slice(0, 7), dia: hoyISO(), modo: 'mes', per: 'todos', proy: '', q: '', sel: new Set(), ver: { evento: true, actividad: true, entrega: true, cumple: true, recordatorio: true } },
-  rec: { q: '' }, cum: { q: '', rel: '' },
+  rec: { q: '' }, cum: { q: '', rel: '' }, pap: { tipo: '', q: '' },
   notas: { f: 'todas', id: null, q: '' },
   acc: { f: 'todos', q: '', sel: new Set() },
   aj: { tab: 'apariencia' }
@@ -19,7 +19,7 @@ const Vistas = {};   // cada pantalla registra aquí su función: () => html
 const App = {
   vista: 'inicio', param: null,
   NAV: [['inicio', 'Inicio'], ['proyectos', 'Proyectos'], ['actividades', 'Actividades'], ['escuela', 'Escuela'], ['agenda', 'Agenda'],
-        ['recordatorios', 'Recordatorios'], ['notas', 'Notas'], ['accesos', 'Accesos directos'], ['cumples', 'Cumpleaños'], ['frases', 'Frases del día'], null, ['ajustes', 'Ajustes']],
+        ['recordatorios', 'Recordatorios'], ['notas', 'Notas'], ['accesos', 'Accesos directos'], ['cumples', 'Cumpleaños'], ['frases', 'Frases del día'], null, ['papelera', 'Papelera'], ['ajustes', 'Ajustes']],
   ir(v, p) { const h = '#/' + v + (p ? '/' + p : ''); if (location.hash === h) this.ruta(); else location.hash = h; },
   ruta() {
     const [, v, p] = location.hash.split('/');
@@ -30,6 +30,7 @@ const App = {
     return {
       actividades: S.actividades.filter(a => !estFinal(a.estatus)).length || '',
       recordatorios: S.recordatorios.filter(r => !r.hecho && r.fecha <= hoy).length || '',
+      papelera: S.papelera.length || '',
       escuela: S.escolares.filter(e => e.tipo !== 'Vacaciones' && ['pendiente', 'proceso'].includes(e.estatus) && e.entrega >= hoy && difDias(hoy, e.entrega) <= 7).length || ''
     };
   },
@@ -218,12 +219,10 @@ const Proy = {
     const p = por('proyectos', id);
     Form.abrir({ titulo: 'Editar proyecto', campos: this.campos(), valores: p, nota: Hist.de(id),
       guardar: v => { if (v.inicio && v.objetivo && v.objetivo < v.inicio) return 'La fecha objetivo no puede ser anterior al inicio'; regEstatus('proyectos', p, p.estatus, v.estatus); poner('proyectos', { ...p, ...v }); },
-      eliminar: async () => {
-        for (const b of S.bitacora.filter(b => b.proyecto === id)) for (const i of b.imgs || []) await Img.quitar(i);
-        S.bitacora = S.bitacora.filter(b => b.proyecto !== id);
-        S.actividades.forEach(a => { if (a.proyecto === id) a.proyecto = ''; });   // las actividades pasan a "del área"
-        S.notas.forEach(n => { if (n.proyecto === id) n.proyecto = ''; });         // las notas quedan sin clasificar
-        quitar('proyectos', id); toast('Proyecto eliminado; sus actividades y notas se conservaron sin clasificar'); App.ir('proyectos');
+      eliminar: () => {
+        // la bitácora se va con el proyecto; actividades, notas y eventos se conservan sin proyecto (al restaurar se vuelven a ligar)
+        Papelera.mover('proyectos', id, { rel: [{ lista: 'bitacora', filtro: b => b.proyecto === id }], des: [{ lista: 'actividades', campo: 'proyecto' }, { lista: 'notas', campo: 'proyecto' }, { lista: 'eventos', campo: 'proyecto' }] });
+        toast('Proyecto enviado a la papelera; sus actividades, notas y eventos se conservaron sin proyecto'); App.ir('proyectos'); return false;
       } });
   }
 };
@@ -300,7 +299,7 @@ const Bit = {
     Form.abrir({ titulo: 'Editar entrada de bitácora', campos: [{ k: 'tipo', label: 'Tipo', tipo: 'select', opciones: this.TIPOS }, { k: 'texto', label: 'Texto', tipo: 'textarea', filas: 6 }], valores: b,
       guardar: v => { poner('bitacora', { ...b, ...v, editado: hoyISO() }); } });
   },
-  borrar(id) { confirmar('¿Eliminar esta entrada de la bitácora y sus imágenes?', async () => { const b = por('bitacora', id); for (const i of b.imgs || []) await Img.quitar(i); quitar('bitacora', id); App.pintar(); }); }
+  borrar(id) { confirmar('¿Eliminar esta entrada de la bitácora? Irá a la papelera durante 7 días.', async () => { quitar('bitacora', id); toast('Enviado a la papelera'); App.pintar(); }); }
 };
 
 /* ==========================================================================

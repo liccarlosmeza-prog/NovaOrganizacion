@@ -739,7 +739,7 @@ function estadoVacio() {
     ],
     proyectos: [], actividades: [], bitacora: [], notas: [], boveda: null, notasPriv: [],
     recordatorios: [], eventos: [], cumples: [], materias: [], escolares: [],
-    carpetas: [], enlaces: [], grupos: [], frases: [], historial: []
+    carpetas: [], enlaces: [], grupos: [], frases: [], historial: [], papelera: []
   };
 }
 let S = estadoVacio();
@@ -757,7 +757,10 @@ function guardar() {
 }
 const por = (lista, id) => S[lista].find(x => x.id === id);
 function poner(lista, obj) { const i = S[lista].findIndex(x => x.id === obj.id); if (i >= 0) S[lista][i] = obj; else S[lista].push(obj); guardar(); }
-function quitar(lista, id) { S[lista] = S[lista].filter(x => x.id !== id); guardar(); }
+/** Eliminar = enviar a la papelera (se puede restaurar durante 7 días). */
+function quitar(lista, id) { Papelera.mover(lista, id); }
+/** Sacar un registro de su lista sin que sea una eliminación (p. ej. al volver privada una nota). */
+function retirar(lista, id) { S[lista] = S[lista].filter(x => x.id !== id); guardar(); }
 const estFinal = id => !!(por('estatus', id) || {}).final;
 const idFinal = () => (S.estatus.find(e => e.final) || S.estatus[S.estatus.length - 1]).id;
 const idInicial = () => S.estatus[0].id;
@@ -835,7 +838,7 @@ const Form = {
     catch (err) { console.error(err); toast(err.message || 'Ocurrió un error', 'err'); return; }
     Modal.cerrar(); App.pintar();
   },
-  borrar() { confirmar('¿Eliminar este registro? Esta acción no se puede deshacer.', async () => { await this._c.eliminar(); Modal.cerrar(); App.pintar(); }); }
+  borrar() { confirmar('¿Eliminar este registro? Se enviará a la papelera y podrás restaurarlo durante 7 días.', async () => { const r = await this._c.eliminar(); Modal.cerrar(); App.pintar(); if (r !== false) toast('Enviado a la papelera'); }); }
 };
 
 /* ---------- CSV ---------- */
@@ -931,7 +934,10 @@ const Boveda = {
     const j = this.notas.findIndex(x => x.id === id); if (j >= 0) this.notas[j] = n; else this.notas.push(n);
     guardar(); this._temporizador();
   },
-  quitarNota(id) { S.notasPriv = S.notasPriv.filter(x => x.id !== id); this.notas = this.notas.filter(x => x.id !== id); guardar(); },
+  /** aPapelera = false cuando la nota no se elimina sino que deja de ser privada. */
+  quitarNota(id, aPapelera = true) { if (aPapelera) Papelera.mover('notasPriv', id); else { S.notasPriv = S.notasPriv.filter(x => x.id !== id); guardar(); } this.notas = this.notas.filter(x => x.id !== id); },
+  /** Descifra un registro restaurado de la papelera y lo agrega a las notas abiertas. */
+  async abrirUna(r) { if (!this.notas.some(n => n.id === r.id)) this.notas.push({ id: r.id, ...(await this._descifrar(r)) }); },
   async cambiarClave(nueva) {
     const notas = this.notas.slice(); const sal = crypto.getRandomValues(new Uint8Array(16));
     this.clave = await this._derivar(nueva, sal, this.ITER);
@@ -960,7 +966,7 @@ const UI = {
   act: { f: 'pendientes', proy: '', cat: '', pri: '', q: '' },
   esc: { tab: 'lista', mat: '', est: '', tipo: '', q: '', rango: 'mes', mes: hoyISO().slice(0, 7) },
   ag: { mes: hoyISO().slice(0, 7), dia: hoyISO(), modo: 'mes', per: 'todos', proy: '', q: '', sel: new Set(), ver: { evento: true, actividad: true, entrega: true, cumple: true, recordatorio: true } },
-  rec: { q: '' }, cum: { q: '', rel: '' },
+  rec: { q: '' }, cum: { q: '', rel: '' }, pap: { tipo: '', q: '' },
   notas: { f: 'todas', id: null, q: '' },
   acc: { f: 'todos', q: '', sel: new Set() },
   aj: { tab: 'apariencia' }
@@ -970,7 +976,7 @@ const Vistas = {};   // cada pantalla registra aquí su función: () => html
 const App = {
   vista: 'inicio', param: null,
   NAV: [['inicio', 'Inicio'], ['proyectos', 'Proyectos'], ['actividades', 'Actividades'], ['escuela', 'Escuela'], ['agenda', 'Agenda'],
-        ['recordatorios', 'Recordatorios'], ['notas', 'Notas'], ['accesos', 'Accesos directos'], ['cumples', 'Cumpleaños'], ['frases', 'Frases del día'], null, ['ajustes', 'Ajustes']],
+        ['recordatorios', 'Recordatorios'], ['notas', 'Notas'], ['accesos', 'Accesos directos'], ['cumples', 'Cumpleaños'], ['frases', 'Frases del día'], null, ['papelera', 'Papelera'], ['ajustes', 'Ajustes']],
   ir(v, p) { const h = '#/' + v + (p ? '/' + p : ''); if (location.hash === h) this.ruta(); else location.hash = h; },
   ruta() {
     const [, v, p] = location.hash.split('/');
@@ -981,6 +987,7 @@ const App = {
     return {
       actividades: S.actividades.filter(a => !estFinal(a.estatus)).length || '',
       recordatorios: S.recordatorios.filter(r => !r.hecho && r.fecha <= hoy).length || '',
+      papelera: S.papelera.length || '',
       escuela: S.escolares.filter(e => e.tipo !== 'Vacaciones' && ['pendiente', 'proceso'].includes(e.estatus) && e.entrega >= hoy && difDias(hoy, e.entrega) <= 7).length || ''
     };
   },
@@ -1169,12 +1176,10 @@ const Proy = {
     const p = por('proyectos', id);
     Form.abrir({ titulo: 'Editar proyecto', campos: this.campos(), valores: p, nota: Hist.de(id),
       guardar: v => { if (v.inicio && v.objetivo && v.objetivo < v.inicio) return 'La fecha objetivo no puede ser anterior al inicio'; regEstatus('proyectos', p, p.estatus, v.estatus); poner('proyectos', { ...p, ...v }); },
-      eliminar: async () => {
-        for (const b of S.bitacora.filter(b => b.proyecto === id)) for (const i of b.imgs || []) await Img.quitar(i);
-        S.bitacora = S.bitacora.filter(b => b.proyecto !== id);
-        S.actividades.forEach(a => { if (a.proyecto === id) a.proyecto = ''; });   // las actividades pasan a "del área"
-        S.notas.forEach(n => { if (n.proyecto === id) n.proyecto = ''; });         // las notas quedan sin clasificar
-        quitar('proyectos', id); toast('Proyecto eliminado; sus actividades y notas se conservaron sin clasificar'); App.ir('proyectos');
+      eliminar: () => {
+        // la bitácora se va con el proyecto; actividades, notas y eventos se conservan sin proyecto (al restaurar se vuelven a ligar)
+        Papelera.mover('proyectos', id, { rel: [{ lista: 'bitacora', filtro: b => b.proyecto === id }], des: [{ lista: 'actividades', campo: 'proyecto' }, { lista: 'notas', campo: 'proyecto' }, { lista: 'eventos', campo: 'proyecto' }] });
+        toast('Proyecto enviado a la papelera; sus actividades, notas y eventos se conservaron sin proyecto'); App.ir('proyectos'); return false;
       } });
   }
 };
@@ -1251,7 +1256,7 @@ const Bit = {
     Form.abrir({ titulo: 'Editar entrada de bitácora', campos: [{ k: 'tipo', label: 'Tipo', tipo: 'select', opciones: this.TIPOS }, { k: 'texto', label: 'Texto', tipo: 'textarea', filas: 6 }], valores: b,
       guardar: v => { poner('bitacora', { ...b, ...v, editado: hoyISO() }); } });
   },
-  borrar(id) { confirmar('¿Eliminar esta entrada de la bitácora y sus imágenes?', async () => { const b = por('bitacora', id); for (const i of b.imgs || []) await Img.quitar(i); quitar('bitacora', id); App.pintar(); }); }
+  borrar(id) { confirmar('¿Eliminar esta entrada de la bitácora? Irá a la papelera durante 7 días.', async () => { quitar('bitacora', id); toast('Enviado a la papelera'); App.pintar(); }); }
 };
 
 /* ==========================================================================
@@ -1378,7 +1383,7 @@ const Esc = {
       campos: [{ k: 'nombre', label: 'Materia', req: true }, { k: 'profesor', label: 'Profesor(a)', medio: true }, { k: 'ciclo', label: 'Ciclo', medio: true, ph: '2026-B' },
                { k: 'color', label: 'Color', tipo: 'color', medio: true }, { k: 'meta', label: 'Meta de calificación', tipo: 'number', min: 0, max: 100, medio: true, ayuda: 'Puntos que quieres alcanzar al final.' }],
       guardar: v => { poner('materias', { id: m ? m.id : uid(), ...v }); },
-      eliminar: m ? () => { S.escolares = S.escolares.filter(e => e.materia !== m.id); quitar('materias', m.id); toast('Materia y sus actividades eliminadas'); } : null });
+      eliminar: m ? () => { Papelera.mover('materias', m.id, { rel: [{ lista: 'escolares', filtro: e => e.materia === m.id }] }); toast('Materia y sus actividades enviadas a la papelera'); return false; } : null });
   },
   /** Modelo de evaluación: puntos totales, evaluados, obtenidos y proyección. */
   resumen(m) {
@@ -1537,7 +1542,7 @@ const Agenda = {
     const n = UI.ag.sel.size; S.eventos.forEach(e => { if (UI.ag.sel.has(e.id)) e.proyecto = proyecto; });
     UI.ag.sel.clear(); guardar(); App.pintar(); toast(`${n} evento(s) ${proyecto ? 'clasificados' : 'sin proyecto'}`);
   },
-  borrarSel() { confirmar(`¿Eliminar ${UI.ag.sel.size} evento(s) seleccionados?`, () => { S.eventos = S.eventos.filter(e => !UI.ag.sel.has(e.id)); UI.ag.sel.clear(); guardar(); App.pintar(); }); },
+  borrarSel() { confirmar(`¿Eliminar ${UI.ag.sel.size} evento(s) seleccionados? Irán a la papelera durante 7 días.`, () => { const n = UI.ag.sel.size; [...UI.ag.sel].forEach(id => Papelera.mover('eventos', id)); UI.ag.sel.clear(); App.pintar(); toast(`${n} evento(s) enviados a la papelera`); }); },
   evento(id, proyecto) {
     const e = id ? por('eventos', id) : null;
     Form.abrir({ titulo: e ? 'Editar evento' : 'Nuevo evento', campos: this.campos(), valores: e || { fecha: UI.ag.dia, tipo: 'Reunión', proyecto: proyecto || '' },
@@ -1685,9 +1690,9 @@ const Notas = {
   clasificar(valor) { const n = this.actual(); n.proyecto = valor; n.actualizado = ahoraTxt(); guardar(); App.pintar(); toast(valor ? 'Nota clasificada en el proyecto' : 'Nota sin clasificar'); },
   fijar() { const n = this.actual(); n.fijada = !n.fijada; guardar(); App.pintar(); },
   borrar() {
-    confirmar('¿Eliminar esta nota?', async () => { if (this.priv()) Boveda.quitarNota(UI.notas.id); else { const n = this.actual(); if (n && n.img) await Img.quitar(n.img); quitar('notas', UI.notas.id); } UI.notas.id = null; App.pintar(); });
+    confirmar('¿Eliminar esta nota? Irá a la papelera durante 7 días.', () => { if (this.priv()) Boveda.quitarNota(UI.notas.id); else quitar('notas', UI.notas.id); UI.notas.id = null; App.pintar(); toast('Nota enviada a la papelera'); });
   },
-  quitarFoto() { confirmar('¿Quitar la foto de esta nota? El texto se conserva.', async () => { const n = this.actual(); await Img.quitar(n.img); n.img = ''; n.actualizado = ahoraTxt(); guardar(); App.pintar(); }, 'Quitar foto'); },
+  quitarFoto() { confirmar('¿Quitar la foto de esta nota? Irá a la papelera durante 7 días; el texto se conserva.', () => { Papelera.moverFoto(UI.notas.id); App.pintar(); toast('Foto enviada a la papelera'); }, 'Quitar foto'); },
   /* ---------- Nota desde foto (cuaderno, pizarrón, documento) ---------- */
   desdeFoto() {
     const priv = this.priv();
@@ -1728,11 +1733,11 @@ const Notas = {
     const n = this.actual();
     await Boveda.guardarNota({ id: n.id, titulo: n.titulo, texto: n.texto, creado: n.creado, actualizado: ahoraTxt() });
     if (n.img) { await Img.quitar(n.img); toast('La foto de la nota se eliminó: en notas privadas sólo se guarda el texto cifrado'); }
-    quitar('notas', n.id); UI.notas.f = 'priv'; App.pintar(); toast('La nota ahora es privada y está cifrada');
+    retirar('notas', n.id); UI.notas.f = 'priv'; App.pintar(); toast('La nota ahora es privada y está cifrada');
   },
   quitarPrivacidad() {
     confirmar('La nota dejará de estar cifrada y quedará como nota general. ¿Continuar?', () => {
-      const n = this.actual(); poner('notas', { ...n, proyecto: '', etiquetas: '', fijada: false }); Boveda.quitarNota(n.id); UI.notas.f = 'sin'; App.pintar();
+      const n = this.actual(); poner('notas', { ...n, proyecto: '', etiquetas: '', fijada: false }); Boveda.quitarNota(n.id, false); UI.notas.f = 'sin'; App.pintar();
     }, 'Quitar privacidad');
   },
   async crearBoveda() {
@@ -1799,13 +1804,13 @@ const Acc = {
     const l = id ? por('enlaces', id) : null;
     Form.abrir({ titulo: l ? 'Editar acceso directo' : 'Nuevo acceso directo', campos: this.campos(), valores: l || { carpeta: S.carpetas.some(c => c.id === UI.acc.f) ? UI.acc.f : '' },
       guardar: v => { const u = urlSegura(v.url); if (!u) return 'La dirección no es válida (sólo http, https o mailto)'; poner('enlaces', { id: l ? l.id : uid(), ...v, url: u }); },
-      eliminar: l ? () => { S.grupos.forEach(g => g.ids = g.ids.filter(x => x !== l.id)); quitar('enlaces', l.id); } : null });
+      eliminar: l ? () => quitar('enlaces', l.id) : null });
   },
   carpeta(id) {
     const c = id ? por('carpetas', id) : null;
     Form.abrir({ titulo: c ? 'Editar carpeta' : 'Nueva carpeta', campos: [{ k: 'nombre', label: 'Nombre', req: true }, { k: 'color', label: 'Color', tipo: 'color' }], valores: c || { color: PALETA[S.carpetas.length % PALETA.length] },
       guardar: v => { poner('carpetas', { id: c ? c.id : uid(), ...v }); },
-      eliminar: c ? () => { S.enlaces.forEach(l => { if (l.carpeta === c.id) l.carpeta = ''; }); quitar('carpetas', c.id); UI.acc.f = 'todos'; } : null });
+      eliminar: c ? () => { Papelera.mover('carpetas', c.id, { des: [{ lista: 'enlaces', campo: 'carpeta' }] }); UI.acc.f = 'todos'; } : null });
   },
   fav(id) { const l = por('enlaces', id); l.fav = !l.fav; guardar(); App.pintar(); },
   sel(id, on) { if (on) UI.acc.sel.add(id); else UI.acc.sel.delete(id); App.pintar(); },
@@ -1818,7 +1823,7 @@ const Acc = {
     Form.abrir({ titulo: 'Guardar selección como grupo', campos: [{ k: 'nombre', label: 'Nombre del grupo', req: true, ayuda: 'Un grupo abre todos sus accesos con un clic (p. ej. “Inicio de jornada”).' }],
       guardar: v => { poner('grupos', { id: uid(), nombre: v.nombre, ids: [...UI.acc.sel] }); UI.acc.sel.clear(); } });
   },
-  grupoBorrar(id) { confirmar('¿Eliminar el grupo? Los accesos no se borran.', () => { quitar('grupos', id); App.pintar(); }); }
+  grupoBorrar(id) { confirmar('¿Eliminar el grupo? Irá a la papelera; los accesos no se borran.', () => { quitar('grupos', id); App.pintar(); toast('Grupo enviado a la papelera'); }); }
 };
 Vistas.accesos = () => {
   const f = UI.acc.f, q = UI.acc.q.toLowerCase();
@@ -1891,7 +1896,7 @@ const Frases = {
         if (v.archivo) { const nueva = await Img.agregar(v.archivo, 1800); if (img) await Img.quitar(img); img = nueva; }
         poner('frases', { id: f ? f.id : uid(), texto: v.texto, autor: v.autor, img, vista: f ? (f.vista || '') : '' });
       },
-      eliminar: f ? async () => { await Img.quitar(f.img); quitar('frases', f.id); } : null });
+      eliminar: f ? () => quitar('frases', f.id) : null });
   },
   /** Marca la frase de hoy como vista y elige otra pendiente. */
   otra() { const a = S.ajustes.fraseHoy, f = a && por('frases', a.id); if (f) f.vista = hoyISO(); elegirFrase(f ? f.id : ''); App.pintar(); },
@@ -1959,7 +1964,7 @@ const Aj = {
     Form.abrir({ titulo: c ? 'Editar clasificación' : 'Nueva clasificación', valores: c || { color: PALETA[S.categorias.length % PALETA.length] },
       campos: [{ k: 'nombre', label: 'Nombre', req: true }, { k: 'color', label: 'Color', tipo: 'color' }],
       guardar: v => { poner('categorias', { id: c ? c.id : uid(), ...v }); },
-      eliminar: c ? () => { S.actividades.forEach(a => { if (a.categoria === c.id) a.categoria = ''; }); quitar('categorias', c.id); } : null });
+      eliminar: c ? () => Papelera.mover('categorias', c.id, { des: [{ lista: 'actividades', campo: 'categoria' }] }) : null });
   },
   async cambiarClave() {
     if (!Boveda.abierta()) return toast('Desbloquea primero tus notas privadas (Notas → Privadas)', 'err');
@@ -2078,10 +2083,29 @@ const sanearObjeto = (o, anidado) => {
   }
   return r;
 };
+/** La papelera guarda registros completos: se valida su estructura y se sanea cada registro guardado. */
+function sanearPapelera(lista) {
+  if (!Array.isArray(lista)) return [];
+  const ok = Object.keys(Papelera.TIPOS), plano = o => o && typeof o === 'object' && !Array.isArray(o), r = [];
+  for (const e of lista.slice(0, 20000)) {
+    if (!plano(e) || !ok.includes(e.lista) || !plano(e.obj)) continue;
+    const ms = Number(e.ms); if (!Number.isFinite(ms) || ms <= 0) continue;
+    const obj = sanearObjeto(e.obj, false); if (!ID_OK.test(String(obj.id))) continue;
+    if (e.lista === 'notasPriv' && !(typeof e.obj.iv === 'string' && typeof e.obj.ct === 'string')) continue;
+    const rel = (Array.isArray(e.rel) ? e.rel : []).filter(x => plano(x) && ok.includes(x.lista) && Array.isArray(x.objs))
+      .map(x => ({ lista: x.lista, objs: x.objs.filter(plano).map(o => sanearObjeto(o, false)).filter(o => ID_OK.test(String(o.id))) }));
+    const des = (Array.isArray(e.des) ? e.des : []).filter(x => plano(x) && Array.isArray(x.ids) && (((Papelera.VINCULOS[x.lista] || []).includes(x.campo)) || (x.lista === 'grupos' && x.campo === 'ids')))
+      .map(x => ({ lista: x.lista, campo: x.campo, ids: x.ids.map(String).filter(i => ID_OK.test(i)) }));
+    // la fecha nunca puede quedar en el futuro: así un respaldo alterado no evita el borrado a los 7 días
+    r.push({ id: ID_OK.test(String(e.id)) ? String(e.id) : uid(), lista: e.lista, ms: Math.min(ms, Date.now()), titulo: String(e.titulo || '').slice(0, 200), obj, rel, des });
+  }
+  return r;
+}
 function sanear(e) {
   const b = estadoVacio(), r = {};
   for (const k of Object.keys(b)) {
-    if (Array.isArray(b[k])) r[k] = Array.isArray(e[k]) ? e[k].slice(0, 100000).filter(x => x && typeof x === 'object').map(x => sanearObjeto(x, false)) : b[k];
+    if (k === 'papelera') r[k] = sanearPapelera(e[k]);
+    else if (Array.isArray(b[k])) r[k] = Array.isArray(e[k]) ? e[k].slice(0, 100000).filter(x => x && typeof x === 'object').map(x => sanearObjeto(x, false)) : b[k];
     else if (k === 'ajustes' || k === 'boveda') r[k] = e[k] && typeof e[k] === 'object' ? sanearObjeto(e[k], true) : b[k];
     else r[k] = b[k];
   }
@@ -2140,6 +2164,7 @@ const Datos = {
         filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
       { nombre: 'accesos_directos.csv', enc: ['Nombre', 'URL', 'Carpeta', 'Descripcion', 'Favorito', 'Tags'], filas: S.enlaces.map(l => [l.nombre, l.url, nom('carpetas', l.carpeta), l.desc, l.fav ? 'SI' : 'NO', String(l.tags || '').replace(/,/g, ';')]) },
       { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen', 'VistaEl'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO', aDMY(f.vista)]) },
+      { nombre: 'papelera.csv', enc: ['Tipo', 'Elemento', 'Eliminado', 'SeBorraEl'], filas: S.papelera.map(e => [(Papelera.TIPOS[e.lista] || ['Elemento'])[0], e.titulo, new Date(e.ms).toISOString().slice(0, 16).replace('T', ' '), new Date(Papelera.vence(e)).toISOString().slice(0, 10)]) },
       { nombre: 'historial_estatus.csv', enc: ['FechaHora', 'Tipo', 'Registro', 'Proyecto', 'EstatusAnterior', 'EstatusNuevo'], filas: S.historial.map(h => [h.fecha, h.lista, h.titulo, nom('proyectos', h.proyecto), h.de, h.a]) }
     ];
   },
@@ -2984,6 +3009,129 @@ const OcrAgenda = {
   }
 };
 
+/* ===== 058-papelera.js ===== */
+'use strict';
+/* ==========================================================================
+   PAPELERA DE RECICLAJE
+   --------------------------------------------------------------------------
+   Todo lo que se elimina pasa aquí durante 7 días; después se borra definitivamente
+   (incluidas sus imágenes). Cada entrada guarda lo necesario para restaurar el elemento
+   como estaba: el registro, los registros que se fueron con él (p. ej. la bitácora de un
+   proyecto) y los vínculos que se quitaron a otros registros (p. ej. actividades que
+   quedaron sin proyecto).
+   Entrada: { id, lista, titulo, ms, obj, rel: [{lista, objs}], des: [{lista, campo, ids}] }
+   ========================================================================== */
+const Papelera = {
+  DIAS: 7,
+  // Qué se puede eliminar, cómo se llama y qué campo lo describe
+  TIPOS: {
+    proyectos: ['Proyecto', 'nombre'], actividades: ['Actividad', 'titulo'], bitacora: ['Bitácora', 'texto'], notas: ['Nota', 'titulo'],
+    notasPriv: ['Nota privada', ''], recordatorios: ['Recordatorio', 'texto'], eventos: ['Evento', 'titulo'], cumples: ['Cumpleaños', 'nombre'],
+    materias: ['Materia', 'nombre'], escolares: ['Actividad escolar', 'titulo'], carpetas: ['Carpeta', 'nombre'], enlaces: ['Acceso directo', 'nombre'],
+    grupos: ['Grupo de accesos', 'nombre'], frases: ['Frase', 'texto'], estatus: ['Estatus', 'nombre'], categorias: ['Clasificación', 'nombre'],
+    fotoNota: ['Foto de nota', '']
+  },
+  // Campos de vínculo que se pueden quitar y volver a poner al restaurar
+  VINCULOS: { actividades: ['proyecto', 'categoria'], notas: ['proyecto'], eventos: ['proyecto'], enlaces: ['carpeta'] },
+  vence: e => e.ms + Papelera.DIAS * 864e5,
+  /** Días completos que faltan para el borrado definitivo (0 = menos de un día). */
+  dias: e => Math.max(0, Math.floor((Papelera.vence(e) - Date.now()) / 864e5)),
+
+  /**
+   * Mueve un registro a la papelera.
+   * rel: registros de otras listas que se eliminan junto con él, p. ej. [{ lista: 'bitacora', filtro: b => b.proyecto === id }]
+   * des: vínculos que se quitan en otras listas, p. ej. [{ lista: 'actividades', campo: 'proyecto' }] (se quitan los que apuntan a id)
+   */
+  mover(lista, id, { rel = [], des = [], titulo } = {}) {
+    const obj = S[lista].find(x => x.id === id); if (!obj) return false;
+    S[lista] = S[lista].filter(x => x.id !== id);
+    const e = { id: uid(), lista, ms: Date.now(), obj, rel: [], des: [], titulo: titulo || this._titulo(lista, obj) };
+    for (const r of rel) { const objs = S[r.lista].filter(r.filtro); if (objs.length) { S[r.lista] = S[r.lista].filter(x => !objs.includes(x)); e.rel.push({ lista: r.lista, objs }); } }
+    for (const d of des) { const ids = []; S[d.lista].forEach(x => { if (x[d.campo] === id) { x[d.campo] = ''; ids.push(x.id); } }); if (ids.length) e.des.push({ lista: d.lista, campo: d.campo, ids }); }
+    if (lista === 'enlaces') {   // los grupos que lo incluían
+      const gs = S.grupos.filter(g => (g.ids || []).includes(id)).map(g => g.id);
+      S.grupos.forEach(g => { g.ids = (g.ids || []).filter(x => x !== id); }); if (gs.length) e.des.push({ lista: 'grupos', campo: 'ids', ids: gs });
+    }
+    S.papelera.push(e); guardar(); return true;
+  },
+  /** La foto de una nota es un elemento aparte: se guarda en la papelera y puede volver a su nota. */
+  moverFoto(notaId) {
+    const n = por('notas', notaId); if (!n || !n.img) return;
+    S.papelera.push({ id: uid(), lista: 'fotoNota', ms: Date.now(), titulo: 'Foto de la nota «' + String(n.titulo || 'Sin título').slice(0, 80) + '»', obj: { id: uid(), img: n.img, nota: n.id }, rel: [], des: [] });
+    n.img = ''; n.actualizado = ahoraTxt(); guardar();
+  },
+  _titulo(lista, o) {
+    const [tipo, campo] = this.TIPOS[lista] || ['Elemento', ''];
+    const t = campo ? String(o[campo] || '').replace(/\s+/g, ' ').trim() : '';
+    if (lista === 'notasPriv') return 'Nota privada (contenido cifrado)';
+    return (t || (lista === 'frases' && o.img ? '(frase de sólo imagen)' : 'Sin título')).slice(0, 120);
+  },
+
+  /** Restaura una entrada. Devuelve un mensaje de error si no se puede. */
+  restaurar(eid) {
+    const e = S.papelera.find(x => x.id === eid); if (!e) return 'La entrada ya no existe';
+    // Requisitos: la bitácora necesita su proyecto y la actividad escolar su materia
+    if (e.lista === 'bitacora' && !por('proyectos', e.obj.proyecto)) return 'Primero restaura el proyecto de esta entrada de bitácora';
+    if (e.lista === 'escolares' && !por('materias', e.obj.materia)) return 'Primero restaura la materia de esta actividad';
+    if (e.lista === 'fotoNota') {
+      const n = por('notas', e.obj.nota);
+      if (!n) return 'La nota de esta foto ya no existe: restaura primero la nota';
+      if (n.img) return 'Esa nota ya tiene otra foto; quítala primero';
+      n.img = e.obj.img; n.actualizado = ahoraTxt(); S.papelera = S.papelera.filter(x => x.id !== eid); guardar(); return '';
+    }
+    const pon = (lista, o) => { if (!S[lista].some(x => x.id === o.id)) S[lista].push(o); };
+    pon(e.lista, e.obj);
+    for (const r of e.rel) for (const o of r.objs) pon(r.lista, o);
+    for (const d of e.des) {
+      if (d.lista === 'grupos') S.grupos.forEach(g => { if (d.ids.includes(g.id) && !g.ids.includes(e.obj.id)) g.ids.push(e.obj.id); });
+      else S[d.lista].forEach(x => { if (d.ids.includes(x.id) && !x[d.campo]) x[d.campo] = e.obj.id; });   // sólo si sigue sin vínculo
+    }
+    // Vínculos del propio registro a elementos que ya no existen: se quitan
+    const existe = { proyecto: 'proyectos', categoria: 'categorias', carpeta: 'carpetas' };
+    for (const o of [e.obj, ...e.rel.flatMap(r => r.objs)]) for (const [campo, lista] of Object.entries(existe)) if (o[campo] && !por(lista, o[campo])) o[campo] = '';
+    if ((e.lista === 'actividades' || e.lista === 'proyectos') && !por('estatus', e.obj.estatus)) e.obj.estatus = idInicial();
+    if (e.lista === 'notasPriv' && Boveda.abierta()) Boveda.abrirUna(e.obj).catch(() => {});
+    S.papelera = S.papelera.filter(x => x.id !== eid);
+    S = fusionar(JSON.parse(JSON.stringify(S)));   // aplica las mismas reglas de validación que al abrir la plataforma
+    guardar(); return '';
+  },
+  /** Borra definitivamente una o varias entradas, con sus imágenes si ya nadie más las usa. */
+  async borrar(ids) {
+    const fuera = S.papelera.filter(e => ids.includes(e.id)); if (!fuera.length) return;
+    S.papelera = S.papelera.filter(e => !ids.includes(e.id));
+    const usadas = this._imagenes(S), libres = [...this._imagenes({ papelera: fuera })].filter(i => !usadas.has(i));
+    for (const i of libres) await Img.quitar(i);
+    guardar();
+  },
+  /** Identificadores de imagen a los que hace referencia un objeto (recorre todo). */
+  _imagenes(raiz) {
+    const r = new Set(), ver = v => { if (Array.isArray(v)) v.forEach(ver); else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) { if (['img', 'fondoImg', 'bandaImg'].includes(k) && typeof x === 'string' && x) r.add(x); else if (k === 'imgs' && Array.isArray(x)) x.forEach(i => r.add(i)); else ver(x); } };
+    ver(raiz); return r;
+  },
+  /** Se ejecuta al abrir la plataforma y cada hora: borra lo que ya cumplió 7 días. */
+  async purgar() { const v = S.papelera.filter(e => Date.now() >= this.vence(e)).map(e => e.id); if (v.length) { await this.borrar(v); if (App.vista === 'papelera') App.pintar(); } return v.length; },
+
+  /* ---------- Pantalla ---------- */
+  rest(eid) { const er = this.restaurar(eid); if (er) return toast(er, 'err'); App.pintar(); toast('Restaurado'); },
+  borrarUna(eid) { confirmar('Se borrará definitivamente y no se podrá recuperar. ¿Continuar?', async () => { await this.borrar([eid]); App.pintar(); }, 'Borrar definitivamente'); },
+  vaciar() { confirmar(`Se borrarán definitivamente los ${S.papelera.length} elementos de la papelera. ¿Continuar?`, async () => { await this.borrar(S.papelera.map(e => e.id)); App.pintar(); toast('Papelera vacía'); }, 'Vaciar papelera'); }
+};
+
+Vistas.papelera = () => {
+  const l = S.papelera.filter(e => (!UI.pap.tipo || e.lista === UI.pap.tipo) && coincide(UI.pap.q, e.titulo)).sort((a, b) => b.ms - a.ms);
+  const tipos = [...new Set(S.papelera.map(e => e.lista))];
+  const resumen = e => { const n = e.rel.reduce((s, r) => s + r.objs.length, 0), d = e.des.reduce((s, x) => s + x.ids.length, 0); return [n ? `${n} registro(s) relacionados` : '', d ? `${d} vínculo(s)` : ''].filter(Boolean).join(' · '); };
+  return `${cab('Papelera', `${S.papelera.length} elemento(s) · se borran definitivamente a los ${Papelera.DIAS} días`, S.papelera.length ? '<button class="btn peligro" onclick="Papelera.vaciar()">Vaciar papelera</button>' : '')}
+  <div class="barra"><select onchange="UI.pap.tipo=this.value;App.pintar()"><option value="">Todos los tipos</option>${tipos.map(t => `<option value="${t}" ${UI.pap.tipo === t ? 'selected' : ''}>${esc(Papelera.TIPOS[t][0])}</option>`).join('')}</select>
+    ${campoBuscar('pap', 'papBuscar', 'Buscar en la papelera…')}<span class="d">${l.length} resultado(s)</span></div>
+  <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Elemento</th><th>Tipo</th><th>Eliminado</th><th>Se borra en</th><th></th></tr></thead><tbody>
+    ${l.map(e => { const d = Papelera.dias(e), f = new Date(e.ms); return `<tr><td><span class="t" style="cursor:default">${esc(e.titulo)}</span>${resumen(e) ? `<div class="d">Incluye ${esc(resumen(e))}</div>` : ''}</td>
+      <td class="d nw">${esc((Papelera.TIPOS[e.lista] || ['Elemento'])[0])}</td><td class="d nw">${esc(fFecha(aISO(f)))} ${p2(f.getHours())}:${p2(f.getMinutes())}</td>
+      <td class="nw ${d < 1 ? 'rojo' : d <= 2 ? 'ambar' : ''}" title="${esc(new Date(Papelera.vence(e)).toLocaleString('es-MX'))}">${d < 1 ? 'Menos de 1 día' : d === 1 ? '1 día' : d + ' días'}</td>
+      <td class="num nw"><button class="btn ch" onclick="Papelera.rest('${e.id}')">Restaurar</button> <button class="lnk rojo" onclick="Papelera.borrarUna('${e.id}')">Borrar ya</button></td></tr>`; }).join('')}</tbody></table>`
+    : vacio('La papelera está vacía', `Lo que elimines aparecerá aquí durante ${Papelera.DIAS} días por si necesitas recuperarlo.`)}</div>`;
+};
+
 /* ===== 06-inicio.js ===== */
 'use strict';
 /* ==========================================================================
@@ -3074,6 +3222,8 @@ async function iniciar() {
   document.addEventListener('click', () => { if (Boveda.abierta()) Boveda._temporizador(); });
   App.ruta();
   Rec.revisar(); setInterval(() => Rec.revisar(), 30000);
+  // Papelera: borra definitivamente lo que ya cumplió 7 días (al abrir y cada hora)
+  Papelera.purgar().catch(e => console.error(e)); setInterval(() => Papelera.purgar().catch(e => console.error(e)), 60 * 60 * 1000);
   // Sincronización: al abrir, cada 5 minutos y al ocultar la pestaña con cambios pendientes
   if (Sync.activo()) Sync.sincronizar();
   setInterval(() => { if (Sync.activo() && !document.hidden) Sync.sincronizar(); }, 5 * 60 * 1000);

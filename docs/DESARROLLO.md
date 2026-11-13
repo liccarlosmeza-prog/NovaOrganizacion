@@ -2,7 +2,7 @@
 
 > *Evolución sin límites.*
 > Documento técnico del proyecto: qué se pidió, qué se decidió, cómo está construido, qué se probó y qué falta.
-> Última actualización: 2026-11-12 · Versión de la aplicación: **0.7**
+> Última actualización: 2026-11-12 · Versión de la aplicación: **0.8**
 
 ---
 
@@ -37,6 +37,7 @@
 | 11 | Cargar la agenda de trabajo a partir de fotos del calendario | **v0.6**: «Cargar por foto» en Agenda (`Foto` en `05-ajustes-datos.js`): instrucciones para un asistente de IA + pegado y revisión del CSV. Sin conexiones nuevas | — |
 | 12 | Reclasificar las sesiones de la agenda por proyecto | **v0.7**: vista «Eventos y proyectos» en Agenda (asignación individual, masiva y por título) y pestaña «Sesiones» en el detalle de proyecto | — |
 | 13 | Leer las fotos dentro de la plataforma, sin herramientas externas; evaluar Python embebido; notas desde foto de cuaderno | **v0.7**: Tesseract.js incrustado (`src/057-lector-fotos.js`, `terceros/tesseract/`), interpretación de agenda en lista y en cuadrícula, «Nota desde foto», `pruebas/lector-fotos.js`. Python embebido (Pyodide) **descartado**: no incluye motores de reconocimiento de texto | — |
+| 14 | Lo eliminado se conserva 7 días y después se borra; papelera de reciclaje | **v0.8**: `src/058-papelera.js`, pantalla «Papelera», purga automática, `pruebas/papelera.js` | — |
 
 ---
 
@@ -103,6 +104,7 @@ NovaOrganizacion/
         ├── 05-ajustes-datos.js       Ajustes, exportar/importar, respaldo, carga masiva, saneamiento
         ├── 055-sincronizacion.js     Sincronización cifrada con un repositorio privado de GitHub
         ├── 057-lector-fotos.js       Lector de fotos (Tesseract.js incrustado) e interpretación de agendas
+        ├── 058-papelera.js           Papelera de reciclaje (7 días)
         └── 06-inicio.js              datos de ejemplo y arranque
 ```
 
@@ -155,6 +157,7 @@ Todas las colecciones viven dentro de `S`. Las relaciones se hacen por `id`.
 | `grupos` | id, nombre, ids[] | → enlaces |
 | `frases` | id, texto, autor, img, vista (fecha en que se mostró) | → imágenes |
 | `historial` | id, lista, ref, titulo, proyecto, de, a, fecha | registro de cambios de estatus |
+| `papelera` | id, lista, titulo, ms (fecha de eliminación), obj (registro), rel [{lista, objs}], des [{lista, campo, ids}] | elementos eliminados; se borran a los 7 días |
 
 Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identificadas por UUID.
 

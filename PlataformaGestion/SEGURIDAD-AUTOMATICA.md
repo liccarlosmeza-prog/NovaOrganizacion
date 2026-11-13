@@ -1,7 +1,7 @@
 # Validación automática de seguridad
 
 > Generado por `seguridad.js` en cada construcción. No editar a mano.
-> Fecha: 2026-11-13 03:48 UTC · Resultado: **APTO**
+> Fecha: 2026-11-13 04:35 UTC · Resultado: **APTO**
 
 ## Comprobaciones
 | Resultado | Comprobación | Detalle |
@@ -18,7 +18,7 @@
 | ✅ Correcto | Controles de seguridad presentes | `saneamiento de respaldos y datos guardados · filtro de direcciones · validación de imágenes del respaldo · neutralización de fórmulas al exportar CSV · enrutador protegido · derivación de clave · cifrado de notas privadas` |
 | ✅ Correcto | Textos del usuario escapados con esc() al mostrarse | `Sin coincidencias` |
 | ✅ Correcto | Sin console.log de depuración | `Sin coincidencias` |
-| ✅ Correcto | Tamaño razonable: código propio < 1 MB y archivo total < 15 MB | `código propio 256 KB · total 6.9 MB (incluye el lector de imágenes)` |
+| ✅ Correcto | Tamaño razonable: código propio < 1 MB y archivo total < 15 MB | `código propio 269 KB · total 6.9 MB (incluye el lector de imágenes)` |
 
 ## Inventario de direcciones externas que aparecen en el código
 Sólo https://api.github.com se usa para conexiones, y únicamente si el usuario activa la sincronización. Las demás son texto: enlaces de ejemplo que sólo se abren con clic, o identificadores.

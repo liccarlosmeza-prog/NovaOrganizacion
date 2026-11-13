@@ -162,7 +162,7 @@ function estadoVacio() {
     ],
     proyectos: [], actividades: [], bitacora: [], notas: [], boveda: null, notasPriv: [],
     recordatorios: [], eventos: [], cumples: [], materias: [], escolares: [],
-    carpetas: [], enlaces: [], grupos: [], frases: [], historial: []
+    carpetas: [], enlaces: [], grupos: [], frases: [], historial: [], papelera: []
   };
 }
 let S = estadoVacio();
@@ -180,7 +180,10 @@ function guardar() {
 }
 const por = (lista, id) => S[lista].find(x => x.id === id);
 function poner(lista, obj) { const i = S[lista].findIndex(x => x.id === obj.id); if (i >= 0) S[lista][i] = obj; else S[lista].push(obj); guardar(); }
-function quitar(lista, id) { S[lista] = S[lista].filter(x => x.id !== id); guardar(); }
+/** Eliminar = enviar a la papelera (se puede restaurar durante 7 días). */
+function quitar(lista, id) { Papelera.mover(lista, id); }
+/** Sacar un registro de su lista sin que sea una eliminación (p. ej. al volver privada una nota). */
+function retirar(lista, id) { S[lista] = S[lista].filter(x => x.id !== id); guardar(); }
 const estFinal = id => !!(por('estatus', id) || {}).final;
 const idFinal = () => (S.estatus.find(e => e.final) || S.estatus[S.estatus.length - 1]).id;
 const idInicial = () => S.estatus[0].id;
@@ -258,7 +261,7 @@ const Form = {
     catch (err) { console.error(err); toast(err.message || 'Ocurrió un error', 'err'); return; }
     Modal.cerrar(); App.pintar();
   },
-  borrar() { confirmar('¿Eliminar este registro? Esta acción no se puede deshacer.', async () => { await this._c.eliminar(); Modal.cerrar(); App.pintar(); }); }
+  borrar() { confirmar('¿Eliminar este registro? Se enviará a la papelera y podrás restaurarlo durante 7 días.', async () => { const r = await this._c.eliminar(); Modal.cerrar(); App.pintar(); if (r !== false) toast('Enviado a la papelera'); }); }
 };
 
 /* ---------- CSV ---------- */
@@ -354,7 +357,10 @@ const Boveda = {
     const j = this.notas.findIndex(x => x.id === id); if (j >= 0) this.notas[j] = n; else this.notas.push(n);
     guardar(); this._temporizador();
   },
-  quitarNota(id) { S.notasPriv = S.notasPriv.filter(x => x.id !== id); this.notas = this.notas.filter(x => x.id !== id); guardar(); },
+  /** aPapelera = false cuando la nota no se elimina sino que deja de ser privada. */
+  quitarNota(id, aPapelera = true) { if (aPapelera) Papelera.mover('notasPriv', id); else { S.notasPriv = S.notasPriv.filter(x => x.id !== id); guardar(); } this.notas = this.notas.filter(x => x.id !== id); },
+  /** Descifra un registro restaurado de la papelera y lo agrega a las notas abiertas. */
+  async abrirUna(r) { if (!this.notas.some(n => n.id === r.id)) this.notas.push({ id: r.id, ...(await this._descifrar(r)) }); },
   async cambiarClave(nueva) {
     const notas = this.notas.slice(); const sal = crypto.getRandomValues(new Uint8Array(16));
     this.clave = await this._derivar(nueva, sal, this.ITER);

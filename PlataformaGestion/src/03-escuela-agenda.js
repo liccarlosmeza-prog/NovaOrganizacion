@@ -45,7 +45,7 @@ const Esc = {
       campos: [{ k: 'nombre', label: 'Materia', req: true }, { k: 'profesor', label: 'Profesor(a)', medio: true }, { k: 'ciclo', label: 'Ciclo', medio: true, ph: '2026-B' },
                { k: 'color', label: 'Color', tipo: 'color', medio: true }, { k: 'meta', label: 'Meta de calificación', tipo: 'number', min: 0, max: 100, medio: true, ayuda: 'Puntos que quieres alcanzar al final.' }],
       guardar: v => { poner('materias', { id: m ? m.id : uid(), ...v }); },
-      eliminar: m ? () => { S.escolares = S.escolares.filter(e => e.materia !== m.id); quitar('materias', m.id); toast('Materia y sus actividades eliminadas'); } : null });
+      eliminar: m ? () => { Papelera.mover('materias', m.id, { rel: [{ lista: 'escolares', filtro: e => e.materia === m.id }] }); toast('Materia y sus actividades enviadas a la papelera'); return false; } : null });
   },
   /** Modelo de evaluación: puntos totales, evaluados, obtenidos y proyección. */
   resumen(m) {
@@ -204,7 +204,7 @@ const Agenda = {
     const n = UI.ag.sel.size; S.eventos.forEach(e => { if (UI.ag.sel.has(e.id)) e.proyecto = proyecto; });
     UI.ag.sel.clear(); guardar(); App.pintar(); toast(`${n} evento(s) ${proyecto ? 'clasificados' : 'sin proyecto'}`);
   },
-  borrarSel() { confirmar(`¿Eliminar ${UI.ag.sel.size} evento(s) seleccionados?`, () => { S.eventos = S.eventos.filter(e => !UI.ag.sel.has(e.id)); UI.ag.sel.clear(); guardar(); App.pintar(); }); },
+  borrarSel() { confirmar(`¿Eliminar ${UI.ag.sel.size} evento(s) seleccionados? Irán a la papelera durante 7 días.`, () => { const n = UI.ag.sel.size; [...UI.ag.sel].forEach(id => Papelera.mover('eventos', id)); UI.ag.sel.clear(); App.pintar(); toast(`${n} evento(s) enviados a la papelera`); }); },
   evento(id, proyecto) {
     const e = id ? por('eventos', id) : null;
     Form.abrir({ titulo: e ? 'Editar evento' : 'Nuevo evento', campos: this.campos(), valores: e || { fecha: UI.ag.dia, tipo: 'Reunión', proyecto: proyecto || '' },

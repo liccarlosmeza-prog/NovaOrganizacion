@@ -87,6 +87,8 @@ async function iniciar() {
   document.addEventListener('click', () => { if (Boveda.abierta()) Boveda._temporizador(); });
   App.ruta();
   Rec.revisar(); setInterval(() => Rec.revisar(), 30000);
+  // Papelera: borra definitivamente lo que ya cumplió 7 días (al abrir y cada hora)
+  Papelera.purgar().catch(e => console.error(e)); setInterval(() => Papelera.purgar().catch(e => console.error(e)), 60 * 60 * 1000);
   // Sincronización: al abrir, cada 5 minutos y al ocultar la pestaña con cambios pendientes
   if (Sync.activo()) Sync.sincronizar();
   setInterval(() => { if (Sync.activo() && !document.hidden) Sync.sincronizar(); }, 5 * 60 * 1000);

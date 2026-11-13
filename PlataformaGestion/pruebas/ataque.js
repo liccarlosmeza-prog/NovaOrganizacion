@@ -38,6 +38,17 @@ const HTML = 'file://' + require('path').resolve(__dirname, '..', 'PlataformaGes
   await ir('inicio'); await p.hover('.tab6 section').catch(() => {}); await p.waitForTimeout(200);
   R.A1_respaldo = await p.evaluate(() => Object.fromEntries(Object.keys(window).filter(k => k.startsWith('__')).map(k => [k, window[k]])));
   R.A1_enlaceJS = await p.evaluate(() => [...document.querySelectorAll('a')].some(a => /^javascript:/i.test(a.getAttribute('href') || '')));
+  // A1b: papelera manipulada en un respaldo: tipos inventados, claves del prototipo, HTML en títulos, fecha futura, vínculos a campos arbitrarios
+  await restaurar({ papelera: [
+    { id: 'p1', lista: '__proto__', ms: 1, obj: { id: 'x' } },
+    { id: 'p2', lista: 'ajustes', ms: Date.now(), obj: { id: 'x', nombre: 'robo' } },
+    { id: 'p3', lista: 'proyectos', ms: Date.now() + 9e12, titulo: X, obj: { id: "q1');window.__pap=1;//", nombre: X, estatus: 'pend', __proto__: { contaminado: true } } },
+    { id: 'p4', lista: 'notas', ms: Date.now(), titulo: '<svg onload=window.__pap=2>', obj: { id: 'n9', titulo: X, texto: X }, des: [{ lista: 'actividades', campo: 'innerHTML', ids: ['a'] }, { lista: 'ajustes', campo: 'nombre', ids: ['b'] }], rel: [{ lista: 'constructor', objs: [{ id: 'z' }] }] }
+  ] });
+  await ir('papelera');
+  R.A1b_papelera = await p.evaluate(() => { window.__pap = window.__pap || 0; const n = S.papelera.length, enFuturo = S.papelera.some(e => e.ms > Date.now()), raros = S.papelera.some(e => !Papelera.TIPOS[e.lista] || e.des.length || e.rel.length);
+    const nota = S.papelera.find(e => e.lista === 'notas'); if (nota) Papelera.restaurar(nota.id); location.hash = '#/notas'; App.ruta();
+    return new Promise(r => setTimeout(() => r({ ejecuto: window.__pap, tiposNoPermitidos: !(n === 2 && S.papelera.concat(nota ? [nota] : []).every(e => ['proyectos', 'notas'].includes(e.lista))), idInseguro: S.papelera.some(e => !/^[A-Za-z0-9_-]{1,64}$/.test(e.obj.id)), fechaFutura: enFuturo, camposRaros: raros, prototipo: ({}).contaminado === true }), 300)); });
   // A2: respaldo con "imagen" que apunta a un servidor externo
   ext.length = 0; await restaurar({ proyectos: [] }, { img1: 'https://example.com/rastreo.png?victima=1' }); R.A2_peticionExterna = ext.slice();
   // A3: enrutador con claves del prototipo

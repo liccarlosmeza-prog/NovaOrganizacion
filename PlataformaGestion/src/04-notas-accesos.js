@@ -37,9 +37,9 @@ const Notas = {
   clasificar(valor) { const n = this.actual(); n.proyecto = valor; n.actualizado = ahoraTxt(); guardar(); App.pintar(); toast(valor ? 'Nota clasificada en el proyecto' : 'Nota sin clasificar'); },
   fijar() { const n = this.actual(); n.fijada = !n.fijada; guardar(); App.pintar(); },
   borrar() {
-    confirmar('¿Eliminar esta nota?', async () => { if (this.priv()) Boveda.quitarNota(UI.notas.id); else { const n = this.actual(); if (n && n.img) await Img.quitar(n.img); quitar('notas', UI.notas.id); } UI.notas.id = null; App.pintar(); });
+    confirmar('¿Eliminar esta nota? Irá a la papelera durante 7 días.', () => { if (this.priv()) Boveda.quitarNota(UI.notas.id); else quitar('notas', UI.notas.id); UI.notas.id = null; App.pintar(); toast('Nota enviada a la papelera'); });
   },
-  quitarFoto() { confirmar('¿Quitar la foto de esta nota? El texto se conserva.', async () => { const n = this.actual(); await Img.quitar(n.img); n.img = ''; n.actualizado = ahoraTxt(); guardar(); App.pintar(); }, 'Quitar foto'); },
+  quitarFoto() { confirmar('¿Quitar la foto de esta nota? Irá a la papelera durante 7 días; el texto se conserva.', () => { Papelera.moverFoto(UI.notas.id); App.pintar(); toast('Foto enviada a la papelera'); }, 'Quitar foto'); },
   /* ---------- Nota desde foto (cuaderno, pizarrón, documento) ---------- */
   desdeFoto() {
     const priv = this.priv();
@@ -80,11 +80,11 @@ const Notas = {
     const n = this.actual();
     await Boveda.guardarNota({ id: n.id, titulo: n.titulo, texto: n.texto, creado: n.creado, actualizado: ahoraTxt() });
     if (n.img) { await Img.quitar(n.img); toast('La foto de la nota se eliminó: en notas privadas sólo se guarda el texto cifrado'); }
-    quitar('notas', n.id); UI.notas.f = 'priv'; App.pintar(); toast('La nota ahora es privada y está cifrada');
+    retirar('notas', n.id); UI.notas.f = 'priv'; App.pintar(); toast('La nota ahora es privada y está cifrada');
   },
   quitarPrivacidad() {
     confirmar('La nota dejará de estar cifrada y quedará como nota general. ¿Continuar?', () => {
-      const n = this.actual(); poner('notas', { ...n, proyecto: '', etiquetas: '', fijada: false }); Boveda.quitarNota(n.id); UI.notas.f = 'sin'; App.pintar();
+      const n = this.actual(); poner('notas', { ...n, proyecto: '', etiquetas: '', fijada: false }); Boveda.quitarNota(n.id, false); UI.notas.f = 'sin'; App.pintar();
     }, 'Quitar privacidad');
   },
   async crearBoveda() {
@@ -151,13 +151,13 @@ const Acc = {
     const l = id ? por('enlaces', id) : null;
     Form.abrir({ titulo: l ? 'Editar acceso directo' : 'Nuevo acceso directo', campos: this.campos(), valores: l || { carpeta: S.carpetas.some(c => c.id === UI.acc.f) ? UI.acc.f : '' },
       guardar: v => { const u = urlSegura(v.url); if (!u) return 'La dirección no es válida (sólo http, https o mailto)'; poner('enlaces', { id: l ? l.id : uid(), ...v, url: u }); },
-      eliminar: l ? () => { S.grupos.forEach(g => g.ids = g.ids.filter(x => x !== l.id)); quitar('enlaces', l.id); } : null });
+      eliminar: l ? () => quitar('enlaces', l.id) : null });
   },
   carpeta(id) {
     const c = id ? por('carpetas', id) : null;
     Form.abrir({ titulo: c ? 'Editar carpeta' : 'Nueva carpeta', campos: [{ k: 'nombre', label: 'Nombre', req: true }, { k: 'color', label: 'Color', tipo: 'color' }], valores: c || { color: PALETA[S.carpetas.length % PALETA.length] },
       guardar: v => { poner('carpetas', { id: c ? c.id : uid(), ...v }); },
-      eliminar: c ? () => { S.enlaces.forEach(l => { if (l.carpeta === c.id) l.carpeta = ''; }); quitar('carpetas', c.id); UI.acc.f = 'todos'; } : null });
+      eliminar: c ? () => { Papelera.mover('carpetas', c.id, { des: [{ lista: 'enlaces', campo: 'carpeta' }] }); UI.acc.f = 'todos'; } : null });
   },
   fav(id) { const l = por('enlaces', id); l.fav = !l.fav; guardar(); App.pintar(); },
   sel(id, on) { if (on) UI.acc.sel.add(id); else UI.acc.sel.delete(id); App.pintar(); },
@@ -170,7 +170,7 @@ const Acc = {
     Form.abrir({ titulo: 'Guardar selección como grupo', campos: [{ k: 'nombre', label: 'Nombre del grupo', req: true, ayuda: 'Un grupo abre todos sus accesos con un clic (p. ej. “Inicio de jornada”).' }],
       guardar: v => { poner('grupos', { id: uid(), nombre: v.nombre, ids: [...UI.acc.sel] }); UI.acc.sel.clear(); } });
   },
-  grupoBorrar(id) { confirmar('¿Eliminar el grupo? Los accesos no se borran.', () => { quitar('grupos', id); App.pintar(); }); }
+  grupoBorrar(id) { confirmar('¿Eliminar el grupo? Irá a la papelera; los accesos no se borran.', () => { quitar('grupos', id); App.pintar(); toast('Grupo enviado a la papelera'); }); }
 };
 Vistas.accesos = () => {
   const f = UI.acc.f, q = UI.acc.q.toLowerCase();
@@ -243,7 +243,7 @@ const Frases = {
         if (v.archivo) { const nueva = await Img.agregar(v.archivo, 1800); if (img) await Img.quitar(img); img = nueva; }
         poner('frases', { id: f ? f.id : uid(), texto: v.texto, autor: v.autor, img, vista: f ? (f.vista || '') : '' });
       },
-      eliminar: f ? async () => { await Img.quitar(f.img); quitar('frases', f.id); } : null });
+      eliminar: f ? () => quitar('frases', f.id) : null });
   },
   /** Marca la frase de hoy como vista y elige otra pendiente. */
   otra() { const a = S.ajustes.fraseHoy, f = a && por('frases', a.id); if (f) f.vista = hoyISO(); elegirFrase(f ? f.id : ''); App.pintar(); },

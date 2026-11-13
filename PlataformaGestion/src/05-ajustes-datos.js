@@ -40,7 +40,7 @@ const Aj = {
     Form.abrir({ titulo: c ? 'Editar clasificación' : 'Nueva clasificación', valores: c || { color: PALETA[S.categorias.length % PALETA.length] },
       campos: [{ k: 'nombre', label: 'Nombre', req: true }, { k: 'color', label: 'Color', tipo: 'color' }],
       guardar: v => { poner('categorias', { id: c ? c.id : uid(), ...v }); },
-      eliminar: c ? () => { S.actividades.forEach(a => { if (a.categoria === c.id) a.categoria = ''; }); quitar('categorias', c.id); } : null });
+      eliminar: c ? () => Papelera.mover('categorias', c.id, { des: [{ lista: 'actividades', campo: 'categoria' }] }) : null });
   },
   async cambiarClave() {
     if (!Boveda.abierta()) return toast('Desbloquea primero tus notas privadas (Notas → Privadas)', 'err');
@@ -159,10 +159,29 @@ const sanearObjeto = (o, anidado) => {
   }
   return r;
 };
+/** La papelera guarda registros completos: se valida su estructura y se sanea cada registro guardado. */
+function sanearPapelera(lista) {
+  if (!Array.isArray(lista)) return [];
+  const ok = Object.keys(Papelera.TIPOS), plano = o => o && typeof o === 'object' && !Array.isArray(o), r = [];
+  for (const e of lista.slice(0, 20000)) {
+    if (!plano(e) || !ok.includes(e.lista) || !plano(e.obj)) continue;
+    const ms = Number(e.ms); if (!Number.isFinite(ms) || ms <= 0) continue;
+    const obj = sanearObjeto(e.obj, false); if (!ID_OK.test(String(obj.id))) continue;
+    if (e.lista === 'notasPriv' && !(typeof e.obj.iv === 'string' && typeof e.obj.ct === 'string')) continue;
+    const rel = (Array.isArray(e.rel) ? e.rel : []).filter(x => plano(x) && ok.includes(x.lista) && Array.isArray(x.objs))
+      .map(x => ({ lista: x.lista, objs: x.objs.filter(plano).map(o => sanearObjeto(o, false)).filter(o => ID_OK.test(String(o.id))) }));
+    const des = (Array.isArray(e.des) ? e.des : []).filter(x => plano(x) && Array.isArray(x.ids) && (((Papelera.VINCULOS[x.lista] || []).includes(x.campo)) || (x.lista === 'grupos' && x.campo === 'ids')))
+      .map(x => ({ lista: x.lista, campo: x.campo, ids: x.ids.map(String).filter(i => ID_OK.test(i)) }));
+    // la fecha nunca puede quedar en el futuro: así un respaldo alterado no evita el borrado a los 7 días
+    r.push({ id: ID_OK.test(String(e.id)) ? String(e.id) : uid(), lista: e.lista, ms: Math.min(ms, Date.now()), titulo: String(e.titulo || '').slice(0, 200), obj, rel, des });
+  }
+  return r;
+}
 function sanear(e) {
   const b = estadoVacio(), r = {};
   for (const k of Object.keys(b)) {
-    if (Array.isArray(b[k])) r[k] = Array.isArray(e[k]) ? e[k].slice(0, 100000).filter(x => x && typeof x === 'object').map(x => sanearObjeto(x, false)) : b[k];
+    if (k === 'papelera') r[k] = sanearPapelera(e[k]);
+    else if (Array.isArray(b[k])) r[k] = Array.isArray(e[k]) ? e[k].slice(0, 100000).filter(x => x && typeof x === 'object').map(x => sanearObjeto(x, false)) : b[k];
     else if (k === 'ajustes' || k === 'boveda') r[k] = e[k] && typeof e[k] === 'object' ? sanearObjeto(e[k], true) : b[k];
     else r[k] = b[k];
   }
@@ -221,6 +240,7 @@ const Datos = {
         filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
       { nombre: 'accesos_directos.csv', enc: ['Nombre', 'URL', 'Carpeta', 'Descripcion', 'Favorito', 'Tags'], filas: S.enlaces.map(l => [l.nombre, l.url, nom('carpetas', l.carpeta), l.desc, l.fav ? 'SI' : 'NO', String(l.tags || '').replace(/,/g, ';')]) },
       { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen', 'VistaEl'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO', aDMY(f.vista)]) },
+      { nombre: 'papelera.csv', enc: ['Tipo', 'Elemento', 'Eliminado', 'SeBorraEl'], filas: S.papelera.map(e => [(Papelera.TIPOS[e.lista] || ['Elemento'])[0], e.titulo, new Date(e.ms).toISOString().slice(0, 16).replace('T', ' '), new Date(Papelera.vence(e)).toISOString().slice(0, 10)]) },
       { nombre: 'historial_estatus.csv', enc: ['FechaHora', 'Tipo', 'Registro', 'Proyecto', 'EstatusAnterior', 'EstatusNuevo'], filas: S.historial.map(h => [h.fecha, h.lista, h.titulo, nom('proyectos', h.proyecto), h.de, h.a]) }
     ];
   },

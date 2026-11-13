@@ -30,4 +30,5 @@ Antes de entregar o subir cualquier cambio al código de la aplicación:
 - Todo acceso a datos pasa por el objeto `DB` (`01-nucleo.js`).
 - Cada pantalla con datos tiene carga masiva (`LAYOUTS` + `Datos.leer_<clave>`) y plantilla de ejemplo.
 - Los cambios de estatus se registran con `regEstatus()`.
+- **Eliminar = enviar a la papelera** (`quitar()` o `Papelera.mover()` en `src/058-papelera.js`), donde dura 7 días. No borrar registros ni imágenes directamente. Un tipo de registro nuevo debe agregarse a `Papelera.TIPOS` (y sus vínculos a `Papelera.VINCULOS`); si se elimina con registros relacionados, pasarlos en `rel`/`des` para poder restaurarlos. Pruebas: `node pruebas/papelera.js`.
 - No presentar como probado lo que no se ejecutó.

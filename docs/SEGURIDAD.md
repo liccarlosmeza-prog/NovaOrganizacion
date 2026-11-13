@@ -251,3 +251,34 @@ Comprobado en ejecución: leyendo 4 fotos reales y 5 imágenes sintéticas, el n
 |---|---|
 | R-14 | Para notas escritas en cursiva, usar la opción de asistente de IA (Claude) o capturar el texto a mano: el lector incrustado no la reconoce bien |
 | R-15 | Revisar siempre el borrador contra la foto antes de guardar; las horas de la vista semanal son estimadas por posición |
+
+## 15. Revisión de la papelera de reciclaje (v0.8)
+
+**Conexiones externas:** sin cambios. La papelera vive en los mismos datos de la plataforma (y viaja cifrada si la sincronización está activa). No se agregaron dependencias ni orígenes.
+
+### Diseño
+- Eliminar cualquier elemento lo mueve a `S.papelera` con: el registro, los registros que se van con él (bitácora de un proyecto, actividades de una materia) y los vínculos que se quitaron (actividades, notas y eventos que quedaron sin proyecto; enlaces sin carpeta; grupos que contenían un acceso).
+- A los 7 días se borra definitivamente, incluidas sus imágenes si nadie más las usa. Se revisa al abrir la plataforma y cada hora.
+- Las notas privadas pasan a la papelera **cifradas**; al restaurarlas se descifran sólo si la bóveda está abierta.
+
+### Riesgos y controles
+| Riesgo | Control |
+|---|---|
+| Respaldo con entradas de papelera manipuladas (tipos inventados, claves del prototipo, HTML, campos arbitrarios) | `sanearPapelera()`: sólo tipos permitidos; cada registro pasa por `sanearObjeto`; identificadores inválidos se reemplazan; vínculos sólo a campos de la lista blanca (`Papelera.VINCULOS`); títulos escapados al mostrarse |
+| Fecha futura para que algo no se borre nunca | La fecha se limita al momento actual al sanear |
+| Restaurar dejando referencias rotas | Se bloquea restaurar bitácora o actividades escolares sin su proyecto o materia; los vínculos a elementos inexistentes se quitan; después de restaurar se aplican las mismas validaciones que al abrir la plataforma (`fusionar`) |
+| Imágenes que quedan para siempre | Al borrar definitivamente se eliminan las imágenes que ya no usa ningún otro registro |
+| Datos personales que el usuario cree borrados | Los elementos permanecen hasta 7 días (comportamiento solicitado). «Borrar ya» y «Vaciar papelera» los eliminan al momento. «Borrar todos los datos» (Ajustes) sigue borrando todo, papelera incluida |
+
+### Excepciones (borrado inmediato, intencional)
+- Reemplazar una imagen (frase, encabezado o fondo): no es eliminar un elemento.
+- Convertir en privada una nota con foto: la foto se borra para que no quede sin cifrar.
+
+### Pruebas
+- `pruebas/papelera.js`: proyecto con bitácora, actividades, notas y eventos (se van y vuelven ligados); materia con actividades escolares (bloquea restaurar una actividad sin su materia); acceso en un grupo; carpeta; eliminación desde formulario y selección múltiple; imagen conservada en la papelera y borrada al vaciar; foto de nota; nota privada cifrada; respaldo; pantalla; plazo de 7 días con el reloj adelantado (al día 6 sigue, al pasar el día 7 se borra). **Correcto**, sin errores.
+- `pruebas/ataque.js` caso A1b (papelera manipulada): sin ejecución de código, tipos no permitidos descartados, sin fechas futuras, sin campos arbitrarios, sin contaminación del prototipo.
+- Baterías funcional, de frases, sincronización y lector de fotos: sin errores.
+
+| Fecha | Cambio | Validación automática | Pasada adversarial |
+|---|---|---|---|
+| 2026-11-13 | v0.8 — papelera de reciclaje con borrado definitivo a los 7 días | APTO | Sin ejecución de código; 0 conexiones externas |

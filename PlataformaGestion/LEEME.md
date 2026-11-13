@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.7
+# Nova Organización — prueba v0.8
 
 > *Evolución sin límites.*
 
@@ -58,6 +58,11 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.8 (papelera de reciclaje)
+- Todo lo que eliminas (proyectos, actividades, notas, notas privadas, eventos, recordatorios, cumpleaños, materias, accesos, carpetas, grupos, frases, estatus, clasificaciones y fotos de notas) va a la **Papelera** durante **7 días**; después se borra definitivamente.
+- Desde **Papelera** (menú lateral) puedes **Restaurar** —vuelve con sus registros relacionados y sus vínculos—, **Borrar ya** o **Vaciar papelera**.
+- Al restaurar un proyecto regresan su bitácora y se vuelven a ligar sus actividades, notas y eventos.
 
 ### Novedades de la v0.7 (lector de fotos y clasificación de eventos)
 - **Agenda → Cargar por foto → Leer fotos**: la plataforma lee la foto de tu agenda (Teams en el celular o calendario semanal en la computadora) **dentro del navegador**, sin conexiones. Muestra un borrador editable; los eventos dudosos quedan desmarcados.
