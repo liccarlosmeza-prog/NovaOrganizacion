@@ -39,13 +39,20 @@ const Notas = {
   borrar() {
     confirmar('¿Eliminar esta nota? Irá a la papelera durante 7 días.', () => { if (this.priv()) Boveda.quitarNota(UI.notas.id); else quitar('notas', UI.notas.id); UI.notas.id = null; App.pintar(); toast('Nota enviada a la papelera'); });
   },
+  /** Compara el texto leído de la foto con el texto corregido y guarda las correcciones. */
+  aprender() {
+    const n = this.actual(); if (!n || !n.ocr) return;
+    const k = Correcciones.aprender(n.ocr, n.texto); n.ocr = n.texto;
+    if (this.priv()) Boveda.guardarNota(n).catch(() => {}); else guardar();
+    App.pintar(); toast(k ? `Aprendí ${k} corrección(es); las aplicaré en las próximas lecturas` : 'No encontré correcciones de palabras para aprender');
+  },
   quitarFoto() { confirmar('¿Quitar la foto de esta nota? Irá a la papelera durante 7 días; el texto se conserva.', () => { Papelera.moverFoto(UI.notas.id); App.pintar(); toast('Foto enviada a la papelera'); }, 'Quitar foto'); },
   /* ---------- Nota desde foto (cuaderno, pizarrón, documento) ---------- */
   desdeFoto() {
     const priv = this.priv();
     Modal.abrir(`<div class="form"><h2>Nota desde foto</h2><div class="campos" style="display:block">
       <p class="d" style="margin-bottom:10px">La foto se lee en este equipo; no se envía a ningún lado. Funciona bien con texto impreso y con <b>letra de molde clara</b>. Con letra cursiva o muy junta el resultado puede ser pobre: revísalo siempre contra la foto.</p>
-      <div class="barra"><input type="file" id="ntFoto" accept="image/*"></div>
+      <div class="barra"><input type="file" id="ntFoto" accept="image/*"><select id="ntGiro" aria-label="Orientación"><option value="auto">Orientación automática</option><option value="0">Sin girar</option><option value="90">Girar 90° a la derecha</option><option value="270">Girar 90° a la izquierda</option><option value="180">Girar 180°</option></select></div>
       ${priv ? '<p class="d">En notas privadas sólo se guarda el texto (cifrado); la foto no se conserva.</p>' : '<label class="chk" style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="ntGuardar" checked> Guardar la foto junto con la nota</label>'}
       <p class="d" id="ntProg" style="margin-top:8px"></p></div>
       <div class="acciones"><span class="esp"></span><button class="btn" type="button" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri" type="button" id="ntLeer" onclick="Notas.leerFoto()">Leer y crear nota</button></div></div>`, 620);
@@ -54,25 +61,18 @@ const Notas = {
     const archivo = $('#ntFoto').files[0]; if (!archivo) return toast('Elige una foto', 'err');
     const priv = this.priv(), guardarFoto = !priv && $('#ntGuardar').checked, prog = t => { const p = $('#ntProg'); if (p) p.textContent = t; };
     $('#ntLeer').disabled = true; prog('Preparando el lector…');
-    let datos;
-    try {
-      // Primero se lee la foto tal cual; si la lectura es de baja confianza (sombras, papel oscuro),
-      // se repite con limpieza de contraste y se conserva la mejor de las dos.
-      datos = await Ocr.leer(archivo, av => prog(`Leyendo… ${Math.round(av * 100)} %`));
-      if (datos.confidence < 70) {
-        const otra = await Ocr.leer(archivo, av => prog(`Mejorando la foto y leyendo de nuevo… ${Math.round(av * 100)} %`), { papel: true });
-        if (otra.confidence > datos.confidence) datos = otra;
-      }
-    }
+    let datos, lectura;
+    try { lectura = await Ocr.leerMejor(archivo, (txt, av) => prog(`${txt}… ${Math.round(av * 100)} %`), { giro: $('#ntGiro').value }); datos = lectura.data; }
     catch (e) { console.error(e); $('#ntLeer').disabled = false; prog(''); return toast('No se pudo leer la foto: ' + e.message, 'err'); }
-    const texto = Ocr.texto(datos).slice(0, 100000), primera = (texto.split('\n').find(l => /[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,}/.test(l)) || '').slice(0, 80);
+    const texto = Correcciones.aplicar(Ocr.texto(datos)).slice(0, 100000), primera = (texto.split('\n').find(l => /[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,}/.test(l)) || '').slice(0, 80);
     let img = '';
     if (guardarFoto) { try { img = await Img.agregar(archivo, 2000); } catch (e) { toast('La nota se creó, pero no se pudo guardar la foto: ' + e.message, 'err'); } }
-    const n = { id: uid(), titulo: primera ? 'Foto: ' + primera : 'Nota desde foto', texto: texto || '(No se reconoció texto. Escríbelo a mano viendo la foto.)', creado: ahoraTxt(), actualizado: ahoraTxt() };
+    const n = { id: uid(), titulo: primera ? 'Foto: ' + primera : 'Nota desde foto', texto: texto || '(No se reconoció texto. Escríbelo a mano viendo la foto.)', ocr: texto, creado: ahoraTxt(), actualizado: ahoraTxt() };
     if (priv) await Boveda.guardarNota(n);
     else poner('notas', { ...n, img, proyecto: ['todas', 'sin'].includes(UI.notas.f) ? '' : UI.notas.f, etiquetas: 'foto', fijada: false });
     UI.notas.id = n.id; UI.notas.q = ''; Modal.cerrar(); App.pintar();
-    toast(datos.confidence >= 70 ? 'Nota creada: revisa el texto' : 'Nota creada, pero la lectura fue de baja calidad: corrígela viendo la foto', datos.confidence >= 70 ? '' : 'err');
+    const pocas = lectura.buenas < 5;
+    toast(pocas ? 'Nota creada, pero se reconoció muy poco texto (la letra manuscrita ligada no se lee bien): corrígela viendo la foto' : 'Nota creada: revisa el texto y usa «Aprender de mis correcciones» al terminar', pocas ? 'err' : '');
   },
   async hacerPrivada() {
     if (!S.boveda) { UI.notas.f = 'priv'; App.pintar(); return toast('Primero crea la contraseña de tus notas privadas'); }
@@ -127,6 +127,7 @@ Vistas.notas = () => {
       <input type="text" value="${esc(n.etiquetas || '')}" placeholder="Etiquetas" style="width:150px" oninput="Notas.cambio('etiquetas',this.value)">`}
       <span class="esp"></span><span class="d">${esc(fFecha((n.actualizado || '').slice(0, 10)))} ${esc((n.actualizado || '').slice(11))}</span>
       ${priv ? '<button class="lnk gris" onclick="Notas.quitarPrivacidad()">Quitar privacidad</button>' : `<button class="lnk gris" onclick="Notas.fijar()">${n.fijada ? 'Quitar fijado' : 'Fijar'}</button><button class="lnk gris" onclick="Notas.hacerPrivada()">Hacer privada</button>`}
+      ${n.ocr ? '<button class="lnk" onclick="Notas.aprender()" title="Guarda cómo corregiste el texto leído para mejorar las próximas lecturas">Aprender de mis correcciones</button>' : ''}
       <button class="lnk rojo" onclick="Notas.borrar()">Eliminar</button></div>
     <input class="tit" id="nTitulo" type="text" value="${esc(n.titulo || '')}" placeholder="Título" oninput="Notas.cambio('titulo',this.value)">
     ${!priv && n.img && Img.url(n.img) ? `<div style="display:flex;gap:10px;padding:4px 16px 0;align-items:flex-end"><img src="${Img.url(n.img)}" alt="Foto de la nota" style="max-height:150px;max-width:60%;border:1px solid var(--bd);border-radius:6px;cursor:zoom-in" onclick="verImagen(this.src)"><button class="lnk gris" onclick="Notas.quitarFoto()">Quitar foto</button></div>` : ''}

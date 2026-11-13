@@ -103,6 +103,7 @@ Vistas.ajustes = () => {
       <div class="reng"><label>Borrar todo</label><button class="btn peligro" onclick="Datos.borrarTodo()">Borrar todos los datos</button><span class="d">Descarga antes un respaldo.</span></div>
       <div class="reng"><label>Almacenamiento</label><span class="d">${DB.idb ? 'IndexedDB de este navegador' : 'localStorage (sin imágenes)'} · ${Img.blobs.size} imagen(es) · ${(([...Img.blobs.values()].reduce((s, b) => s + b.size, 0)) / 1048576).toFixed(1)} MB. Los datos viven sólo en este equipo y navegador.</span></div></div></section>`; }
   else if (t === 'sync') cuerpo = Sync.vista();
+  else if (t === 'lector') cuerpo = Correcciones.vista();
   else cuerpo = `
     <section class="blq"><h3>Notas privadas</h3><div class="cu">
       <p class="d" style="margin-bottom:10px">Cifrado AES-256 con clave derivada de tu contraseña (PBKDF2, 600 000 iteraciones). La contraseña no se almacena y no existe forma de recuperarla.</p>
@@ -116,7 +117,7 @@ Vistas.ajustes = () => {
       <p>• Sólo las notas privadas están cifradas. El resto de la información se guarda sin cifrar en este navegador.</p>
       <p>• Cualquier persona con acceso a tu sesión del equipo puede ver lo que no sea privado: bloquea tu equipo al ausentarte.</p>
       <p>• Las notas privadas no se incluyen en la exportación CSV; en el respaldo .json viajan cifradas.</p></div></section>`;
-  return `${cab('Ajustes', '')}<div class="tabs">${[['apariencia', 'Apariencia'], ['inicio', 'Inicio'], ['catalogos', 'Catálogos'], ['datos', 'Datos'], ['sync', 'Sincronización'], ['seguridad', 'Seguridad']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.aj.tab='${k}';App.pintar()">${n}</button>`).join('')}</div><div class="aj">${cuerpo}</div>`;
+  return `${cab('Ajustes', '')}<div class="tabs">${[['apariencia', 'Apariencia'], ['inicio', 'Inicio'], ['catalogos', 'Catálogos'], ['lector', 'Lector de fotos'], ['datos', 'Datos'], ['sync', 'Sincronización'], ['seguridad', 'Seguridad']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.aj.tab='${k}';App.pintar()">${n}</button>`).join('')}</div><div class="aj">${cuerpo}</div>`;
 };
 
 /* ==========================================================================
@@ -133,7 +134,7 @@ const celda = (f, i) => i >= 0 ? (f[i] || '').trim() : '';
 const ID_OK = /^[A-Za-z0-9_-]{1,64}$/, HEX_OK = /^#[0-9a-fA-F]{6}$/, FECHA_OK = /^\d{4}-\d{2}-\d{2}$/, HORA_OK = /^\d{2}:\d{2}$/;
 const CAMPO = {
   id: ['id', 'proyecto', 'categoria', 'estatus', 'materia', 'carpeta', 'img', 'ref', 'fondoImg', 'bandaImg', 'cat', 'temaId', 'origenId'],
-  num: ['valor', 'calif', 'horas', 'avanceManual', 'dia', 'mes', 'anio', 'meta', 'ancho', 'filas', 'dias', 'fondoOp', 'metaEscolar', 'escala', 'avisoCumple', 'iter', 'v'],
+  num: ['usos', 'valor', 'calif', 'horas', 'avanceManual', 'dia', 'mes', 'anio', 'meta', 'ancho', 'filas', 'dias', 'fondoOp', 'metaEscolar', 'escala', 'avisoCumple', 'iter', 'v'],
   color: ['color', 'bg', 'sup', 'tx', 'mut', 'bd', 'ac', 'lat', 'oro'],
   listaId: ['ids', 'imgs'], fecha: ['inicio', 'objetivo', 'limite', 'entrega', 'completada', 'vista'], fechaHora: ['fecha', 'creado', 'actualizado', 'avisado', 'editado'], hora: ['hora', 'horaIni', 'horaFin'],
   bool: ['on', 'final', 'fav', 'fijada', 'hecho']
@@ -193,6 +194,7 @@ function sanear(e) {
   r.escolares = r.escolares.filter(x => x.entrega && x.materia); r.escolares.forEach(x => { if (!EST_ESC.some(y => y[0] === x.estatus)) x.estatus = 'pendiente'; x.valor = Math.max(0, x.valor || 0); if (!x.inicio) x.inicio = x.entrega; });
   r.eventos = r.eventos.filter(x => FECHA_OK.test(x.fecha)); r.recordatorios = r.recordatorios.filter(x => FECHA_OK.test(x.fecha));
   r.recordatorios.forEach(x => { if (!['', 'diario', 'semanal', 'mensual', 'anual'].includes(x.repetir)) x.repetir = ''; });
+  r.correcciones = r.correcciones.filter(c => typeof c.mal === 'string' && typeof c.bien === 'string' && c.mal.trim().length >= 2 && c.bien.trim() && c.mal.length <= 80 && c.bien.length <= 80).slice(0, 5000).map(c => ({ ...c, mal: c.mal.trim(), bien: c.bien.trim(), usos: Math.max(0, c.usos || 0) }));
   r.cumples = r.cumples.filter(c => c.dia >= 1 && c.dia <= 31 && c.mes >= 1 && c.mes <= 12);
   r.bitacora = r.bitacora.filter(x => x.fecha && x.proyecto); r.notasPriv = r.notasPriv.filter(x => x.id && typeof x.iv === 'string' && typeof x.ct === 'string');
   r.enlaces.forEach(l => { l.url = urlSegura(l.url); }); r.enlaces = r.enlaces.filter(l => l.url);
@@ -240,6 +242,7 @@ const Datos = {
         filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
       { nombre: 'accesos_directos.csv', enc: ['Nombre', 'URL', 'Carpeta', 'Descripcion', 'Favorito', 'Tags'], filas: S.enlaces.map(l => [l.nombre, l.url, nom('carpetas', l.carpeta), l.desc, l.fav ? 'SI' : 'NO', String(l.tags || '').replace(/,/g, ';')]) },
       { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen', 'VistaEl'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO', aDMY(f.vista)]) },
+      { nombre: 'correcciones_lector.csv', enc: ['Mal', 'Bien', 'Usos'], filas: S.correcciones.map(c => [c.mal, c.bien, c.usos || 0]) },
       { nombre: 'papelera.csv', enc: ['Tipo', 'Elemento', 'Eliminado', 'SeBorraEl'], filas: S.papelera.map(e => [(Papelera.TIPOS[e.lista] || ['Elemento'])[0], e.titulo, new Date(e.ms).toISOString().slice(0, 16).replace('T', ' '), new Date(Papelera.vence(e)).toISOString().slice(0, 10)]) },
       { nombre: 'historial_estatus.csv', enc: ['FechaHora', 'Tipo', 'Registro', 'Proyecto', 'EstatusAnterior', 'EstatusNuevo'], filas: S.historial.map(h => [h.fecha, h.lista, h.titulo, nom('proyectos', h.proyecto), h.de, h.a]) }
     ];
@@ -422,6 +425,7 @@ const LAYOUTS = {
     ej: () => [['Outlook', 'https://outlook.office.com', 'Trabajo', 'Correo', 'SI', 'correo;diario'], ['Power BI', 'https://app.powerbi.com', 'Trabajo', '', 'NO', 'reportes']] },
   cumples: { t: 'Cumpleaños', cols: [['Nombre', 1, 'Texto. No se repite.'], ['Fecha', 1, 'dd/mm/aaaa, o dd/mm si no sabes el año'], ['Relacion', 0, 'Familia, Amigos, Trabajo…'], ['Nota', 0, 'Texto']],
     ej: () => [['Ana Ramírez', '11/11/1996', 'Amigos', 'Le gustan los libros'], ['Luis Mendoza', '15/11', 'Trabajo', '']] },
+  correcciones: { t: 'Correcciones del lector', cols: [['Mal', 1, 'Texto como lo lee el lector (2 a 80 caracteres)'], ['Bien', 1, 'Texto correcto (máx. 80 caracteres)']], nota: 'Se aplican sólo a palabras completas.', ej: () => [['ill To', 'Bill To'], ['PROCESC', 'PROCESO']] },
   frases: { t: 'Frases del día', cols: [['Frase', 1, 'Texto. No se repite.'], ['Autor', 0, 'Texto']],
     nota: 'Las imágenes se cargan con el botón “Subir varias imágenes”.',
     ej: () => [['Primero funcionalidad, después complejidad.', ''], ['Lo que no se mide no se puede mejorar.', 'Peter Drucker']] }
@@ -502,6 +506,12 @@ Object.assign(Datos, {
       lista.push({ titulo, texto, proyecto: p ? p.id : '', etiquetas: celda(f, col('etiquetas', 'tags')), fijada: false, creado: ahoraTxt(), actualizado: ahoraTxt() });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.notas.push({ id: uid(), ...x })) };
+  },
+  leer_correcciones(filas) {
+    const col = columnas(filas[0] || []), iM = col('mal', 'lee'), iB = col('bien', 'correcto'); if (iM < 0 || iB < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0; const vistos = new Set(S.correcciones.map(c => Correcciones._norm(c.mal)));
+    for (const f of filas.slice(1)) { const mal = celda(f, iM), bien = celda(f, iB); if (mal.length < 2 || !bien || mal.length > 80 || bien.length > 80 || vistos.has(Correcciones._norm(mal))) { omitidas++; continue; } vistos.add(Correcciones._norm(mal)); lista.push({ mal, bien, usos: 0 }); }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.correcciones.push({ id: uid(), ...x })) };
   },
   leer_frases(filas) {
     const col = columnas(filas[0] || []), iT = col('frase', 'texto'); if (iT < 0) return { n: 0, omitidas: filas.length };
@@ -590,7 +600,7 @@ Reglas:
         prog(`Leyendo foto ${i + 1} de ${archivos.length}… ${i === 0 ? '(la primera vez tarda unos segundos en preparar el lector)' : ''}`);
         const datos = await Ocr.leer(archivos[i], av => prog(`Leyendo foto ${i + 1} de ${archivos.length}… ${Math.round(av * 100)} %`));
         const r = OcrAgenda.interpretar(datos); resumen.push(`${r.eventos.length} en la foto ${i + 1} (${r.formato})`);
-        for (const e of r.eventos) { const k = e.fecha + e.horaIni + norm(e.titulo); if (!vistos.has(k)) { vistos.add(k); todos.push(e); } }
+        for (const e of r.eventos) { e.titulo = Correcciones.aplicar(e.titulo); const k = e.fecha + e.horaIni + norm(e.titulo); if (!vistos.has(k)) { vistos.add(k); todos.push(e); } }
       }
     } catch (e) { console.error(e); boton.disabled = false; prog(''); return toast('No se pudo leer la foto: ' + e.message, 'err'); }
     if (!todos.length) { boton.disabled = false; prog('No se reconocieron eventos. Prueba con una foto más nítida y de frente, o usa la otra forma de carga.'); return; }
@@ -614,7 +624,7 @@ Reglas:
   },
   /** Borrador editable: nada se guarda hasta que el usuario lo confirma. */
   borrador(lista, aviso) {
-    const l = lista.slice(0, 300).sort((a, b) => (a.fecha + a.horaIni).localeCompare(b.fecha + b.horaIni)); this._n = l.length;
+    const l = lista.slice(0, 300).sort((a, b) => (a.fecha + a.horaIni).localeCompare(b.fecha + b.horaIni)); this._n = l.length; this._orig = l.map(e => e.titulo);
     const ya = e => S.eventos.some(x => x.fecha === e.fecha && (x.horaIni || '') === (e.horaIni || '') && norm(x.titulo) === norm(e.titulo));
     const campo = (i, k, tipo, v, ancho) => `<input type="${tipo}" id="fb_${k}_${i}" value="${esc(v || '')}" style="width:${ancho};height:28px" aria-label="${k}">`;
     Modal.abrir(`<div class="form"><h2>Revisar y corregir (${l.length})</h2><div class="campos" style="display:block;padding:0">
@@ -630,8 +640,11 @@ Reglas:
     if (filas.length < 2) return toast('No hay filas marcadas', 'err');
     const r = Datos.leer_eventos(filas, 'foto');   // misma validación que la carga masiva
     if (!r.n) return toast('Ninguna fila es válida: revisa fechas, horas (fin después del inicio) y que no estén repetidas.', 'err');
+    // Aprende de los títulos que el usuario corrigió en el borrador
+    let k = 0; for (let i = 0; i < this._n; i++) if ($('#fb_ok_' + i).checked && this._orig && this._orig[i] && this._orig[i] !== v('titulo', i)) k += Correcciones.aprender(this._orig[i], v('titulo', i));
     const primera = r.lista.map(e => e.fecha).sort()[0];
     r.aplicar(); guardar(); Modal.cerrar();
+    if (k) setTimeout(() => toast(`Aprendí ${k} corrección(es) para las próximas lecturas`), 300);
     UI.ag.mes = primera.slice(0, 7); UI.ag.dia = primera; App.pintar();
     toast(`${r.n} evento(s) agregados${r.omitidas ? ` · ${r.omitidas} omitido(s) por inválidos o repetidos` : ''}`);
   }

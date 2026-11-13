@@ -282,3 +282,34 @@ Comprobado en ejecución: leyendo 4 fotos reales y 5 imágenes sintéticas, el n
 | Fecha | Cambio | Validación automática | Pasada adversarial |
 |---|---|---|---|
 | 2026-11-13 | v0.8 — papelera de reciclaje con borrado definitivo a los 7 días | APTO | Sin ejecución de código; 0 conexiones externas |
+
+## 16. Ajuste del lector con ejemplos del usuario y correcciones aprendidas (v0.9)
+
+**Conexiones externas:** sin cambios (0 en todas las pruebas). No se agregaron librerías: el modelo de Tesseract es el mismo y sus huellas no cambiaron.
+
+### Cambios
+- `Ocr.leerMejor()`: prueba la foto tal cual (modo automático) y con limpieza en modo de texto disperso, y, si la foto parece de lado, girada; elige la lectura con más palabras legibles. Selector manual de orientación en «Nota desde foto».
+- **Correcciones aprendidas** (`S.correcciones`, `Correcciones` en `src/058-papelera.js`): pares «el lector lee → debe decir» que se aprenden al corregir títulos en el borrador de agenda o con «Aprender de mis correcciones» en una nota, y se aplican en lecturas posteriores. Se administran en Ajustes → Lector de fotos (con carga masiva, exportación CSV y papelera).
+
+### Riesgos y controles
+| Riesgo | Control |
+|---|---|
+| Un texto de corrección usado como expresión regular (p. ej. `(a+)+$` o `.*`) | El texto se escapa antes de construir la búsqueda; sólo reemplaza palabras completas. Probado: sin bloqueo (< 200 ms con 5 000 caracteres) y `.*` se trata como texto literal |
+| HTML en una corrección o en el texto corregido | Se guarda como texto y se escapa al mostrarse. Probado (caso A5e): sin ejecución |
+| Diccionario manipulado en un respaldo | `sanear()`: sólo textos de 2 a 80 caracteres, máximo 5 000 registros, `usos` numérico |
+| Comparaciones muy largas que congelen la página | El aprendizaje compara como máximo 4 000 palabras por lado y bloques de hasta 12 palabras |
+| Aprender correcciones equivocadas | Sólo se aprenden pares con parecido suficiente (≥ 40 %, o ≥ 67 % en palabras de hasta 3 letras); el usuario puede editarlas o eliminarlas |
+
+### Pruebas
+- Ejemplos reales del usuario (no se guardan en el repositorio): pizarrón con marcador 58 % de palabras (71 % tras aprender las correcciones de la primera lectura); captura con fondo oscuro 0 % → 77 %; cuaderno con letra manuscrita y mensaje en pizarra: 0 % (límite del modelo, ver recomendación R-16).
+- `pruebas/lector-fotos.js` (sintéticas): agenda celular 4/4, semanal 6/6, aprendizaje desde el borrador de agenda aplicado en la siguiente lectura, nota girada leída completa (orientación automática), nota con fondo oscuro completa, aprendizaje desde una nota, letra de molde 0.99, cursiva 0.61. **Correcto**.
+- `pruebas/ataque.js` caso A5e: sin ejecución, sin bloqueo, comodines tratados como texto. Demás baterías sin errores.
+
+### Recomendación
+| # | Recomendación |
+|---|---|
+| R-16 | Para notas manuscritas en letra ligada, el lector incrustado no es suficiente. La alternativa en el navegador sería un modelo especializado (p. ej. TrOCR, decenas de MB, entrenado en inglés) que requeriría permitir su descarga o incrustarlo; no se evaluó porque el entorno de desarrollo no tiene acceso a su repositorio de modelos. Mientras tanto: escribir en letra de molde, o usar la app de Claude para transcribir la foto |
+
+| Fecha | Cambio | Validación automática | Pasada adversarial |
+|---|---|---|---|
+| 2026-11-13 | v0.9 — lectura con varias preparaciones, orientación y correcciones aprendidas | APTO | Sin ejecución de código; 0 conexiones externas |

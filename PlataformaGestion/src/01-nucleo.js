@@ -162,7 +162,7 @@ function estadoVacio() {
     ],
     proyectos: [], actividades: [], bitacora: [], notas: [], boveda: null, notasPriv: [],
     recordatorios: [], eventos: [], cumples: [], materias: [], escolares: [],
-    carpetas: [], enlaces: [], grupos: [], frases: [], historial: [], papelera: []
+    carpetas: [], enlaces: [], grupos: [], frases: [], historial: [], papelera: [], correcciones: []
   };
 }
 let S = estadoVacio();

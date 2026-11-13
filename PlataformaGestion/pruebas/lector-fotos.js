@@ -62,6 +62,12 @@ const ATAQUE = `<html><body style="margin:0;background:#fff;font-family:'DejaVu 
   <div>10:00 &lt;img src=x onerror=window.__ocr=1&gt;</div><div style="font-size:24px">1 h Reunión de Microsoft Teams</div>
   <div style="margin-top:30px">11:00 &lt;script&gt;window.__ocr=2&lt;/script&gt; prueba</div></body></html>`;
 
+const IMPRESO = 'Pendientes de la semana\nConciliar cuentas por pagar\nActualizar matriz de proveedores\nRevisar presupuesto del trimestre';
+const htmlGirado = () => `<html><body style="margin:0;background:#fff;width:760px;height:1100px;position:relative;overflow:hidden">
+  <div style="position:absolute;left:50%;top:50%;width:1000px;transform:translate(-50%,-50%) rotate(90deg);font-family:'DejaVu Sans';font-size:40px;line-height:70px;white-space:pre-line;color:#111">${IMPRESO}</div></body></html>`;
+const htmlOscuro = () => `<html><body style="margin:0;background:#1d1f24;width:900px;height:620px;font-family:'DejaVu Sans';color:#e6e6e6;padding:40px;box-sizing:border-box">
+  <div style="font-size:34px;margin-bottom:24px">Herramientas del equipo</div>${['Planeación: tablero mensual de avance', 'Reportes: indicadores de inversión', 'Compras: órdenes asociadas a proyectos', 'Finanzas: matriz de erogaciones'].map(t => `<div style="font-size:27px;padding:14px 0;border-bottom:1px solid #444">${t}</div>`).join('')}</body></html>`;
+
 (async () => {
   const b = await chromium.launch(); const R = {}; const t0 = Date.now();
   const foto = async (nombre, html, ancho, alto) => { const p = await b.newPage({ viewport: { width: ancho, height: alto } }); await p.setContent(html); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(150); const f = path.join(tmp, nombre); await p.screenshot({ path: f }); await p.close(); return f; };
@@ -69,6 +75,7 @@ const ATAQUE = `<html><body style="margin:0;background:#fff;font-family:'DejaVu 
   const fMolde = await foto('cuaderno-molde.png', htmlCuaderno(fuente('caveat-latin-400-normal.woff2'), 46, -1.2), 1100, 760);
   const fCursiva = await foto('cuaderno-cursiva.png', htmlCuaderno(fuente('homemade-apple-latin-400-normal.woff2'), 30, 0.8), 1100, 760);
   const fAtaque = await foto('ataque.png', ATAQUE, 900, 400);
+  const fGirado = await foto('girado.png', htmlGirado(), 760, 1100), fOscuro = await foto('oscuro.png', htmlOscuro(), 900, 620);
 
   const ctx = await b.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage();
   const externas = [], errores = []; p.on('request', r => { if (!/^(file|blob|data):/.test(r.url())) externas.push(r.url()); }); p.on('pageerror', e => errores.push(e.message));
@@ -90,10 +97,14 @@ const ATAQUE = `<html><body style="margin:0;background:#fff;font-family:'DejaVu 
   s = Date.now(); const pc = await leerAgenda([fPc]); R.computadora_seg = (Date.now() - s) / 1000;
   R.computadora = comparar(pc, AGENDA_PC.map(([c, h, t]) => ({ fecha: iso(dia(c)), ini: `${String(h).padStart(2, '0')}:00`, titulo: t })));
   R.computadora_extra = pc.filter(x => x.ok && !AGENDA_PC.some(([c, h, t]) => x.fecha === iso(dia(c)) && similitud(x.titulo, t) >= 0.8)).map(x => x.titulo);
-  // guardar el borrador del celular y comprobar que no se duplica al leerla otra vez
-  await leerAgenda([fCel]); await p.click('#modal .btn.pri'); await p.waitForTimeout(200);
+  // guardar el borrador del celular corrigiendo un título (la plataforma aprende la corrección) y comprobar que no se duplica al leerla otra vez
+  await leerAgenda([fCel]);
+  await p.evaluate(() => { for (let i = 0; i < Foto._n; i++) { const c = document.querySelector('#fb_titulo_' + i); if (/Llamada con proveedor/.test(c.value)) c.value = c.value.replace('proveedor', 'proveedores'); } });
+  await p.click('#modal .btn.pri'); await p.waitForTimeout(200);
+  R.aprendio_de_agenda = await p.evaluate(() => S.correcciones.some(c => /proveedor$/i.test(c.mal) && c.bien === 'proveedores'));
   R.guardados = await p.evaluate(() => S.eventos.filter(e => e.origen === 'foto').length);
   const otraVez = await leerAgenda([fCel]); R.segunda_lectura_marcados = otraVez.filter(x => x.ok).length;
+  R.correccion_aplicada_en_agenda = otraVez.some(x => x.titulo === 'Llamada con proveedores');
 
   // --- 2. Seguridad: texto malicioso dentro de la imagen ---
   await p.evaluate(() => { window.__ocr = 0; }); const at = await leerAgenda([fAtaque]);
@@ -107,8 +118,12 @@ const ATAQUE = `<html><body style="margin:0;background:#fff;font-family:'DejaVu 
     const s0 = Date.now(); await p.click('#ntLeer'); await p.waitForFunction(() => !document.querySelector('#modal').classList.contains('on'), null, { timeout: 180000 });
     return p.evaluate(s0 => { const n = Notas.actual(); return { seg: (Date.now() - s0) / 1000, titulo: n.titulo, texto: n.texto, foto: !!(n.img && Img.url(n.img)) }; }, s0);
   };
-  const molde = await nota(fMolde), cursiva = await nota(fCursiva);
+  const molde = await nota(fMolde), cursiva = await nota(fCursiva), girada = await nota(fGirado), oscura = await nota(fOscuro);
   R.nota_molde = { seg: molde.seg, similitud: +similitud(molde.texto, CUADERNO).toFixed(2), fotoGuardada: molde.foto, texto: molde.texto };
+  R.nota_girada_auto = { similitud: +similitud(girada.texto, IMPRESO).toFixed(2), seg: girada.seg };
+  R.nota_fondo_oscuro = { similitud: +similitud(oscura.texto, 'Herramientas del equipo Planeación: tablero mensual de avance Reportes: indicadores de inversión Compras: órdenes asociadas a proyectos Finanzas: matriz de erogaciones').toFixed(2) };
+  // aprender de las correcciones de una nota
+  R.aprender_nota = await p.evaluate(() => { const n = Notas.actual(); n.texto = n.texto.replace(/inversión/i, 'inversiones'); Notas.aprender(); return S.correcciones.some(c => /inversi[oó]n/i.test(c.mal) && c.bien === 'inversiones'); });
   R.nota_cursiva = { similitud: +similitud(cursiva.texto, CUADERNO).toFixed(2), texto: cursiva.texto.slice(0, 160) };
   // privada: sólo texto
   R.nota_privada = await p.evaluate(async () => { await Boveda.crear('clave-prueba-123'); UI.notas.f = 'priv'; App.pintar(); return true; });
@@ -118,7 +133,9 @@ const ATAQUE = `<html><body style="margin:0;background:#fff;font-family:'DejaVu 
   R.externas = externas; R.errores = errores; R.total_seg = (Date.now() - t0) / 1000;
   console.log(JSON.stringify(R, null, 1));
   const fallas = [!R.disponible && 'lector no disponible', ...R.celular.filter(x => !x.ok).map(x => 'celular: ' + x.esperado), ...R.computadora.filter(x => !x.ok).map(x => 'computadora: ' + x.esperado),
-    R.segunda_lectura_marcados && 'la segunda lectura volvió a marcar eventos ya guardados', R.ataque.ejecutoCodigo && 'el texto de la imagen ejecutó código', R.nota_molde.similitud < 0.8 && 'nota de letra de molde por debajo de 0.8', !R.nota_molde.fotoGuardada && 'la foto no se guardó con la nota',
+    R.segunda_lectura_marcados && 'la segunda lectura volvió a marcar eventos ya guardados',
+    !R.aprendio_de_agenda && 'no aprendió la corrección hecha en el borrador de agenda', !R.correccion_aplicada_en_agenda && 'no aplicó la corrección aprendida en la siguiente lectura',
+    R.nota_girada_auto.similitud < 0.9 && 'nota girada: la orientación automática falló', R.nota_fondo_oscuro.similitud < 0.85 && 'nota con fondo oscuro por debajo de 0.85', !R.aprender_nota && 'no aprendió la corrección de la nota', R.ataque.ejecutoCodigo && 'el texto de la imagen ejecutó código', R.nota_molde.similitud < 0.8 && 'nota de letra de molde por debajo de 0.8', !R.nota_molde.fotoGuardada && 'la foto no se guardó con la nota',
     !R.nota_privada_cifrada && 'la nota privada no quedó cifrada', externas.length && 'hubo conexiones externas', errores.length && 'errores en la página'].filter(Boolean);
   console.log(fallas.length ? '\nRESULTADO: FALLA\n - ' + fallas.join('\n - ') : '\nRESULTADO: CORRECTO');
   await b.close(); fs.rmSync(tmp, { recursive: true, force: true }); process.exit(fallas.length ? 1 : 0);

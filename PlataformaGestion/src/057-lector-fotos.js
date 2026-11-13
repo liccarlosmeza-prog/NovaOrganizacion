@@ -57,13 +57,40 @@ const Ocr = {
     }
     x.putImageData(img, 0, 0); return cv;
   },
-  /** opciones.papel: aplica la limpieza para fotos de cuaderno o papel. */
+  /** Gira el lienzo en múltiplos de 90° (sentido de las manecillas del reloj). */
+  _rotar(cv, g) {
+    g = ((Number(g) || 0) % 360 + 360) % 360; if (!g) return cv;
+    const o = document.createElement('canvas'), lado = g % 180 !== 0; o.width = lado ? cv.height : cv.width; o.height = lado ? cv.width : cv.height;
+    const x = o.getContext('2d', { willReadFrequently: true }); x.translate(o.width / 2, o.height / 2); x.rotate(g * Math.PI / 180); x.drawImage(cv, -cv.width / 2, -cv.height / 2); return o;
+  },
+  /**
+   * opciones.giro: 0, 90, 180 o 270 · opciones.papel: limpieza de contraste ·
+   * opciones.psm: modo de página del lector (6 = bloque, el predeterminado de Tesseract.js y con el que se calibró la lectura de agendas; 3 = automático; 11 = texto disperso)
+   */
   async leer(archivo, progreso, opciones = {}) {
-    let lienzo = await this._preparar(archivo); if (opciones.papel) lienzo = this._limpiarPapel(lienzo);
+    let lienzo = this._rotar(await this._preparar(archivo), opciones.giro); if (opciones.papel) lienzo = this._limpiarPapel(lienzo);
     const w = await this._trabajador(progreso);
+    await w.setParameters({ tessedit_pageseg_mode: String([3, 6, 11].includes(opciones.psm) ? opciones.psm : 6) });
     const { data } = await w.recognize(lienzo);
     this._tCierre = setTimeout(() => this.cerrar(), 3 * 60 * 1000);   // libera memoria si ya no se usa
     return data;
+  },
+  /** Palabras legibles: al menos 3 letras leídas con confianza alta. Es la mejor señal para elegir entre lecturas. */
+  buenas: data => (data.words || []).filter(w => w.confidence >= 75 && /[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,}/.test(w.text)).length,
+  /**
+   * Para notas y fotos de texto libre: prueba la foto tal cual y con limpieza en modo de texto disperso
+   * (medido con fotos reales: la captura de pantalla oscura pasó de 0 % a 77 % de palabras) y, si la foto
+   * parece estar de lado, prueba girada. Se queda con la lectura que tiene más palabras legibles.
+   */
+  async leerMejor(archivo, progreso, { giro = 'auto' } = {}) {
+    const intentos = [], prueba = async (op, txt) => { const d = await this.leer(archivo, av => progreso && progreso(txt, av), op); const r = { d, b: this.buenas(d), op }; intentos.push(r); return r; };
+    const elegir = () => intentos.slice().sort((a, c) => c.b - a.b || (a.op.psm === 11) - (c.op.psm === 11))[0];
+    const g0 = giro === 'auto' ? 0 : Number(giro) || 0;
+    await prueba({ giro: g0, psm: 3 }, 'Leyendo'); await prueba({ giro: g0, papel: true, psm: 11 }, 'Probando con limpieza de la foto');
+    if (giro === 'auto' && elegir().b < 3) {
+      for (const g of [90, 270, 180]) { const r = await prueba({ giro: g, psm: 3 }, `Probando la foto girada ${g}°`); if (r.b >= 3 && elegir() === r) { await prueba({ giro: g, papel: true, psm: 11 }, `Girada ${g}° con limpieza`); break; } }
+    }
+    const m = elegir(); return { data: m.d, giro: m.op.giro || 0, buenas: m.b, intentos: intentos.length };
   },
   /** Texto reconocido como párrafos: une renglones y separa donde hay un espacio mayor entre líneas. */
   texto(data) {

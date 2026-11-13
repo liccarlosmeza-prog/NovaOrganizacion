@@ -2,7 +2,7 @@
 
 > *Evolución sin límites.*
 > Documento técnico del proyecto: qué se pidió, qué se decidió, cómo está construido, qué se probó y qué falta.
-> Última actualización: 2026-11-12 · Versión de la aplicación: **0.8**
+> Última actualización: 2026-11-12 · Versión de la aplicación: **0.9**
 
 ---
 
@@ -38,6 +38,7 @@
 | 12 | Reclasificar las sesiones de la agenda por proyecto | **v0.7**: vista «Eventos y proyectos» en Agenda (asignación individual, masiva y por título) y pestaña «Sesiones» en el detalle de proyecto | — |
 | 13 | Leer las fotos dentro de la plataforma, sin herramientas externas; evaluar Python embebido; notas desde foto de cuaderno | **v0.7**: Tesseract.js incrustado (`src/057-lector-fotos.js`, `terceros/tesseract/`), interpretación de agenda en lista y en cuadrícula, «Nota desde foto», `pruebas/lector-fotos.js`. Python embebido (Pyodide) **descartado**: no incluye motores de reconocimiento de texto | — |
 | 14 | Lo eliminado se conserva 7 días y después se borra; papelera de reciclaje | **v0.8**: `src/058-papelera.js`, pantalla «Papelera», purga automática, `pruebas/papelera.js` | — |
+| 15 | Ajustar el lector con ejemplos reales (pizarrón, captura oscura, cuaderno, recado) | **v0.9**: `Ocr.leerMejor()` (varias preparaciones y orientación), diccionario de correcciones aprendidas, Ajustes → Lector de fotos. Medido: pizarrón 58 %→71 % tras aprender, captura oscura 0 %→77 %; manuscrita ligada sin mejora (límite del modelo) | — |
 
 ---
 
@@ -157,6 +158,7 @@ Todas las colecciones viven dentro de `S`. Las relaciones se hacen por `id`.
 | `grupos` | id, nombre, ids[] | → enlaces |
 | `frases` | id, texto, autor, img, vista (fecha en que se mostró) | → imágenes |
 | `historial` | id, lista, ref, titulo, proyecto, de, a, fecha | registro de cambios de estatus |
+| `correcciones` | id, mal, bien, usos | diccionario del lector aprendido de las correcciones del usuario |
 | `papelera` | id, lista, titulo, ms (fecha de eliminación), obj (registro), rel [{lista, objs}], des [{lista, campo, ids}] | elementos eliminados; se borran a los 7 días |
 
 Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identificadas por UUID.
@@ -355,3 +357,15 @@ Por confirmar con el usuario: disponibilidad de licencia de Power Pages y si "va
 | Hoja de cuaderno, letra de molde | Similitud 0.99 |
 | Hoja de cuaderno, letra cursiva | Similitud 0.41 (no útil) |
 | Tiempo | 2 a 7 s por foto; la primera lectura incluye la preparación del lector |
+
+### Ajuste con ejemplos reales (v0.9)
+Reentrenar Tesseract no es viable con pocas fotos (requiere miles de renglones etiquetados y herramientas de entrenamiento fuera del navegador). En su lugar se midieron, con 4 fotos del usuario, distintas preparaciones de imagen y modos del lector:
+
+| Preparación | Pizarrón (marcador) | Captura oscura | Cuaderno (manuscrita) | Recado en pizarra |
+|---|---|---|---|---|
+| Sin preparar, modo bloque (anterior) | 54 % | 0 % | 0 % | 0 % |
+| Sin preparar, modo automático | **58 %** | 0 % | 0 % | 0 % |
+| Limpieza adaptativa + texto disperso | 46 % | **77 %** | 0 % | 0 % |
+| Canal de tinta + umbral global | 46 % | 0 % | 0 % | 0 % |
+
+Se adoptó probar las dos mejores y elegir por **número de palabras legibles** (≥ 3 letras con confianza ≥ 75), que resultó mejor selector que la confianza promedio. Encima se agregó el diccionario de correcciones aprendidas (pizarrón: 58 % → 71 % al releer).

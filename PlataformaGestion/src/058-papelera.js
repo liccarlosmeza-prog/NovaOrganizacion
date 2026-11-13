@@ -17,7 +17,7 @@ const Papelera = {
     notasPriv: ['Nota privada', ''], recordatorios: ['Recordatorio', 'texto'], eventos: ['Evento', 'titulo'], cumples: ['Cumpleaños', 'nombre'],
     materias: ['Materia', 'nombre'], escolares: ['Actividad escolar', 'titulo'], carpetas: ['Carpeta', 'nombre'], enlaces: ['Acceso directo', 'nombre'],
     grupos: ['Grupo de accesos', 'nombre'], frases: ['Frase', 'texto'], estatus: ['Estatus', 'nombre'], categorias: ['Clasificación', 'nombre'],
-    fotoNota: ['Foto de nota', '']
+    fotoNota: ['Foto de nota', ''], correcciones: ['Corrección del lector', 'mal']
   },
   // Campos de vínculo que se pueden quitar y volver a poner al restaurar
   VINCULOS: { actividades: ['proyecto', 'categoria'], notas: ['proyecto'], eventos: ['proyecto'], enlaces: ['carpeta'] },
@@ -118,4 +118,89 @@ Vistas.papelera = () => {
       <td class="nw ${d < 1 ? 'rojo' : d <= 2 ? 'ambar' : ''}" title="${esc(new Date(Papelera.vence(e)).toLocaleString('es-MX'))}">${d < 1 ? 'Menos de 1 día' : d === 1 ? '1 día' : d + ' días'}</td>
       <td class="num nw"><button class="btn ch" onclick="Papelera.rest('${e.id}')">Restaurar</button> <button class="lnk rojo" onclick="Papelera.borrarUna('${e.id}')">Borrar ya</button></td></tr>`; }).join('')}</tbody></table>`
     : vacio('La papelera está vacía', `Lo que elimines aparecerá aquí durante ${Papelera.DIAS} días por si necesitas recuperarlo.`)}</div>`;
+};
+
+/* ==========================================================================
+   CORRECCIONES APRENDIDAS DEL LECTOR
+   No se reentrena el modelo (requeriría miles de muestras etiquetadas): la plataforma
+   recuerda cómo corriges lo que el lector lee mal y lo aplica en las lecturas siguientes.
+   Registro: { id, mal, bien, usos }
+   ========================================================================== */
+const Correcciones = {
+  _norm: t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(),
+  _escRe: t => String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+  /** Aplica el diccionario a un texto reconocido (sólo palabras completas; respeta el texto alrededor). */
+  aplicar(texto) {
+    let t = String(texto || '');
+    if (!S.correcciones.length || !t) return t;
+    const lista = S.correcciones.slice().sort((a, b) => b.mal.length - a.mal.length);
+    for (const c of lista) {
+      const re = new RegExp(`(^|[^\\p{L}\\p{N}])${this._escRe(c.mal)}(?=$|[^\\p{L}\\p{N}])`, 'giu');
+      let hubo = false; t = t.replace(re, (m, pre) => { hubo = true; return pre + c.bien; });
+      if (hubo) c.usos = (c.usos || 0) + 1;
+    }
+    return t;
+  },
+  /** Parecido entre dos textos (1 = iguales), sólo letras y números. */
+  _sim(a, b) {
+    a = this._norm(a).replace(/[^a-z0-9ñ]/g, ''); b = this._norm(b).replace(/[^a-z0-9ñ]/g, ''); if (!a || !b) return 0;
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return 1 - d[a.length][b.length] / Math.max(a.length, b.length);
+  },
+  /** Alinea dos bloques cortos de palabras (máx. 12) y devuelve pares [leído, correcto] suficientemente parecidos. */
+  _alinear(da, db) {
+    if (da.length > 12 || db.length > 12) return [];
+    const n = da.length, m = db.length, INF = 1e9, C = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(INF)), P = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(null));
+    C[0][0] = 0;
+    const paso = (i, j, a, b, costo, par) => { if (i + a <= n && j + b <= m && C[i][j] + costo < C[i + a][j + b]) { C[i + a][j + b] = C[i][j] + costo; P[i + a][j + b] = [i, j, par]; } };
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= m; j++) {
+      if (C[i][j] === INF) continue;
+      paso(i, j, 1, 0, 0.6, null); paso(i, j, 0, 1, 0.6, null);
+      if (i < n && j < m) paso(i, j, 1, 1, 1 - this._sim(da[i], db[j]), [da[i], db[j]]);
+      if (i + 1 < n && j < m) paso(i, j, 2, 1, 1 - this._sim(da[i] + da[i + 1], db[j]), [da[i] + ' ' + da[i + 1], db[j]]);
+      if (i < n && j + 1 < m) paso(i, j, 1, 2, 1 - this._sim(da[i], db[j] + db[j + 1]), [da[i], db[j] + ' ' + db[j + 1]]);
+    }
+    const r = []; let i = n, j = m;
+    while (i || j) { const [pi, pj, par] = P[i][j]; if (par) { const s = this._sim(par[0], par[1]), corto = this._norm(par[0]).length <= 3; if (s >= (corto ? 0.67 : 0.4) && s < 1) r.push(par); } i = pi; j = pj; }
+    return r.reverse();
+  },
+  /** Compara lo leído con lo corregido y guarda los cambios de 1 a 3 palabras. Devuelve cuántos aprendió. */
+  aprender(original, corregido) {
+    const A = String(original || '').split(/\s+/).filter(Boolean).slice(0, 4000), B = String(corregido || '').split(/\s+/).filter(Boolean).slice(0, 4000);
+    if (!A.length || !B.length) return 0;
+    const na = A.map(this._norm), nb = B.map(this._norm), n = A.length, m = B.length;
+    if (n * m > 4e6) return 0;   // textos demasiado largos para comparar con seguridad
+    const L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+    for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = na[i] === nb[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    // Bloques que no coinciden: se alinean palabra por palabra por parecido de letras
+    // (admite que el lector parta una palabra en dos o junte dos en una)
+    const pares = []; let i = 0, j = 0, da = [], db = [];
+    const cierra = () => { if (da.length && db.length) pares.push(...this._alinear(da, db)); da = []; db = []; };
+    while (i < n && j < m) { if (na[i] === nb[j]) { cierra(); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) da.push(A[i++]); else db.push(B[j++]); }
+    while (i < n) da.push(A[i++]); while (j < m) db.push(B[j++]); cierra();
+    let k = 0;
+    for (let [mal, bien] of pares) {
+      mal = mal.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''); bien = bien.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+      if (mal.length < 2 || !bien || this._norm(mal) === this._norm(bien) || mal.length > 80 || bien.length > 80) continue;
+      const ya = S.correcciones.find(c => this._norm(c.mal) === this._norm(mal));
+      if (ya) { if (ya.bien !== bien) { ya.bien = bien; k++; } } else { S.correcciones.push({ id: uid(), mal, bien, usos: 0 }); k++; }
+    }
+    if (k) guardar();
+    return k;
+  },
+  editar(id) {
+    const c = id ? por('correcciones', id) : null;
+    Form.abrir({ titulo: c ? 'Editar corrección' : 'Nueva corrección', valores: c || {},
+      campos: [{ k: 'mal', label: 'Lo que lee el lector', req: true, medio: true, ayuda: 'Palabra o frase corta tal como sale mal.' }, { k: 'bien', label: 'Debe decir', req: true, medio: true }],
+      guardar: v => { if (v.mal.length > 80 || v.bien.length > 80) return 'Máximo 80 caracteres'; if (S.correcciones.some(x => x.id !== (c && c.id) && Correcciones._norm(x.mal) === Correcciones._norm(v.mal))) return 'Ya existe una corrección para ese texto'; poner('correcciones', { id: c ? c.id : uid(), usos: c ? c.usos : 0, ...v }); },
+      eliminar: c ? () => quitar('correcciones', c.id) : null });
+  },
+  vista() {
+    const l = S.correcciones.slice().sort((a, b) => (b.usos || 0) - (a.usos || 0) || a.mal.localeCompare(b.mal, 'es'));
+    return `<section class="blq"><h3>Correcciones aprendidas del lector de fotos <button class="lnk" onclick="Carga.abrir('correcciones')">Carga masiva</button><button class="lnk" onclick="Correcciones.editar()">+ Agregar</button></h3>
+      <div class="cu d" style="padding-bottom:0">Cada vez que corriges un texto leído de una foto (títulos en el borrador de agenda, o «Aprender de mis correcciones» en una nota), la plataforma lo recuerda y lo aplica en las siguientes lecturas.</div>
+      ${l.length ? `<div class="scrollx"><table class="lista"><thead><tr><th>El lector lee</th><th>Se corrige a</th><th class="num">Veces aplicada</th></tr></thead><tbody>
+        ${l.map(c => `<tr><td><span class="t" onclick="Correcciones.editar('${c.id}')">${esc(c.mal)}</span></td><td>${esc(c.bien)}</td><td class="num">${c.usos || 0}</td></tr>`).join('')}</tbody></table></div>` : vacio('Aún no hay correcciones', 'Se agregan solas cuando corriges lo que lee el lector.')}</section>`;
+  }
 };
