@@ -206,3 +206,48 @@ Con la sincronización apagada la plataforma sigue sin hacer ninguna conexión (
 | R-11 | Activar verificación en dos pasos en la cuenta de GitHub | Protege el repositorio de datos |
 | R-12 | Poner vencimiento al token y renovarlo | Limita el daño si se filtra |
 | R-13 | Pedir la contraseña de sincronización al abrir en lugar de recordar la clave en el equipo | Protege en equipos compartidos; a cambio, hay que escribirla cada vez |
+
+## 14. Revisión del lector de fotos incrustado y de la clasificación de eventos (v0.7)
+
+### Cambio en dependencias y conexiones externas
+| Elemento | Antes | Ahora | Acción |
+|---|---|---|---|
+| Lector de imágenes (Tesseract.js 5.1.1 + núcleo WebAssembly + idioma español) | No existía | **Incrustado** en el HTML como bloques de texto (≈ 6.8 MB) | Se mantiene empaquetado; **no** se descarga de ningún CDN |
+| Conexiones externas | Sólo `api.github.com` (sincronización opcional) | Sin cambios | El lector no se conecta a nada: su proceso arranca con un guardián que bloquea cualquier petición de red |
+| Versión para Power Pages | — | Se genera **sin** el lector (las plantillas web tienen límite de tamaño); allí sólo queda el método de pegar texto | — |
+
+Comprobado en ejecución: leyendo 4 fotos reales y 5 imágenes sintéticas, el navegador registró **0 conexiones externas**.
+
+### Cambios en la política de seguridad (CSP) y su justificación
+| Directiva | Valor nuevo | Por qué es necesario | Riesgo y mitigación |
+|---|---|---|---|
+| `script-src` | se agregan `'wasm-unsafe-eval'` y `blob:` | El motor de reconocimiento es WebAssembly (requiere compilarlo) y el código incrustado se arranca desde un *blob* local | `wasm-unsafe-eval` **no** permite `eval()` de JavaScript. `blob:` sólo carga contenido que la propia página genera; la validación automática sigue prohibiendo `eval`, `new Function` y `document.write` en el código propio |
+| `worker-src` | `blob:` (antes `'none'`) | El reconocimiento corre en un proceso aparte para no congelar la página | Sólo procesos creados por la página; el guardián del proceso bloquea la red y `connect-src` sigue limitado |
+
+### Controles nuevos
+| Riesgo | Control |
+|---|---|
+| Librería de terceros alterada o reemplazada | Huella SHA-256 de cada archivo (`terceros/tesseract/HUELLAS.txt`); `seguridad.js` compara lo incrustado byte a byte y detiene la construcción si no coincide |
+| Que la librería intente descargar modelos o código | Rutas del núcleo, del proceso y del idioma apuntan a lo incrustado; el guardián responde sólo al idioma local y rechaza cualquier otra petición |
+| Texto reconocido con contenido malicioso (una foto con `<img onerror=…>` o comillas para romper campos) | Se trata como dato no confiable: se escapa al mostrarse en el borrador y pasa por `leer_eventos` (fecha, hora, repetidos). Probado: no ejecuta código |
+| Archivos enormes o que no son imagen | Sólo `image/*`, máximo 25 MB por foto y 12 fotos por lectura; la imagen se redibuja en un lienzo antes de leerla |
+| Fotos de notas privadas | En notas privadas sólo se guarda el texto cifrado; la foto no se conserva. Al convertir una nota con foto en privada, la foto se elimina |
+
+### Hallazgos
+| ID | Severidad | Confianza | Problema | Estado |
+|---|---|---|---|---|
+| S-17 | Bajo | Confirmado | `worker.min.js` (tercero) contiene `new Function`; con la CSP actual no se puede usar, y el lector funciona sin ello | Aceptado: código de tercero verificado por huella; no se habilita `unsafe-eval` |
+| S-18 | Bajo | Confirmado | `script-src blob:` amplía lo que puede ejecutarse si existiera una inyección que cree *blobs* | Aceptado: la defensa principal sigue siendo el saneamiento y el escapado (pasada adversarial sin ejecución) |
+| S-19 | Informativo | Confirmado | El archivo pasa de ~0.25 MB a ~7 MB | Aceptado: GitHub Pages lo admite; la primera lectura tarda unos segundos en preparar el lector |
+
+### Pruebas ejecutadas
+- `pruebas/lector-fotos.js` (imágenes sintéticas, sin datos reales): agenda de celular 4/4 eventos con fecha, hora y duración correctas; vista semanal 6/6 sin eventos de más; segunda lectura no duplica; texto malicioso en la imagen sin ejecución; nota en letra de molde con similitud 0.99; letra cursiva 0.41; nota privada cifrada sin foto; 0 conexiones; 0 errores.
+- Fotos reales del usuario (no se guardan en el repositorio): celular 9/9, computadora octubre 10/10, noviembre 9/9; los eventos dudosos quedan desmarcados.
+- `pruebas/ataque.js` con el caso nuevo A5d (texto reconocido malicioso en el borrador): sin ejecución; fechas y horas inválidas no se guardan.
+- Baterías funcional, de frases y de sincronización: sin errores.
+
+### Recomendaciones
+| # | Recomendación |
+|---|---|
+| R-14 | Para notas escritas en cursiva, usar la opción de asistente de IA (Claude) o capturar el texto a mano: el lector incrustado no la reconoce bien |
+| R-15 | Revisar siempre el borrador contra la foto antes de guardar; las horas de la vista semanal son estimadas por posición |

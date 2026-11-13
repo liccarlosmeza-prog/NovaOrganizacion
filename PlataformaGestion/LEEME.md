@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.6
+# Nova Organización — prueba v0.7
 
 > *Evolución sin límites.*
 
@@ -58,6 +58,12 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.7 (lector de fotos y clasificación de eventos)
+- **Agenda → Cargar por foto → Leer fotos**: la plataforma lee la foto de tu agenda (Teams en el celular o calendario semanal en la computadora) **dentro del navegador**, sin conexiones. Muestra un borrador editable; los eventos dudosos quedan desmarcados.
+- **Notas → Nota desde foto**: convierte la foto de una hoja o cuaderno en una nota y guarda la foto con ella. Funciona bien con letra de molde clara; con letra cursiva el resultado es pobre.
+- **Agenda → Eventos y proyectos**: asigna cada evento a un proyecto (uno por uno, varios a la vez o todos los que tengan el mismo título). En cada proyecto, la pestaña **Sesiones** muestra sus eventos.
+- El archivo pesa ~7 MB porque incluye el lector. La versión para Power Pages se genera sin él.
 
 ### Novedades de la v0.6 (agenda por foto)
 - **Agenda → Cargar por foto**: copia unas instrucciones, envíalas junto con la foto de tu calendario a un asistente de IA (por ejemplo, la app de Claude), pega la respuesta y revisa la lista antes de guardar.

@@ -2,7 +2,7 @@
 
 > *Evolución sin límites.*
 > Documento técnico del proyecto: qué se pidió, qué se decidió, cómo está construido, qué se probó y qué falta.
-> Última actualización: 2026-11-12 · Versión de la aplicación: **0.6**
+> Última actualización: 2026-11-12 · Versión de la aplicación: **0.7**
 
 ---
 
@@ -35,6 +35,8 @@
 | 9 | Carrusel de frases aleatorio, sin repetir, sólo de lunes a viernes | **v0.4** | `04e0636` |
 | 10 | Guardar la información en GitHub para usarla en varios equipos | **v0.5**: sincronización cifrada con repositorio privado (`src/055-sincronizacion.js`), autorizando `api.github.com` como única conexión externa | — |
 | 11 | Cargar la agenda de trabajo a partir de fotos del calendario | **v0.6**: «Cargar por foto» en Agenda (`Foto` en `05-ajustes-datos.js`): instrucciones para un asistente de IA + pegado y revisión del CSV. Sin conexiones nuevas | — |
+| 12 | Reclasificar las sesiones de la agenda por proyecto | **v0.7**: vista «Eventos y proyectos» en Agenda (asignación individual, masiva y por título) y pestaña «Sesiones» en el detalle de proyecto | — |
+| 13 | Leer las fotos dentro de la plataforma, sin herramientas externas; evaluar Python embebido; notas desde foto de cuaderno | **v0.7**: Tesseract.js incrustado (`src/057-lector-fotos.js`, `terceros/tesseract/`), interpretación de agenda en lista y en cuadrícula, «Nota desde foto», `pruebas/lector-fotos.js`. Python embebido (Pyodide) **descartado**: no incluye motores de reconocimiento de texto | — |
 
 ---
 
@@ -100,6 +102,7 @@ NovaOrganizacion/
         ├── 04-notas-accesos.js       Notas, Accesos directos, Cumpleaños, Frases
         ├── 05-ajustes-datos.js       Ajustes, exportar/importar, respaldo, carga masiva, saneamiento
         ├── 055-sincronizacion.js     Sincronización cifrada con un repositorio privado de GitHub
+        ├── 057-lector-fotos.js       Lector de fotos (Tesseract.js incrustado) e interpretación de agendas
         └── 06-inicio.js              datos de ejemplo y arranque
 ```
 
@@ -318,3 +321,34 @@ Por confirmar con el usuario: disponibilidad de licencia de Power Pages y si "va
 4. Para agregar una pantalla: registrar su función en `Vistas`, añadirla a `App.NAV` y, si maneja datos nuevos, agregar su colección en `estadoVacio()` (la función `fusionar()` completa automáticamente los estados guardados de versiones anteriores).
 5. Para agregar una carga masiva: añadir su entrada en `LAYOUTS` y su lector `Datos.leer_<clave>`.
 6. Hacer commit y subir a la rama de trabajo.
+
+---
+
+## 12. Lector de fotos (v0.7)
+
+### Decisión: JavaScript con Tesseract.js, no Python embebido
+| Opción evaluada | Resultado |
+|---|---|
+| **Tesseract.js 5.1.1** (motor Tesseract compilado a WebAssembly) | **Elegida.** Corre en el navegador, sin servidor; ≈ 6.8 MB incrustados; lee español con el modelo `best_int` |
+| Python embebido (Pyodide 0.26, ≈ 10 MB base) | **Descartada.** De sus 310 paquetes, ninguno es un motor de reconocimiento de texto (sólo OpenCV, Pillow y scikit-image, que preparan imágenes pero no leen texto). EasyOCR y PaddleOCR necesitan PyTorch o Paddle, que no existen para Pyodide. Agregaría peso sin mejorar la lectura |
+| Modelos de escritura a mano en el navegador (TrOCR vía ONNX) | No incorporados: decenas o cientos de MB, entrenados en inglés y sólo leen una línea a la vez |
+
+### Cómo funciona
+1. `Ocr.leer()` redibuja la foto en un lienzo (máx. 2600 px) y la pasa al proceso del lector.
+2. El proceso arranca desde un único bloque: guardián (entrega el idioma y bloquea la red) + núcleo + proceso de Tesseract.js. Se usa un solo bloque porque, al abrir la página como archivo local, el navegador impide que un proceso cargue otros recursos internos.
+3. `OcrAgenda.interpretar()` usa el texto **y la posición** de cada palabra:
+   - **Lista de agenda** (celular): encabezados de fecha («9 nov lunes», corrigiendo confusiones como `g`→`9`), renglones «hh:mm Título», duración («1 h», «30 min») y lugar (Teams, sala).
+   - **Cuadrícula semanal** (computadora): calcula la escala vertical con las etiquetas de hora («10 AM»), las columnas con los números de día, el mes y año del encabezado, y agrupa el texto de cada bloque; separa el organizador («Apellido, Nombre»), une organizadores partidos en varias líneas y descarta ruido (barra de tareas, fragmentos ilegibles).
+   - Cada evento lleva una confianza; los dudosos (< 78 % o con símbolos raros, como el texto tachado) quedan **desmarcados** en el borrador.
+4. El borrador es editable y se valida con `leer_eventos` antes de guardar.
+5. **Notas**: `Ocr.texto()` arma párrafos y quita las rayas del renglonado. Si la primera lectura sale con baja confianza, se repite con limpieza de contraste (umbral adaptativo) y se conserva la mejor.
+
+### Calidad medida
+| Caso | Resultado |
+|---|---|
+| Agenda Teams celular (fotos reales) | 9/9 eventos; 2 dudosos desmarcados |
+| Calendario semanal (fotos reales, octubre / noviembre) | 10/10 y 9/9; horas estimadas por posición; títulos recortados si la foto los recorta |
+| Imágenes sintéticas (celular / semanal) | 4/4 y 6/6, sin eventos de más |
+| Hoja de cuaderno, letra de molde | Similitud 0.99 |
+| Hoja de cuaderno, letra cursiva | Similitud 0.41 (no útil) |
+| Tiempo | 2 a 7 s por foto; la primera lectura incluye la preparación del lector |

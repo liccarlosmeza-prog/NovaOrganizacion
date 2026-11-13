@@ -212,7 +212,7 @@ const Datos = {
       { nombre: 'actividades.csv', enc: ['Id', 'Titulo', 'Proyecto', 'Clasificacion', 'Estatus', 'Prioridad', 'FechaInicio', 'FechaLimite', 'Hora', 'Horas', 'Detalle', 'Checklist', 'FechaTerminada'],
         filas: S.actividades.map(a => [a.id, a.titulo, nom('proyectos', a.proyecto), nom('categorias', a.categoria), nom('estatus', a.estatus), pri(a.prioridad), aDMY(a.inicio), aDMY(a.limite), a.hora, a.horas, a.detalle, a.checklist, aDMY(a.completada)]) },
       { nombre: 'bitacora.csv', enc: ['Id', 'Proyecto', 'FechaHora', 'Tipo', 'Texto', 'Imagenes'], filas: S.bitacora.map(b => [b.id, nom('proyectos', b.proyecto), b.fecha, b.tipo, b.texto, (b.imgs || []).length]) },
-      { nombre: 'notas.csv', enc: ['Id', 'Titulo', 'Proyecto', 'Etiquetas', 'Fijada', 'Creada', 'Actualizada', 'Texto'], filas: S.notas.map(n => [n.id, n.titulo, nom('proyectos', n.proyecto), n.etiquetas, n.fijada ? 'SI' : 'NO', n.creado, n.actualizado, n.texto]) },
+      { nombre: 'notas.csv', enc: ['Id', 'Titulo', 'Proyecto', 'Etiquetas', 'Fijada', 'Creada', 'Actualizada', 'TieneFoto', 'Texto'], filas: S.notas.map(n => [n.id, n.titulo, nom('proyectos', n.proyecto), n.etiquetas, n.fijada ? 'SI' : 'NO', n.creado, n.actualizado, n.img ? 'SI' : 'NO', n.texto]) },
       { nombre: 'recordatorios.csv', enc: ['Id', 'Texto', 'Fecha', 'Hora', 'Repeticion', 'Hecho'], filas: S.recordatorios.map(r => [r.id, r.texto, aDMY(r.fecha), r.hora, r.repetir, r.hecho ? 'SI' : 'NO']) },
       { nombre: 'agenda.csv', enc: ['Id', 'Evento', 'Fecha', 'HoraInicio', 'HoraFin', 'Tipo', 'Proyecto', 'Lugar', 'Notas', 'Origen'], filas: S.eventos.map(e => [e.id, e.titulo, aDMY(e.fecha), e.horaIni, e.horaFin, e.tipo, nom('proyectos', e.proyecto), e.lugar, e.nota, e.origen]) },
       { nombre: 'cumpleanos.csv', enc: ['Nombre', 'Fecha', 'Relacion', 'Nota'], filas: S.cumples.map(c => [c.nombre, `${p2(c.dia)}/${p2(c.mes)}${c.anio ? '/' + c.anio : ''}`, c.relacion, c.nota]) },
@@ -517,13 +517,14 @@ const Seg = {
 
 /* ==========================================================================
    AGENDA POR FOTO
-   La plataforma no lee imágenes (no tiene conexión a ningún servicio de reconocimiento).
-   El flujo es: 1) el usuario envía la foto de su calendario a un asistente de IA junto con
-   las instrucciones que aquí se copian; 2) pega la respuesta (CSV); 3) revisa y agrega.
-   El texto pegado se trata como dato no confiable: pasa por parseCSV y leer_eventos.
+   Dos caminos, ambos terminan en un borrador editable que el usuario confirma:
+   a) Leer la foto aquí mismo con el lector incrustado (057-lector-fotos.js). Sin conexiones.
+   b) Pegar el CSV que devuelve un asistente de IA al que el usuario le envió la foto.
+   Tanto el texto reconocido como el pegado son datos no confiables: se escapan al mostrarse
+   y pasan por leer_eventos (validación de fecha, hora y repetidos) antes de guardarse.
    ========================================================================== */
 const Foto = {
-  _r: null,
+  _n: 0,
   instrucciones() {
     return `Te adjunto una o varias fotos o capturas de mi calendario (Teams u Outlook). Extrae TODOS los eventos visibles y devuélvelos ÚNICAMENTE como CSV dentro de un bloque de código, sin explicaciones, con exactamente este encabezado:
 Evento,Fecha,HoraInicio,HoraFin,Tipo,Proyecto,Lugar,Notas
@@ -540,21 +541,40 @@ Reglas:
 - Pon entre comillas dobles los textos que contengan comas o comillas.`;
   },
   abrir() {
-    this._r = null;
+    const ocr = Ocr.disponible();
     Modal.abrir(`<div class="form"><h2>Cargar agenda por foto</h2><div class="campos" style="display:block">
-      <p class="d" style="margin-bottom:10px">La plataforma no puede leer imágenes por sí sola. Usa un asistente de IA (por ejemplo, la app de Claude en tu celular) para convertir la foto en texto y pégalo aquí:</p>
-      <p><b>1.</b> Copia las instrucciones. <button class="btn ch" type="button" onclick="Foto.copiar()">Copiar instrucciones</button></p>
-      <p style="margin-top:6px"><b>2.</b> En el asistente, adjunta la foto de tu calendario, pega las instrucciones y envía.</p>
-      <p style="margin:6px 0 8px"><b>3.</b> Copia la respuesta y pégala aquí:</p>
-      <textarea id="ftTexto" rows="9" style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:12.5px" placeholder="Evento,Fecha,HoraInicio,HoraFin,Tipo,Proyecto,Lugar,Notas&#10;Revisión de avance,16/11/2026,10:00,11:00,Reunión,,Teams,"></textarea>
-      <textarea id="ftInstr" rows="6" readonly hidden style="width:100%;margin-top:8px;font-size:12px"></textarea></div>
-      <div class="acciones"><span class="d">Antes de guardar verás la lista para revisarla.</span><span class="esp"></span><button class="btn" type="button" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri" type="button" onclick="Foto.revisar()">Revisar</button></div></div>`, 700);
-    $('#ftTexto').focus();
+      ${ocr ? `<p><b>Leer la foto aquí mismo.</b> <span class="d">La imagen se procesa en este equipo; no se envía a ningún lado.</span></p>
+        <div class="barra" style="margin:8px 0 4px"><input type="file" id="ftFotos" accept="image/*" multiple><button class="btn pri" type="button" id="ftLeer" onclick="Foto.leer()">Leer fotos</button></div>
+        <p class="d" id="ftProg">Sirve con fotos o capturas de la agenda de Teams (celular) y del calendario semanal (computadora). Toma la foto de frente, sin reflejos y con el texto nítido.</p>
+        <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Otra forma: pegar el texto generado por un asistente de IA</summary><div style="padding-top:8px">` : '<p class="d" style="margin-bottom:10px">Esta versión no incluye el lector de imágenes. Usa un asistente de IA para convertir la foto en texto y pégalo aquí:</p><div>'}
+      <p><b>1.</b> Copia las instrucciones. <button class="btn ch" type="button" onclick="Foto.copiar()">Copiar instrucciones</button> <b>2.</b> Envíalas al asistente junto con la foto. <b>3.</b> Pega aquí su respuesta:</p>
+      <textarea id="ftTexto" rows="6" style="width:100%;margin-top:8px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px" placeholder="Evento,Fecha,HoraInicio,HoraFin,Tipo,Proyecto,Lugar,Notas&#10;Revisión de avance,16/11/2026,10:00,11:00,Reunión,,Teams,"></textarea>
+      <textarea id="ftInstr" rows="5" readonly hidden style="width:100%;margin-top:8px;font-size:12px"></textarea>
+      <div style="margin-top:8px"><button class="btn" type="button" onclick="Foto.revisar()">Revisar texto pegado</button></div></div>${ocr ? '</details>' : ''}</div>
+      <div class="acciones"><span class="d">Antes de guardar podrás corregir cada evento.</span><span class="esp"></span><button class="btn" type="button" onclick="Modal.cerrar()">Cerrar</button></div></div>`, 720);
   },
   async copiar() {
     const t = this.instrucciones();
     try { await navigator.clipboard.writeText(t); toast('Instrucciones copiadas'); }
     catch (e) { const a = $('#ftInstr'); a.hidden = false; a.value = t; a.select(); toast('Selecciona y copia el texto que aparece abajo'); }
+  },
+  /** Reconoce el texto de cada foto (dentro del navegador) y arma el borrador. */
+  async leer() {
+    const archivos = [...$('#ftFotos').files];
+    if (!archivos.length) return toast('Elige primero una o varias fotos', 'err');
+    if (archivos.length > 12) return toast('Máximo 12 fotos por vez', 'err');
+    const boton = $('#ftLeer'), prog = t => { const p = $('#ftProg'); if (p) p.textContent = t; };
+    boton.disabled = true; const todos = [], vistos = new Set(), resumen = [];
+    try {
+      for (let i = 0; i < archivos.length; i++) {
+        prog(`Leyendo foto ${i + 1} de ${archivos.length}… ${i === 0 ? '(la primera vez tarda unos segundos en preparar el lector)' : ''}`);
+        const datos = await Ocr.leer(archivos[i], av => prog(`Leyendo foto ${i + 1} de ${archivos.length}… ${Math.round(av * 100)} %`));
+        const r = OcrAgenda.interpretar(datos); resumen.push(`${r.eventos.length} en la foto ${i + 1} (${r.formato})`);
+        for (const e of r.eventos) { const k = e.fecha + e.horaIni + norm(e.titulo); if (!vistos.has(k)) { vistos.add(k); todos.push(e); } }
+      }
+    } catch (e) { console.error(e); boton.disabled = false; prog(''); return toast('No se pudo leer la foto: ' + e.message, 'err'); }
+    if (!todos.length) { boton.disabled = false; prog('No se reconocieron eventos. Prueba con una foto más nítida y de frente, o usa la otra forma de carga.'); return; }
+    this.borrador(todos, `Se reconocieron ${todos.length} evento(s): ${resumen.join(', ')}. La lectura automática se equivoca: corrige títulos y horas, y desmarca lo que no quieras (por ejemplo, eventos cancelados).`);
   },
   /** Quita las marcas de bloque de código y deja sólo desde el encabezado. */
   filas(texto) {
@@ -570,17 +590,29 @@ Reglas:
     if (!filas.length) return toast('No se encontró el encabezado "Evento,Fecha,…". Pega la respuesta completa.', 'err');
     const r = Datos.leer_eventos(filas, 'foto');
     if (!r.n) return toast(`No hay eventos nuevos válidos${r.omitidas ? ` (${r.omitidas} fila(s) omitida(s) por repetidas o con fecha/hora inválida)` : ''}.`, 'err');
-    this._r = r;
-    const l = r.lista.slice().sort((a, b) => (a.fecha + a.horaIni).localeCompare(b.fecha + b.horaIni));
-    Modal.abrir(`<div class="form"><h2>Revisar eventos (${r.n})</h2><div class="campos" style="display:block;padding:0"><table class="lista"><thead><tr><th>Fecha</th><th>Horario</th><th>Evento</th><th>Lugar</th><th>Notas</th></tr></thead><tbody>
-      ${l.map(e => `<tr><td class="nw">${esc(fFecha(e.fecha))}</td><td class="nw d">${esc(e.horaIni || 'Todo el día')}${e.horaFin ? '–' + esc(e.horaFin) : ''}</td><td>${esc(e.titulo)}</td><td class="d">${esc(e.lugar)}</td><td class="d">${esc(e.nota)}</td></tr>`).join('')}</tbody></table></div>
-      <div class="acciones"><span class="d">${r.omitidas ? `${r.omitidas} fila(s) omitida(s): ya estaban en tu agenda o tenían fecha u hora inválida.` : 'Compara con tu foto antes de guardar.'}</span><span class="esp"></span>
-      <button class="btn" type="button" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri" type="button" onclick="Foto.aplicar()">Agregar ${r.n} evento(s)</button></div></div>`, 860);
+    this.borrador(r.lista, r.omitidas ? `${r.omitidas} fila(s) se omitieron: ya estaban en tu agenda o tenían fecha u hora inválida.` : 'Compara con tu foto antes de guardar.');
+  },
+  /** Borrador editable: nada se guarda hasta que el usuario lo confirma. */
+  borrador(lista, aviso) {
+    const l = lista.slice(0, 300).sort((a, b) => (a.fecha + a.horaIni).localeCompare(b.fecha + b.horaIni)); this._n = l.length;
+    const ya = e => S.eventos.some(x => x.fecha === e.fecha && (x.horaIni || '') === (e.horaIni || '') && norm(x.titulo) === norm(e.titulo));
+    const campo = (i, k, tipo, v, ancho) => `<input type="${tipo}" id="fb_${k}_${i}" value="${esc(v || '')}" style="width:${ancho};height:28px" aria-label="${k}">`;
+    Modal.abrir(`<div class="form"><h2>Revisar y corregir (${l.length})</h2><div class="campos" style="display:block;padding:0">
+      <p class="d" style="padding:10px 16px">${esc(aviso)}</p>
+      <table class="lista"><thead><tr><th style="width:30px"></th><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Evento</th><th>Lugar</th><th>Notas</th></tr></thead><tbody>
+      ${l.map((e, i) => `<tr><td><input type="checkbox" id="fb_ok_${i}" ${ya(e) ? '' : 'checked'} title="${ya(e) ? 'Ya está en tu agenda' : 'Incluir'}" aria-label="Incluir"></td><td>${campo(i, 'fecha', 'date', e.fecha, '132px')}</td><td>${campo(i, 'ini', 'time', e.horaIni, '96px')}</td><td>${campo(i, 'fin', 'time', e.horaFin, '96px')}</td>
+        <td>${campo(i, 'titulo', 'text', e.titulo, '230px')}</td><td>${campo(i, 'lugar', 'text', e.lugar, '120px')}</td><td>${campo(i, 'nota', 'text', e.nota, '190px')}</td></tr>`).join('')}</tbody></table></div>
+      <div class="acciones"><span class="d">Sólo se agregan las filas marcadas.</span><span class="esp"></span><button class="btn" type="button" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri" type="button" onclick="Foto.aplicar()">Agregar a mi agenda</button></div></div>`, 1080);
   },
   aplicar() {
-    const r = this._r; if (!r) return;
+    const filas = [['Evento', 'Fecha', 'HoraInicio', 'HoraFin', 'Tipo', 'Proyecto', 'Lugar', 'Notas']], v = (k, i) => $(`#fb_${k}_${i}`).value.trim();
+    for (let i = 0; i < this._n; i++) if ($('#fb_ok_' + i).checked) filas.push([v('titulo', i), v('fecha', i), v('ini', i), v('fin', i), 'Reunión', '', v('lugar', i), v('nota', i)]);
+    if (filas.length < 2) return toast('No hay filas marcadas', 'err');
+    const r = Datos.leer_eventos(filas, 'foto');   // misma validación que la carga masiva
+    if (!r.n) return toast('Ninguna fila es válida: revisa fechas, horas (fin después del inicio) y que no estén repetidas.', 'err');
     const primera = r.lista.map(e => e.fecha).sort()[0];
-    r.aplicar(); guardar(); this._r = null; Modal.cerrar();
-    UI.ag.mes = primera.slice(0, 7); UI.ag.dia = primera; App.pintar(); toast(`${r.n} evento(s) agregados a tu agenda`);
+    r.aplicar(); guardar(); Modal.cerrar();
+    UI.ag.mes = primera.slice(0, 7); UI.ag.dia = primera; App.pintar();
+    toast(`${r.n} evento(s) agregados${r.omitidas ? ` · ${r.omitidas} omitido(s) por inválidos o repetidos` : ''}`);
   }
 };

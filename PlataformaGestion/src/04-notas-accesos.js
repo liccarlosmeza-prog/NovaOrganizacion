@@ -37,13 +37,49 @@ const Notas = {
   clasificar(valor) { const n = this.actual(); n.proyecto = valor; n.actualizado = ahoraTxt(); guardar(); App.pintar(); toast(valor ? 'Nota clasificada en el proyecto' : 'Nota sin clasificar'); },
   fijar() { const n = this.actual(); n.fijada = !n.fijada; guardar(); App.pintar(); },
   borrar() {
-    confirmar('¿Eliminar esta nota?', () => { if (this.priv()) Boveda.quitarNota(UI.notas.id); else quitar('notas', UI.notas.id); UI.notas.id = null; App.pintar(); });
+    confirmar('¿Eliminar esta nota?', async () => { if (this.priv()) Boveda.quitarNota(UI.notas.id); else { const n = this.actual(); if (n && n.img) await Img.quitar(n.img); quitar('notas', UI.notas.id); } UI.notas.id = null; App.pintar(); });
+  },
+  quitarFoto() { confirmar('¿Quitar la foto de esta nota? El texto se conserva.', async () => { const n = this.actual(); await Img.quitar(n.img); n.img = ''; n.actualizado = ahoraTxt(); guardar(); App.pintar(); }, 'Quitar foto'); },
+  /* ---------- Nota desde foto (cuaderno, pizarrón, documento) ---------- */
+  desdeFoto() {
+    const priv = this.priv();
+    Modal.abrir(`<div class="form"><h2>Nota desde foto</h2><div class="campos" style="display:block">
+      <p class="d" style="margin-bottom:10px">La foto se lee en este equipo; no se envía a ningún lado. Funciona bien con texto impreso y con <b>letra de molde clara</b>. Con letra cursiva o muy junta el resultado puede ser pobre: revísalo siempre contra la foto.</p>
+      <div class="barra"><input type="file" id="ntFoto" accept="image/*"></div>
+      ${priv ? '<p class="d">En notas privadas sólo se guarda el texto (cifrado); la foto no se conserva.</p>' : '<label class="chk" style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="ntGuardar" checked> Guardar la foto junto con la nota</label>'}
+      <p class="d" id="ntProg" style="margin-top:8px"></p></div>
+      <div class="acciones"><span class="esp"></span><button class="btn" type="button" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri" type="button" id="ntLeer" onclick="Notas.leerFoto()">Leer y crear nota</button></div></div>`, 620);
+  },
+  async leerFoto() {
+    const archivo = $('#ntFoto').files[0]; if (!archivo) return toast('Elige una foto', 'err');
+    const priv = this.priv(), guardarFoto = !priv && $('#ntGuardar').checked, prog = t => { const p = $('#ntProg'); if (p) p.textContent = t; };
+    $('#ntLeer').disabled = true; prog('Preparando el lector…');
+    let datos;
+    try {
+      // Primero se lee la foto tal cual; si la lectura es de baja confianza (sombras, papel oscuro),
+      // se repite con limpieza de contraste y se conserva la mejor de las dos.
+      datos = await Ocr.leer(archivo, av => prog(`Leyendo… ${Math.round(av * 100)} %`));
+      if (datos.confidence < 70) {
+        const otra = await Ocr.leer(archivo, av => prog(`Mejorando la foto y leyendo de nuevo… ${Math.round(av * 100)} %`), { papel: true });
+        if (otra.confidence > datos.confidence) datos = otra;
+      }
+    }
+    catch (e) { console.error(e); $('#ntLeer').disabled = false; prog(''); return toast('No se pudo leer la foto: ' + e.message, 'err'); }
+    const texto = Ocr.texto(datos).slice(0, 100000), primera = (texto.split('\n').find(l => /[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,}/.test(l)) || '').slice(0, 80);
+    let img = '';
+    if (guardarFoto) { try { img = await Img.agregar(archivo, 2000); } catch (e) { toast('La nota se creó, pero no se pudo guardar la foto: ' + e.message, 'err'); } }
+    const n = { id: uid(), titulo: primera ? 'Foto: ' + primera : 'Nota desde foto', texto: texto || '(No se reconoció texto. Escríbelo a mano viendo la foto.)', creado: ahoraTxt(), actualizado: ahoraTxt() };
+    if (priv) await Boveda.guardarNota(n);
+    else poner('notas', { ...n, img, proyecto: ['todas', 'sin'].includes(UI.notas.f) ? '' : UI.notas.f, etiquetas: 'foto', fijada: false });
+    UI.notas.id = n.id; UI.notas.q = ''; Modal.cerrar(); App.pintar();
+    toast(datos.confidence >= 70 ? 'Nota creada: revisa el texto' : 'Nota creada, pero la lectura fue de baja calidad: corrígela viendo la foto', datos.confidence >= 70 ? '' : 'err');
   },
   async hacerPrivada() {
     if (!S.boveda) { UI.notas.f = 'priv'; App.pintar(); return toast('Primero crea la contraseña de tus notas privadas'); }
     if (!Boveda.abierta()) return toast('Desbloquea tus notas privadas (filtro “Privadas”) y vuelve a intentarlo', 'err');
     const n = this.actual();
     await Boveda.guardarNota({ id: n.id, titulo: n.titulo, texto: n.texto, creado: n.creado, actualizado: ahoraTxt() });
+    if (n.img) { await Img.quitar(n.img); toast('La foto de la nota se eliminó: en notas privadas sólo se guarda el texto cifrado'); }
     quitar('notas', n.id); UI.notas.f = 'priv'; App.pintar(); toast('La nota ahora es privada y está cifrada');
   },
   quitarPrivacidad() {
@@ -70,7 +106,7 @@ Vistas.notas = () => {
   const filtros = `<div class="barra">${filtro('notas', 'f', [['todas', 'Todas'], ['sin', 'Sin clasificar'], ['priv', 'Privadas']])}
     <select onchange="UI.notas.f=this.value||'todas';UI.notas.id=null;App.pintar()"><option value="">Por proyecto…</option>${S.proyectos.map(p => `<option value="${p.id}" ${UI.notas.f === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
     ${priv && Boveda.abierta() ? '<button class="btn" onclick="Notas.bloquear()">Bloquear ahora</button>' : ''}</div>`;
-  const encabezado = cab('Notas', `${S.notas.length} notas · ${S.notas.filter(n => !n.proyecto).length} sin clasificar · ${S.notasPriv.length} privadas`, (priv ? '' : btnCarga('notas')) + ((!priv || Boveda.abierta()) ? '<button class="btn pri" onclick="Notas.nueva()">+ Nota</button>' : ''));
+  const encabezado = cab('Notas', `${S.notas.length} notas · ${S.notas.filter(n => !n.proyecto).length} sin clasificar · ${S.notasPriv.length} privadas`, (priv ? '' : btnCarga('notas')) + ((!priv || Boveda.abierta()) ? (Ocr.disponible() ? '<button class="btn" onclick="Notas.desdeFoto()">Nota desde foto</button>' : '') + '<button class="btn pri" onclick="Notas.nueva()">+ Nota</button>' : ''));
   // --- Estados de la bóveda ---
   if (priv && !Boveda.disponible()) return encabezado + filtros + `<div class="panel">${vacio('Cifrado no disponible', 'Abre la plataforma con https:// o desde un archivo local en un navegador actualizado para usar notas privadas.')}</div>`;
   if (priv && !S.boveda) return encabezado + filtros + `<div class="panel" style="max-width:520px"><div class="cuerpo">
@@ -93,6 +129,7 @@ Vistas.notas = () => {
       ${priv ? '<button class="lnk gris" onclick="Notas.quitarPrivacidad()">Quitar privacidad</button>' : `<button class="lnk gris" onclick="Notas.fijar()">${n.fijada ? 'Quitar fijado' : 'Fijar'}</button><button class="lnk gris" onclick="Notas.hacerPrivada()">Hacer privada</button>`}
       <button class="lnk rojo" onclick="Notas.borrar()">Eliminar</button></div>
     <input class="tit" id="nTitulo" type="text" value="${esc(n.titulo || '')}" placeholder="Título" oninput="Notas.cambio('titulo',this.value)">
+    ${!priv && n.img && Img.url(n.img) ? `<div style="display:flex;gap:10px;padding:4px 16px 0;align-items:flex-end"><img src="${Img.url(n.img)}" alt="Foto de la nota" style="max-height:150px;max-width:60%;border:1px solid var(--bd);border-radius:6px;cursor:zoom-in" onclick="verImagen(this.src)"><button class="lnk gris" onclick="Notas.quitarFoto()">Quitar foto</button></div>` : ''}
     <textarea placeholder="Escribe aquí…" oninput="Notas.cambio('texto',this.value)">${esc(n.texto || '')}</textarea>`;
   return `${encabezado}${filtros}<div class="nt"><div class="izq"><div class="bq"><input type="search" id="nBuscar" placeholder="Buscar en notas…" value="${esc(UI.notas.q)}" oninput="buscar('notas',this.value,'nBuscar')"></div>
     <div class="ls">${l.map(x => { const p = x.proyecto && por('proyectos', x.proyecto); return `<div class="it ${x.id === UI.notas.id ? 'on' : ''}" id="ni_${x.id}" onclick="UI.notas.id='${x.id}';App.pintar()"><b>${x.fijada ? '★ ' : ''}${esc(x.titulo || 'Sin título')}</b><span>${esc((x.texto || '').slice(0, 60) || 'Sin contenido')}</span>

@@ -8,7 +8,7 @@ const UI = {
   proy: { f: 'activos', amb: '', pri: '', q: '', tab: 'actividades' },
   act: { f: 'pendientes', proy: '', cat: '', pri: '', q: '' },
   esc: { tab: 'lista', mat: '', est: '', tipo: '', q: '', rango: 'mes', mes: hoyISO().slice(0, 7) },
-  ag: { mes: hoyISO().slice(0, 7), dia: hoyISO(), modo: 'mes', ver: { evento: true, actividad: true, entrega: true, cumple: true, recordatorio: true } },
+  ag: { mes: hoyISO().slice(0, 7), dia: hoyISO(), modo: 'mes', per: 'todos', proy: '', q: '', sel: new Set(), ver: { evento: true, actividad: true, entrega: true, cumple: true, recordatorio: true } },
   rec: { q: '' }, cum: { q: '', rel: '' },
   notas: { f: 'todas', id: null, q: '' },
   acc: { f: 'todos', q: '', sel: new Set() },
@@ -253,6 +253,7 @@ Vistas.proyecto = () => {
   const e = por('estatus', p.estatus) || {}, av = Proy.avance(p), acts = Proy.acts(p);
   const bit = S.bitacora.filter(b => b.proyecto === p.id).sort((a, b) => b.fecha.localeCompare(a.fecha));
   const notas = S.notas.filter(n => n.proyecto === p.id);
+  const sesiones = S.eventos.filter(x => x.proyecto === p.id).sort((a, b) => (b.fecha + (b.horaIni || '')).localeCompare(a.fecha + (a.horaIni || '')));
   const tab = UI.proy.tab;
   let cuerpo;
   if (tab === 'actividades') cuerpo = `<div class="barra"><input type="text" id="rapida" placeholder="Nueva actividad del proyecto… (Enter para agregar)" style="flex:1;max-width:520px" onkeydown="if(event.key==='Enter')Act.rapida(this.value,'${p.id}')">
@@ -264,6 +265,9 @@ Vistas.proyecto = () => {
       ${bit.length ? `<ul class="bit">${bit.map(b => `<li><div class="mt"><span class="et ac">${esc(b.tipo)}</span><span>${esc(fFecha(b.fecha.slice(0, 10)))} · ${esc(b.fecha.slice(11, 16))}</span><span class="esp"></span>
         <button class="lnk gris" onclick="Bit.editar('${b.id}')">Editar</button><button class="lnk gris" onclick="Bit.borrar('${b.id}')">Eliminar</button></div>
         <div class="tx">${esc(b.texto)}</div>${(b.imgs || []).length ? `<div class="minis">${b.imgs.map(i => `<img src="${Img.url(i)}" alt="Imagen de bitácora" onclick="verImagen(this.src)">`).join('')}</div>` : ''}</li>`).join('')}</ul>` : vacio('Bitácora vacía', 'Registra aquí tus avances, decisiones y acuerdos de revisión.')}</div>`;
+  else if (tab === 'sesiones') cuerpo = `<div class="barra"><button class="btn" onclick="UI.ag.dia=hoyISO();Agenda.evento(null,'${p.id}')">+ Sesión del proyecto</button><button class="lnk" onclick="UI.ag.modo='eventos';UI.ag.proy='-';UI.ag.per='todos';App.ir('agenda')">Clasificar eventos sin proyecto</button></div>
+      <div class="panel scrollx">${sesiones.length ? `<table class="lista"><thead><tr><th>Fecha</th><th>Horario</th><th>Sesión</th><th>Tipo</th><th>Lugar</th><th>Notas</th></tr></thead><tbody>${sesiones.map(e => `<tr class="${e.fecha < hoyISO() ? 'hecho' : ''}"><td class="nw">${esc(fFecha(e.fecha))}</td><td class="nw d">${esc(e.horaIni || 'Todo el día')}${e.horaFin ? '–' + esc(e.horaFin) : ''}</td>
+        <td><span class="t" style="text-decoration:none" onclick="Agenda.evento('${e.id}')">${esc(e.titulo)}</span></td><td class="d">${esc(e.tipo || '')}</td><td class="d">${esc(e.lugar || '')}</td><td class="d">${esc(e.nota || '')}</td></tr>`).join('')}</tbody></table>` : vacio('Sin sesiones ligadas', 'Asigna eventos de tu agenda a este proyecto desde Agenda → Eventos.')}</div>`;
   else if (tab === 'historial') cuerpo = `<div class="panel scrollx">${Hist.tabla(S.historial.filter(h => h.proyecto === p.id).reverse())}</div>`;
   else cuerpo = `<div class="barra"><button class="btn" onclick="Notas.nueva('${p.id}')">+ Nota del proyecto</button></div>
       <div class="panel">${notas.length ? `<ul class="filas">${notas.map(n => `<li><span class="x clic" onclick="UI.notas.id='${n.id}';UI.notas.f='todas';App.ir('notas')">${esc(n.titulo || 'Sin título')}</span><span class="m">${esc((n.texto || '').slice(0, 70))}</span><span class="m">${esc(fFecha((n.actualizado || '').slice(0, 10)))}</span></li>`).join('')}</ul>` : vacio('Sin notas ligadas', 'Puedes crear una aquí o clasificar una nota general desde “Notas”.')}</div>`;
@@ -275,7 +279,7 @@ Vistas.proyecto = () => {
     <span class="d">Inicio: <b>${esc(fFecha(p.inicio) || '—')}</b></span><span class="d">Objetivo: <b>${p.objetivo ? esc(fFecha(p.objetivo)) : '—'}</b> ${p.objetivo && !estFinal(p.estatus) && fRel(p.objetivo) !== fFecha(p.objetivo) ? '(' + fechaLim(p.objetivo) + ')' : ''}</span>
     <span class="d">Asignado por: <b>${esc(p.asignadoPor || '—')}</b></span></div>
     ${p.descripcion ? `<div style="margin-top:8px;white-space:pre-wrap">${esc(p.descripcion)}</div>` : ''}</div>
-  <div class="tabs">${[['actividades', `Actividades (${acts.length})`], ['bitacora', `Bitácora (${bit.length})`], ['notas', `Notas (${notas.length})`], ['historial', 'Historial de estatus']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" onclick="UI.proy.tab='${k}';App.pintar()">${t}</button>`).join('')}</div>
+  <div class="tabs">${[['actividades', `Actividades (${acts.length})`], ['bitacora', `Bitácora (${bit.length})`], ['sesiones', `Sesiones (${sesiones.length})`], ['notas', `Notas (${notas.length})`], ['historial', 'Historial de estatus']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" onclick="UI.proy.tab='${k}';App.pintar()">${t}</button>`).join('')}</div>
   ${cuerpo}`;
 };
 

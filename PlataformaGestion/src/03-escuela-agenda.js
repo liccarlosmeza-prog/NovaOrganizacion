@@ -187,9 +187,27 @@ const Agenda = {
     { k: 'proyecto', label: 'Proyecto relacionado', tipo: 'select', opciones: [['', 'Ninguno'], ...S.proyectos.map(p => [p.id, p.nombre])] }, { k: 'lugar', label: 'Lugar o enlace' }, { k: 'nota', label: 'Notas', tipo: 'textarea', filas: 2 }
   ],
   _validar: v => (v.horaIni && v.horaFin && v.horaFin < v.horaIni) ? 'La hora de fin no puede ser anterior al inicio' : null,
-  evento(id) {
+  /** Asigna un evento a un proyecto. Si hay más eventos con el mismo título sin proyecto, ofrece asignarlos también. */
+  clasificar(id, proyecto) {
+    const e = por('eventos', id); if (!e) return; e.proyecto = proyecto; guardar();
+    const iguales = proyecto ? S.eventos.filter(x => x.id !== id && !x.proyecto && norm(x.titulo) === norm(e.titulo)) : [];
+    const titulo = e.titulo, destino = (por('proyectos', proyecto) || {}).nombre;   // confirmar() escapa el mensaje completo antes de mostrarlo
+    App.pintar();
+    if (iguales.length) confirmar(`Hay ${iguales.length} evento(s) más llamados «${titulo}» sin proyecto. ¿Asignarlos también a «${destino}»?`, () => { iguales.forEach(x => { x.proyecto = proyecto; }); guardar(); App.pintar(); toast(`${iguales.length + 1} eventos clasificados`); }, 'Asignar todos');
+    else toast(proyecto ? 'Evento clasificado' : 'Evento sin proyecto');
+  },
+  selec(id, on) { if (on) UI.ag.sel.add(id); else UI.ag.sel.delete(id); App.pintar(); },
+  selecTodos(ids, on) { ids.forEach(i => on ? UI.ag.sel.add(i) : UI.ag.sel.delete(i)); App.pintar(); },
+  /** Asigna (o quita) el proyecto a todos los eventos seleccionados. */
+  clasificarSel(proyecto) {
+    if (proyecto === '*') return;
+    const n = UI.ag.sel.size; S.eventos.forEach(e => { if (UI.ag.sel.has(e.id)) e.proyecto = proyecto; });
+    UI.ag.sel.clear(); guardar(); App.pintar(); toast(`${n} evento(s) ${proyecto ? 'clasificados' : 'sin proyecto'}`);
+  },
+  borrarSel() { confirmar(`¿Eliminar ${UI.ag.sel.size} evento(s) seleccionados?`, () => { S.eventos = S.eventos.filter(e => !UI.ag.sel.has(e.id)); UI.ag.sel.clear(); guardar(); App.pintar(); }); },
+  evento(id, proyecto) {
     const e = id ? por('eventos', id) : null;
-    Form.abrir({ titulo: e ? 'Editar evento' : 'Nuevo evento', campos: this.campos(), valores: e || { fecha: UI.ag.dia, tipo: 'Reunión' },
+    Form.abrir({ titulo: e ? 'Editar evento' : 'Nuevo evento', campos: this.campos(), valores: e || { fecha: UI.ag.dia, tipo: 'Reunión', proyecto: proyecto || '' },
       guardar: v => { const er = this._validar(v); if (er) return er; poner('eventos', { id: e ? e.id : uid(), origen: e ? e.origen : 'local', ...v }); UI.ag.dia = v.fecha; UI.ag.mes = v.fecha.slice(0, 7); },
       eliminar: e ? () => quitar('eventos', e.id) : null });
   }
@@ -215,16 +233,30 @@ Vistas.agenda = () => {
       <section class="blq"><h3 style="text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--tx)"><span>${esc(may(fFechaLarga(UI.ag.dia)))}</span></h3>
         ${sel.length ? `<ul class="filas">${sel.map(fila).join('')}</ul>` : vacio('Día libre', '')}
         <div class="barra" style="padding:10px 14px;margin:0;border-top:1px solid var(--bd)"><button class="btn ch" onclick="Agenda.evento()">+ Evento</button><button class="btn ch" onclick="Rec.editar(null,'${UI.ag.dia}')">+ Recordatorio</button></div></section></div>`;
+  } else if (UI.ag.modo === 'eventos') {
+    const selP = (valor, alCambiar, extra = '') => `<select onchange="${alCambiar}" aria-label="Proyecto" style="max-width:230px">${extra}<option value="">Sin proyecto</option>${S.proyectos.map(p => `<option value="${p.id}" ${valor === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>`;
+    let l = S.eventos.filter(e => (UI.ag.per === 'todos' || (UI.ag.per === 'prox' ? e.fecha >= hoy : e.fecha < hoy)) && (UI.ag.proy === '' || (UI.ag.proy === '-' ? !e.proyecto : e.proyecto === UI.ag.proy)) && coincide(UI.ag.q, e.titulo, e.lugar, e.nota));
+    l.sort((a, b) => (b.fecha + (b.horaIni || '')).localeCompare(a.fecha + (a.horaIni || '')));
+    for (const id of [...UI.ag.sel]) if (!l.some(e => e.id === id)) UI.ag.sel.delete(id);
+    const ids = l.map(e => e.id), n = UI.ag.sel.size, sinP = S.eventos.filter(e => !e.proyecto).length;
+    cuerpo = `<div class="barra">${filtro('ag', 'per', [['todos', 'Todos'], ['prox', 'Próximos'], ['pas', 'Pasados']])}
+        <select onchange="UI.ag.proy=this.value;App.pintar()"><option value="">Todos los proyectos</option><option value="-" ${UI.ag.proy === '-' ? 'selected' : ''}>Sin proyecto (${sinP})</option>${S.proyectos.map(p => `<option value="${p.id}" ${UI.ag.proy === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
+        ${campoBuscar('ag', 'agBuscar', 'Buscar evento…')}<span class="d">${l.length} evento(s)</span><span class="esp"></span>
+        ${n ? `<span class="d">${n} seleccionado(s):</span>${selP('*', 'Agenda.clasificarSel(this.value)', '<option value="*" selected>Asignar a proyecto…</option>')}<button class="btn peligro" onclick="Agenda.borrarSel()">Eliminar</button>` : ''}</div>
+      <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th style="width:30px"><input type="checkbox" ${n && n === ids.length ? 'checked' : ''} onchange="Agenda.selecTodos(${esc(JSON.stringify(ids))},this.checked)" aria-label="Seleccionar todos"></th><th>Fecha</th><th>Horario</th><th>Evento</th><th>Lugar</th><th>Proyecto</th></tr></thead><tbody>
+        ${l.map(e => `<tr><td><input type="checkbox" ${UI.ag.sel.has(e.id) ? 'checked' : ''} onchange="Agenda.selec('${e.id}',this.checked)" aria-label="Seleccionar"></td><td class="nw">${esc(fFecha(e.fecha))}</td><td class="nw d">${esc(e.horaIni || 'Todo el día')}${e.horaFin ? '–' + esc(e.horaFin) : ''}</td>
+          <td><span class="t" onclick="Agenda.evento('${e.id}')">${esc(e.titulo)}</span>${e.nota ? `<div class="d">${esc(e.nota)}</div>` : ''}</td><td class="d">${esc(e.lugar || '')}</td>
+          <td>${selP(e.proyecto, `Agenda.clasificar('${e.id}',this.value)`)}</td></tr>`).join('')}</tbody></table>` : vacio('Sin eventos en esta vista', 'Cambia los filtros o carga tu agenda.')}</div>`;
   } else {
     let filas = '';
     for (let i = 0; i < 30; i++) { const iso = sumaDias(hoy, i), its = Agenda.visibles(iso); if (its.length) filas += `<tr class="grupo"><td colspan="3">${esc(may(fFechaLarga(iso)))}${i === 0 ? ' · hoy' : ''}</td></tr>` + its.map(x => `<tr><td class="d nw" style="width:70px">${esc(x.hora || '—')}</td><td>${punto(x.color)}<span class="t" onclick="${x.clic}">${esc(x.titulo)}</span></td><td class="d nw">${esc(x.tipo)}</td></tr>`).join(''); }
     cuerpo = `<div class="panel scrollx">${filas ? `<table class="lista"><tbody>${filas}</tbody></table>` : vacio('Sin eventos en los próximos 30 días', '')}</div>`;
   }
   return `${cab('Agenda', '', '<button class="btn" onclick="Foto.abrir()">Cargar por foto</button>' + btnCarga('eventos') + '<button class="btn pri" onclick="Agenda.evento()">+ Evento</button>')}
-  <div class="barra">${filtro('ag', 'modo', [['mes', 'Mes'], ['lista', 'Próximos 30 días']])}
+  <div class="barra">${filtro('ag', 'modo', [['mes', 'Mes'], ['lista', 'Próximos 30 días'], ['eventos', 'Eventos y proyectos']])}
     ${UI.ag.modo === 'mes' ? `<button class="btn ch" onclick="UI.ag.mes='${mover(-1)}';App.pintar()">‹</button><b style="min-width:130px;text-align:center">${may(MESES[m - 1])} ${y}</b><button class="btn ch" onclick="UI.ag.mes='${mover(1)}';App.pintar()">›</button>
     <button class="btn ch" onclick="UI.ag.mes='${hoy.slice(0, 7)}';UI.ag.dia='${hoy}';App.pintar()">Hoy</button>` : ''}
-    <span class="esp"></span><span class="d">Mostrar:</span>${[['evento', 'Eventos'], ['actividad', 'Actividades'], ['entrega', 'Entregas'], ['cumple', 'Cumpleaños'], ['recordatorio', 'Recordatorios']].map(([k, n]) => `<label class="d" style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" ${UI.ag.ver[k] !== false ? 'checked' : ''} onchange="UI.ag.ver.${k}=this.checked;App.pintar()">${n}</label>`).join('')}</div>${cuerpo}`;
+    ${UI.ag.modo === 'eventos' ? '' : `<span class="esp"></span><span class="d">Mostrar:</span>${[['evento', 'Eventos'], ['actividad', 'Actividades'], ['entrega', 'Entregas'], ['cumple', 'Cumpleaños'], ['recordatorio', 'Recordatorios']].map(([k, n]) => `<label class="d" style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" ${UI.ag.ver[k] !== false ? 'checked' : ''} onchange="UI.ag.ver.${k}=this.checked;App.pintar()">${n}</label>`).join('')}`}</div>${cuerpo}`;
 };
 
 /* ==========================================================================

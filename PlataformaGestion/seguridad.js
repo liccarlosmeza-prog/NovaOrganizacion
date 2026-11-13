@@ -3,7 +3,11 @@
 // Revisa el HTML final y el código fuente. Si encuentra un problema BLOQUEANTE, termina con error.
 const fs = require('fs'), path = require('path');
 const dir = __dirname, src = path.join(dir, 'src');
-const html = fs.readFileSync(path.join(dir, 'PlataformaGestion.html'), 'utf8');
+const htmlCompleto = fs.readFileSync(path.join(dir, 'PlataformaGestion.html'), 'utf8');
+// Librerías de terceros incrustadas como bloques de texto (lector de imágenes). Se validan aparte, por huella digital:
+// el resto de las reglas revisa sólo el código propio de la aplicación.
+const BLOQUES = ['ocrLib', 'ocrWorker', 'ocrCore', 'ocrLang'];
+const html = BLOQUES.reduce((h, id) => h.replace(new RegExp(`(<script type="text/plain" id="${id}">)[\\s\\S]*?(</script>)`), '$1$2'), htmlCompleto);
 const fuentes = fs.readdirSync(src).map(f => ({ f, t: fs.readFileSync(path.join(src, f), 'utf8') }));
 const lineas = (t, re, filtro = () => true) => t.split('\n').map((l, i) => re.test(l) && filtro(l) ? `${i + 1}: ${l.trim().slice(0, 110)}` : null).filter(Boolean);
 const buscar = (re, filtro) => fuentes.flatMap(({ f, t }) => lineas(t, re, filtro).map(l => `src/${f}:${l}`));
@@ -15,10 +19,10 @@ const regla = (t, hallazgos, bloquea = true, okTxt = 'Sin coincidencias') => R.p
 // 1. Conexiones externas: nada debe cargarse ni enviarse a otro servidor
 const URLS = [...new Set((html.match(/(?:https?:)?\/\/[a-z0-9.-]+\.[a-z]{2,}[^\s"'`<)]*/gi) || []))];
 const carga = /(<script[^>]+src=|<link[^>]+href=|<img[^>]+src=["']https?:|<iframe|@import|url\(\s*["']?https?:|fetch\(\s*["'`]https?:|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts|import\s*\()/i;
-regla('Sin recursos ni conexiones externas (scripts, estilos, fuentes, imágenes, peticiones)', buscar(carga).concat(lineas(html.split('<script>')[0], carga).map(l => 'plantilla:' + l)));
+regla('Sin recursos ni conexiones externas (scripts, estilos, fuentes, imágenes, peticiones)', buscar(carga).concat(lineas(html.split(/<script(?: type="text\/plain")?/)[0], carga).map(l => 'plantilla:' + l)));
 // 2. Política de seguridad de contenido
 const csp = (html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/) || [])[1] || '';
-regla('CSP presente y sin orígenes externos', !csp ? ['No hay meta Content-Security-Policy'] : [/default-src 'none'/.test(csp) ? null : "falta default-src 'none'", (csp.match(/https?:\/\/[^\s;]+|\*/g) || []).some(o => o !== PERMITIDO) ? 'la CSP permite un origen externo no autorizado' : null, /unsafe-eval/.test(csp) ? 'la CSP permite unsafe-eval' : null, /connect-src data: blob: https:\/\/api\.github\.com;/.test(csp) ? null : 'connect-src sólo puede ser data: blob: y api.github.com'].filter(Boolean), true, csp);
+regla('CSP presente y sin orígenes externos', !csp ? ['No hay meta Content-Security-Policy'] : [/default-src 'none'/.test(csp) ? null : "falta default-src 'none'", (csp.match(/https?:\/\/[^\s;]+|\*/g) || []).some(o => o !== PERMITIDO) ? 'la CSP permite un origen externo no autorizado' : null, /'unsafe-eval'/.test(csp) ? 'la CSP permite unsafe-eval (sólo se admite wasm-unsafe-eval para el lector de imágenes)' : null, /worker-src (?!blob:;)/.test(csp) ? 'worker-src sólo puede ser blob:' : null, /connect-src data: blob: https:\/\/api\.github\.com;/.test(csp) ? null : 'connect-src sólo puede ser data: blob: y api.github.com'].filter(Boolean), true, csp);
 // 2b. Peticiones de red: sólo en el módulo de sincronización (más la lectura de imágenes incrustadas del respaldo)
 const MOD = '055-sincronizacion.js', sy = (fuentes.find(x => x.f === MOD) || { t: '' }).t, todo = fuentes.map(x => x.t).join('\n');
 regla('fetch() sólo en el módulo de sincronización, hacia api.github.com', buscar(/\bfetch\(/, l => !/fetch\(dataUrl\)/.test(l)).filter(l => !l.startsWith('src/' + MOD))
@@ -29,6 +33,19 @@ regla('Sincronización: repositorio privado obligatorio, cifrado, token fuera de
   /\bS\.[A-Za-z.]*(token|clave)\b|S\.ajustes\.sync/.test(todo) ? 'el token o la clave no deben guardarse en el estado S' : null,
   /console\.[a-z]+\([^)]*(token|pass)/.test(sy) ? 'no registrar el token ni la contraseña' : null, /credentials: 'omit'/.test(sy) ? null : "falta credentials: 'omit'",
   /fusionar\(estado\)/.test(sy) ? null : 'lo recibido debe pasar por fusionar()/sanear()'].filter(Boolean));
+// 2c. Librerías de terceros: deben coincidir byte a byte con las versiones revisadas (terceros/tesseract/HUELLAS.txt)
+const crypto = require('crypto'), ter = path.join(dir, 'terceros', 'tesseract');
+const huellas = fs.existsSync(path.join(ter, 'HUELLAS.txt')) ? Object.fromEntries(fs.readFileSync(path.join(ter, 'HUELLAS.txt'), 'utf8').split('\n').filter(l => /^[0-9a-f]{64}\s/.test(l)).map(l => l.trim().split(/\s+/).reverse())) : {};
+const mapa = { ocrLib: 'tesseract.min.js', ocrWorker: 'worker.min.js', ocrCore: 'tesseract-core-lstm.wasm.js', ocrLang: 'spa.traineddata.gz' };
+const terc = [];
+for (const [id, f] of Object.entries(mapa)) {
+  const bloque = (htmlCompleto.match(new RegExp(`<script type="text/plain" id="${id}">([\\s\\S]*?)</script>`)) || [])[1];
+  if (bloque === undefined) { terc.push(`falta el bloque ${id}`); continue; }
+  const bytes = id === 'ocrLang' ? Buffer.from(bloque.trim(), 'base64') : Buffer.from(bloque, 'utf8');
+  const h = crypto.createHash('sha256').update(bytes).digest('hex');
+  if (!huellas[f]) terc.push(`${f}: no tiene huella registrada`); else if (h !== huellas[f]) terc.push(`${f}: la huella no coincide con la versión revisada`);
+}
+regla('Librerías de terceros sin alterar (huella SHA-256)', terc, true, Object.values(mapa).join(' · '));
 // 3. Funciones peligrosas
 regla('Sin eval, new Function, document.write ni temporizadores con texto', buscar(/\beval\(|new Function\(|document\.write|set(Timeout|Interval)\(\s*["'`]|\.outerHTML\s*=|insertAdjacentHTML|srcdoc/));
 // 4. Secretos
@@ -43,7 +60,7 @@ regla('Controles de seguridad presentes', debe.filter(([c]) => !html.includes(c)
 const sinEsc = buscar(/\$\{[a-z]\.(titulo|nombre|texto|nota|desc|detalle|descripcion|lugar|autor|relacion|profesor|comentario|tags|etiquetas|asignadoPor|usuario|lema)\}/);
 regla('Textos del usuario escapados con esc() al mostrarse', sinEsc, true);
 regla('Sin console.log de depuración', buscar(/console\.log\(/), false);
-regla('Tamaño del archivo razonable (< 1 MB)', html.length > 1048576 ? [`${(html.length / 1024).toFixed(0)} KB`] : [], false, `${(html.length / 1024).toFixed(0)} KB`);
+regla('Tamaño razonable: código propio < 1 MB y archivo total < 15 MB', [html.length > 1048576 ? `código propio ${(html.length / 1024).toFixed(0)} KB` : null, htmlCompleto.length > 15 * 1048576 ? `archivo total ${(htmlCompleto.length / 1048576).toFixed(1)} MB` : null].filter(Boolean), false, `código propio ${(html.length / 1024).toFixed(0)} KB · total ${(htmlCompleto.length / 1048576).toFixed(1)} MB (incluye el lector de imágenes)`);
 
 // Reporte
 const fallos = R.filter(r => !r.ok && r.bloquea), avisos = R.filter(r => !r.ok && !r.bloquea);
@@ -64,7 +81,7 @@ Sólo https://api.github.com se usa para conexiones, y únicamente si el usuario
 |---|---|
 ${URLS.map(u => `| \`${u}\` | ${/w3\.org/.test(u) ? 'Identificador del formato SVG (no es una conexión)' : /api\.github\.com/.test(u) ? '**Conexión real**: sincronización cifrada con el repositorio privado del usuario (opcional)' : 'Enlace de ejemplo o plantilla; sólo se abre con clic del usuario'} |`).join('\n') || '| — | — |'}
 
-**Dependencias de terceros:** ninguna (sin librerías, fuentes ni CDN). No hay nada que descargar o empaquetar. La sincronización usa la API de GitHub como servicio, no como código.
+**Dependencias de terceros:** Tesseract.js 5.1.1 (Apache-2.0) y el modelo de idioma español, **incrustados** en el archivo y verificados por huella SHA-256. No se descargan de ningún CDN; no hay nada más que empaquetar. La sincronización usa la API de GitHub como servicio, no como código.
 `;
 fs.writeFileSync(path.join(dir, 'SEGURIDAD-AUTOMATICA.md'), md);
 for (const r of R) console.log(`${r.ok ? '  ok ' : r.bloquea ? ' FALLA' : ' aviso'}  ${r.t}${r.ok ? '' : '\n        ' + r.d.join('\n        ')}`);
