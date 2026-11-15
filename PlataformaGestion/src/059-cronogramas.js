@@ -191,7 +191,7 @@ const Crono = {
     for (const [ip, jf] of pares) {
       const p = ip != null ? pond[ip] : null, f = jf != null ? fechas[jf] : null;
       filas.push({ titulo: this._limpia(p ? p.nombre : f.nombre), tipo: this._tipo(p ? p.tipoTxt : ''), valor: p ? p.valor : 0, dur: p ? p.dur : null,
-        unidad: f ? this._limpia(f.seccion) : '', entrega: f ? f.entrega : '', hora: f ? f.hora : '', inicio: f ? f.inicio : '',
+        unidad: f ? this._limpia(f.seccion) : '', entrega: f ? f.entrega : '', inicio: f ? f.inicio : '',
         nota: !f ? 'Sin fecha de entrega en el cronograma' : !p ? 'No aparece en la tabla de ponderación (valor 0)' : '', incluir: !!f });
     }
     // Fecha de inicio: la que traiga el PDF; si no, la entrega anterior + 1 día (como AcadTrack), sin rebasar la duración indicada
@@ -261,19 +261,19 @@ const CronoUI = {
         <div class="cu"><div class="barra" style="margin:0 0 8px">
           <label class="d">Materia</label><select id="cr_mat_${i}" onchange="document.getElementById('cr_nom_${i}').style.display=this.value?'none':''">
             <option value="">Nueva materia…</option>${S.materias.map(m => `<option value="${m.id}" ${m.id === mat ? 'selected' : ''}>${esc(m.nombre)}${m.ciclo ? ' · ' + esc(m.ciclo) : ''}</option>`).join('')}</select>
-          <input type="text" id="cr_nom_${i}" value="${esc(d.clave || 'Materia nueva')}" placeholder="Nombre de la materia" style="width:230px;${mat ? 'display:none' : ''}" aria-label="Nombre de la materia">
+          <input type="text" id="cr_nom_${i}" value="" maxlength="120" placeholder="Escribe el nombre de la materia${d.clave ? ' (' + esc(d.clave) + ')' : ''}" style="width:300px;${mat ? 'display:none' : ''}" aria-label="Nombre de la materia">
           <label class="d">Clave</label><input type="text" id="cr_cla_${i}" value="${esc(d.clave)}" style="width:90px" aria-label="Clave">
           <label class="d">Ciclo</label><input type="text" id="cr_cic_${i}" value="${esc(d.ciclo)}" style="width:80px" aria-label="Ciclo"></div>
           ${d.avisos.length ? `<div class="d ambar" style="margin-bottom:6px">${d.avisos.map(esc).join('<br>')}</div>` : ''}</div>
-        ${d.filas.length ? `<div class="scrollx"><table class="lista"><thead><tr><th style="width:28px"></th><th>Actividad</th><th>Tipo</th><th class="num">Valor</th><th>Unidad</th><th>Inicio</th><th>Entrega</th><th>Hora</th></tr></thead><tbody>
+        ${d.filas.length ? `<div class="scrollx"><table class="lista"><thead><tr><th style="width:28px"></th><th>Actividad</th><th>Tipo</th><th class="num">Valor</th><th>Unidad</th><th>Inicio</th><th>Entrega</th></tr></thead><tbody>
           ${d.filas.map((f, j) => `<tr title="${esc(f.nota || '')}"><td><input type="checkbox" id="cr_ok_${i}_${j}" ${f.incluir ? 'checked' : ''} aria-label="Incluir"></td>
-            <td>${camp(i, j, 'tit', 'text', f.titulo, '290px')}${f.nota ? `<div class="d ambar" style="font-size:11.5px">${esc(f.nota)}</div>` : ''}</td>
+            <td>${camp(i, j, 'tit', 'text', f.titulo, '340px')}${f.nota ? `<div class="d ambar" style="font-size:11.5px">${esc(f.nota)}</div>` : ''}</td>
             <td><select id="cr_tip_${i}_${j}" style="height:28px" aria-label="Tipo">${TIPOS_ESC.map(t => `<option ${t === f.tipo ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
             <td class="num">${camp(i, j, 'val', 'number', f.valor, '64px', 'min="0" max="100" step="0.5"')}</td><td>${camp(i, j, 'uni', 'text', f.unidad, '110px')}</td>
-            <td>${camp(i, j, 'ini', 'date', f.inicio, '130px')}</td><td>${camp(i, j, 'ent', 'date', f.entrega, '130px')}</td><td>${camp(i, j, 'hor', 'time', f.hora, '112px')}</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
+            <td>${camp(i, j, 'ini', 'date', f.inicio, '130px')}</td><td>${camp(i, j, 'ent', 'date', f.entrega, '130px')}</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
     }).join('');
     Modal.abrir(`<div class="form"><h2>Revisar cronogramas</h2><div class="campos" style="display:block">
-      <p class="d" style="margin-bottom:10px">Revisa materia, nombres, valores y fechas. Las actividades sin fecha de entrega quedan desmarcadas. Lo repetido (misma materia, actividad y entrega) se omite.</p>${html}
+      <p class="d" style="margin-bottom:10px">Escribe el nombre de cada materia nueva (el cronograma sólo trae la clave) y revisa actividades, valores y fechas. Las entregas son hasta el final del día indicado. Las actividades sin fecha de entrega quedan desmarcadas. Lo repetido (misma materia, actividad y entrega) se omite.</p>${html}
       <label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="crVencidas"> Marcar como «Enviada» las actividades cuya fecha de entrega ya pasó</label></div>
       <div class="acciones"><span class="esp"></span><button class="btn" type="button" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri" type="button" onclick="CronoUI.aplicar()">Cargar actividades</button></div></div>`, 1180);
   },
@@ -282,11 +282,12 @@ const CronoUI = {
     const plan = this._d.map((d, i) => {
       const cla = $(`#cr_cla_${i}`).value.trim().slice(0, 20), cic = $(`#cr_cic_${i}`).value.trim().slice(0, 20), sel = $(`#cr_mat_${i}`).value, nom = $(`#cr_nom_${i}`).value.trim().slice(0, 120);
       const filas = d.filas.map((f, j) => ({ ok: $(`#cr_ok_${i}_${j}`).checked, titulo: $(`#cr_tit_${i}_${j}`).value.trim().slice(0, 200), tipo: $(`#cr_tip_${i}_${j}`).value,
-        valor: Number($(`#cr_val_${i}_${j}`).value), unidad: $(`#cr_uni_${i}_${j}`).value.trim().slice(0, 60), inicio: $(`#cr_ini_${i}_${j}`).value, entrega: $(`#cr_ent_${i}_${j}`).value, hora: $(`#cr_hor_${i}_${j}`).value })).filter(f => f.ok);
-      return { cla, cic, sel, nom, filas };
+        valor: Number($(`#cr_val_${i}_${j}`).value), unidad: $(`#cr_uni_${i}_${j}`).value.trim().slice(0, 60), inicio: $(`#cr_ini_${i}_${j}`).value, entrega: $(`#cr_ent_${i}_${j}`).value })).filter(f => f.ok);
+      return { i, cla, cic, sel, nom, filas };
     }).filter(p => p.filas.length);
     if (!plan.length) return toast('No hay actividades marcadas', 'err');
-    if (plan.some(p => !p.sel && !p.nom)) return toast('Escribe el nombre de cada materia nueva', 'err');
+    const falta = plan.findIndex(p => !p.sel && !p.nom);
+    if (falta >= 0) { const c = $(`#cr_nom_${plan[falta].i}`); if (c) { c.focus(); c.style.borderColor = 'var(--bad)'; } return toast('Escribe el nombre de cada materia nueva (el cronograma no lo trae)', 'err'); }
     for (const p of plan) {
       let m = p.sel && por('materias', p.sel);
       if (!m) { m = S.materias.find(x => Crono._n(x.nombre) === Crono._n(p.nom) && (x.ciclo || '') === p.cic); }
@@ -294,10 +295,10 @@ const CronoUI = {
       else { if (p.cla && !m.clave) m.clave = p.cla; if (p.cic && !m.ciclo) m.ciclo = p.cic; }
       for (const f of p.filas) {
         // Misma validación que la carga masiva: fechas reales, inicio ≤ entrega, valor 0–100, sin repetidos
-        const ent = parseFecha(f.entrega), ini = parseFecha(f.inicio) || ent, hora = /^\d{2}:\d{2}$/.test(f.hora) ? f.hora : '';
+        const ent = parseFecha(f.entrega), ini = parseFecha(f.inicio) || ent;
         const rep = x => x.materia === m.id && Crono._n(x.titulo) === Crono._n(f.titulo) && x.entrega === ent;
         if (!f.titulo || !ent || ini > ent || !Number.isFinite(f.valor) || f.valor < 0 || f.valor > 100 || S.escolares.some(rep) || nuevas.some(rep)) { omitidas++; continue; }
-        nuevas.push({ id: uid(), materia: m.id, titulo: f.titulo, tipo: TIPOS_ESC.includes(f.tipo) ? f.tipo : 'Otro', valor: f.valor, inicio: ini, entrega: ent, hora, unidad: f.unidad, estatus: vencidas && ent < hoy ? 'enviada' : 'pendiente', calif: null, comentario: '' });
+        nuevas.push({ id: uid(), materia: m.id, titulo: f.titulo, tipo: TIPOS_ESC.includes(f.tipo) ? f.tipo : 'Otro', valor: f.valor, inicio: ini, entrega: ent, unidad: f.unidad, estatus: vencidas && ent < hoy ? 'enviada' : 'pendiente', calif: null, comentario: '' });
       }
     }
     S.escolares.push(...nuevas); guardar(); Modal.cerrar(); UI.esc.tab = 'lista'; UI.esc.mat = ''; App.pintar();

@@ -200,10 +200,12 @@ Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identif
   - `Crono.interpretar()` agrupa los textos en renglones, localiza la tabla de **ponderación** (Actividad · Tipo · Valor · Duración) y la de **fechas** (Sección · Actividad · Fecha de inicio · Fecha de entrega…), asigna columnas por posición (los encabezados vienen centrados; si el contenido alineado a la izquierda empieza antes, el límite se recorre), une celdas de varios renglones y nombres partidos, y empareja ambas tablas en orden por parecido de palabras (alineación tipo *diff*).
   - Inicio: el del PDF; si no trae, la entrega anterior + 1 día (regla de AcadTrack), sin rebasar la duración indicada.
   - Clave y ciclo salen del nombre del archivo (`IH716_2026B__…`); la materia se sugiere si ya existe con esa clave y ciclo.
-  - Borrador editable (casilla, actividad, tipo, valor, unidad, inicio, entrega, hora); las actividades sin fecha quedan desmarcadas. Opción para marcar como «Enviada» lo ya vencido; lo demás entra «Pendiente».
+  - Borrador editable (nombre de la materia —obligatorio, el PDF sólo trae la clave—, casilla, actividad, tipo, valor, unidad, inicio, entrega); las actividades sin fecha quedan desmarcadas. Opción para marcar como «Enviada» lo ya vencido; lo demás entra «Pendiente».
   - Al guardar se valida como la carga masiva y se omiten repetidos.
 - **Nuevo semestre**: manda todas las materias con sus actividades a la papelera (restaurables 7 días) después de ofrecer el respaldo.
-- Campos nuevos: materia `clave`; actividad `hora` (de entrega, aparece en la lista y la agenda) y `unidad`. Tipos nuevos: Presentación y Glosario.
+- Campos nuevos: materia `clave`; actividad `unidad`. Tipos nuevos: Presentación y Glosario. Sin hora de entrega: todas las entregas son hasta el final del día.
+- **Calendario (línea de tiempo)** (v0.10.1, como AcadTrack): vista Semestre (predeterminada), Mes o 3 meses; renglón «Vencen ese día» con el número de entregas (1 amarillo, 2 naranja, 3+ rojo); filtro por estado con conteo; clic en una actividad abre `Esc.marcar()` para cambiar el estado o capturar la calificación.
+- **Materias**: el nombre se edita directo en la lista (`Esc.renombrar()`); aviso en Escuela si alguna materia sólo tiene la clave.
 
 ### Agenda
 - Reúne eventos, actividades con fecha límite, entregas escolares, cumpleaños y recordatorios.

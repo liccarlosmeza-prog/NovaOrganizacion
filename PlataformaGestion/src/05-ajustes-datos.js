@@ -191,7 +191,7 @@ function sanear(e) {
   const est = new Set(r.estatus.map(x => x.id)), e0 = r.estatus[0].id, pri = v => ['1', '2', '3', '4'].includes(String(v)) ? String(v) : '3';
   r.proyectos.forEach(p => { if (!est.has(p.estatus)) p.estatus = e0; p.prioridad = pri(p.prioridad); if (!AMBITOS.includes(p.ambito)) p.ambito = 'Trabajo'; p.avanceManual = Math.min(100, Math.max(0, p.avanceManual || 0)); });
   r.actividades.forEach(a => { if (!est.has(a.estatus)) a.estatus = e0; a.prioridad = pri(a.prioridad); });
-  r.escolares = r.escolares.filter(x => x.entrega && x.materia); r.escolares.forEach(x => { if (!EST_ESC.some(y => y[0] === x.estatus)) x.estatus = 'pendiente'; x.valor = Math.max(0, x.valor || 0); if (!x.inicio || x.inicio > x.entrega) x.inicio = x.entrega; if (!TIPOS_ESC.includes(x.tipo)) x.tipo = 'Otro'; x.unidad = String(x.unidad || '').slice(0, 60); });
+  r.escolares = r.escolares.filter(x => x.entrega && x.materia); r.escolares.forEach(x => { if (!EST_ESC.some(y => y[0] === x.estatus)) x.estatus = 'pendiente'; x.valor = Math.max(0, x.valor || 0); if (!x.inicio || x.inicio > x.entrega) x.inicio = x.entrega; if (!TIPOS_ESC.includes(x.tipo)) x.tipo = 'Otro'; x.unidad = String(x.unidad || '').slice(0, 60); delete x.hora; });   // las entregas son hasta el final del día
   r.materias.forEach(m => { m.clave = String(m.clave || '').slice(0, 20); m.ciclo = String(m.ciclo || '').slice(0, 20); });
   r.eventos = r.eventos.filter(x => FECHA_OK.test(x.fecha)); r.recordatorios = r.recordatorios.filter(x => FECHA_OK.test(x.fecha));
   r.recordatorios.forEach(x => { if (!['', 'diario', 'semanal', 'mensual', 'anual'].includes(x.repetir)) x.repetir = ''; });
@@ -239,8 +239,8 @@ const Datos = {
       { nombre: 'agenda.csv', enc: ['Id', 'Evento', 'Fecha', 'HoraInicio', 'HoraFin', 'Tipo', 'Proyecto', 'Lugar', 'Notas', 'Origen'], filas: S.eventos.map(e => [e.id, e.titulo, aDMY(e.fecha), e.horaIni, e.horaFin, e.tipo, nom('proyectos', e.proyecto), e.lugar, e.nota, e.origen]) },
       { nombre: 'cumpleanos.csv', enc: ['Nombre', 'Fecha', 'Relacion', 'Nota'], filas: S.cumples.map(c => [c.nombre, `${p2(c.dia)}/${p2(c.mes)}${c.anio ? '/' + c.anio : ''}`, c.relacion, c.nota]) },
       { nombre: 'materias.csv', enc: ['Materia', 'Clave', 'Profesor', 'Ciclo', 'Color', 'Meta'], filas: S.materias.map(m => [m.nombre, m.clave, m.profesor, m.ciclo, m.color, m.meta]) },
-      { nombre: 'actividades_escolares.csv', enc: ['Materia', 'Actividad', 'Tipo', 'Valor', 'FechaInicio', 'FechaEntrega', 'HoraEntrega', 'Unidad', 'Estado', 'Calificacion', 'Comentarios'],
-        filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), e.hora, e.unidad, (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
+      { nombre: 'actividades_escolares.csv', enc: ['Materia', 'Actividad', 'Tipo', 'Valor', 'FechaInicio', 'FechaEntrega', 'Unidad', 'Estado', 'Calificacion', 'Comentarios'],
+        filas: S.escolares.map(e => [nom('materias', e.materia), e.titulo, e.tipo, e.valor, aDMY(e.inicio), aDMY(e.entrega), e.unidad, (EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1], e.calif, e.comentario]) },
       { nombre: 'accesos_directos.csv', enc: ['Nombre', 'URL', 'Carpeta', 'Descripcion', 'Favorito', 'Tags'], filas: S.enlaces.map(l => [l.nombre, l.url, nom('carpetas', l.carpeta), l.desc, l.fav ? 'SI' : 'NO', String(l.tags || '').replace(/,/g, ';')]) },
       { nombre: 'frases.csv', enc: ['Frase', 'Autor', 'TieneImagen', 'VistaEl'], filas: S.frases.map(f => [f.texto, f.autor, f.img ? 'SI' : 'NO', aDMY(f.vista)]) },
       { nombre: 'correcciones_lector.csv', enc: ['Mal', 'Bien', 'Usos'], filas: S.correcciones.map(c => [c.mal, c.bien, c.usos || 0]) },
@@ -286,8 +286,8 @@ const Datos = {
   _materia(nombre) { let m = S.materias.find(x => norm(x.nombre) === norm(nombre)); if (!m) { m = { id: uid(), nombre, color: PALETA[S.materias.length % PALETA.length], meta: S.ajustes.metaEscolar }; S.materias.push(m); } return m; },
   leer_escolares(filas) {
     const col = columnas(filas[0] || []), conEnc = col('materia') >= 0;
-    const ix = conEnc ? { m: col('materia'), t: col('actividad', 'titulo', 'nombre'), tp: col('tipo'), v: col('valor', 'puntos'), i: col('fechainicio', 'inicio'), e: col('fechaentrega', 'entrega'), s: col('estado', 'estatus'), c: col('calificacion'), h: col('horaentrega', 'hora'), u: col('unidad') }
-                      : { m: 0, t: 1, tp: 2, v: 3, i: 4, e: 5, s: 6, c: 7, h: 8, u: 9 };
+    const ix = conEnc ? { m: col('materia'), t: col('actividad', 'titulo', 'nombre'), tp: col('tipo'), v: col('valor', 'puntos'), i: col('fechainicio', 'inicio'), e: col('fechaentrega', 'entrega'), s: col('estado', 'estatus'), c: col('calificacion'), u: col('unidad') }
+                      : { m: 0, t: 1, tp: 2, v: 3, i: 4, e: 5, s: 6, c: 7, u: 8 };
     const EST = { pendiente: 'pendiente', enproceso: 'proceso', proceso: 'proceso', guardada: 'guardada', enviada: 'enviada', calificada: 'calificada' };
     const nuevos = []; let omitidas = 0;
     for (const f of filas.slice(conEnc ? 1 : 0)) {
@@ -295,8 +295,8 @@ const Datos = {
       if (!materia || !titulo || !entrega || (inicio && inicio > entrega)) { omitidas++; continue; }
       const valor = Number(celda(f, ix.v).replace(',', '.')) || 0, ct = celda(f, ix.c).replace(',', '.'), calif = ct === '' || isNaN(+ct) ? null : Math.min(+ct, valor);
       let tipo = celda(f, ix.tp) || 'Buzón'; tipo = TIPOS_ESC.find(x => norm(x) === norm(tipo)) || 'Otro';
-      const hora = celda(f, ix.h), unidad = celda(f, ix.u).slice(0, 60);
-      nuevos.push({ materia, titulo, tipo, valor, inicio: inicio || entrega, entrega, hora: /^\d{2}:\d{2}$/.test(hora) ? hora : '', unidad, estatus: calif != null ? 'calificada' : (EST[norm(celda(f, ix.s))] || 'pendiente'), calif });
+      const unidad = celda(f, ix.u).slice(0, 60);
+      nuevos.push({ materia, titulo, tipo, valor, inicio: inicio || entrega, entrega, unidad, estatus: calif != null ? 'calificada' : (EST[norm(celda(f, ix.s))] || 'pendiente'), calif });
     }
     const existe = x => S.escolares.some(e => norm((por('materias', e.materia) || {}).nombre) === norm(x.materia) && norm(e.titulo) === norm(x.titulo) && e.entrega === x.entrega);
     const lista = nuevos.filter(x => !existe(x)); omitidas += nuevos.length - lista.length;
@@ -412,7 +412,7 @@ const LAYOUTS = {
     ej: d => [['Preparar reporte mensual', '', 'Reportes', 'Pendiente', 'Alta', d(0), d(3), '12:00', '2', 'Incluir comparativo', 'Extraer datos | Validar cifras | Enviar'], ['Diseñar modelo de datos', 'Migración de reportes a Power BI', '', 'En curso', 'Media', d(1), d(10), '', '6', '', '']] },
   materias: { t: 'Materias', cols: [['Materia', 1, 'Texto. No se repite.'], ['Clave', 0, 'Código de la materia, p. ej. IH716'], ['Profesor', 0, 'Texto'], ['Ciclo', 0, 'Texto, p. ej. 2026-B'], ['Color', 0, 'Hexadecimal #RRGGBB'], ['Meta', 0, 'Puntos que quieres alcanzar (0–100)']],
     ej: () => [['Programación Web', 'Mtra. Laura Gómez', '2026-B', '#0B84F3', '85'], ['Bases de Datos', 'Mtro. Jorge Pérez', '2026-B', '#19C3C8', '80']] },
-  escolares: { t: 'Actividades escolares', cols: [['Materia', 1, 'Nombre de la materia; si no existe, se crea'], ['Actividad', 1, 'Texto'], ['Tipo', 0, TIPOS_ESC.join(', ')], ['Valor', 0, 'Puntos (número)'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaEntrega', 1, 'dd/mm/aaaa; no anterior al inicio'], ['Estado', 0, 'Pendiente, En proceso, Guardada, Enviada o Calificada'], ['Calificacion', 0, 'Puntos obtenidos; vacío si no está calificada'], ['HoraEntrega', 0, 'hh:mm (24 h)'], ['Unidad', 0, 'Texto, p. ej. Unidad 1']],
+  escolares: { t: 'Actividades escolares', cols: [['Materia', 1, 'Nombre de la materia; si no existe, se crea'], ['Actividad', 1, 'Texto'], ['Tipo', 0, TIPOS_ESC.join(', ')], ['Valor', 0, 'Puntos (número)'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaEntrega', 1, 'dd/mm/aaaa; no anterior al inicio'], ['Estado', 0, 'Pendiente, En proceso, Guardada, Enviada o Calificada'], ['Calificacion', 0, 'Puntos obtenidos; vacío si no está calificada'], ['Unidad', 0, 'Texto, p. ej. Unidad 1']],
     nota: 'Es el mismo formato que exporta AcadTrack.',
     ej: d => [['Programación Web', 'Act. 1.1 El desarrollo web hoy', 'Buzón', '5', d(-10), d(-5), 'Calificada', '5'], ['Programación Web', 'Integradora 1', 'Buzón', '15', d(0), d(8), 'Pendiente', ''], ['Bases de Datos', 'Examen parcial', 'Examen', '25', d(5), d(12), 'Pendiente', '']] },
   eventos: { t: 'Agenda (eventos)', cols: [['Evento', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['HoraInicio', 0, 'hh:mm (24 h)'], ['HoraFin', 0, 'hh:mm; no anterior al inicio'], ['Tipo', 0, 'Reunión, Revisión, Clase, Personal u Otro'], ['Proyecto', 0, 'Nombre de un proyecto existente'], ['Lugar', 0, 'Texto o enlace'], ['Notas', 0, 'Texto']],

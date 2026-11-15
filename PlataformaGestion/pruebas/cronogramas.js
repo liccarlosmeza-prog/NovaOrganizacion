@@ -52,20 +52,37 @@ const html = (filas, extra = '') => `<!doctype html><meta charset="utf-8"><style
     const d = CronoUI._d[0], f = d.filas;
     return { clave: d.clave, ciclo: d.ciclo, filas: f.length, avisos: d.avisos, suma: f.reduce((s, r) => s + r.valor, 0),
       nombresOk: exp.every((a, i) => f[i] && f[i].titulo === a[0]), tipos: f.map(r => r.tipo).join(','),
-      unidades: f.map(r => r.unidad).join(','), entregas: f.map(r => r.entrega + ' ' + r.hora).join(' | '),
+      unidades: f.map(r => r.unidad).join(','), entregas: f.map(r => r.entrega).join(' | '),
       iniciosOk: f.every(r => r.inicio && r.inicio <= r.entrega) };
   }, ACT);
   R.lecturaOk = R.lectura.clave === 'XX123' && R.lectura.ciclo === '2026B' && R.lectura.filas === 7 && !R.lectura.avisos.length && R.lectura.suma === 100 && R.lectura.nombresOk
     && R.lectura.tipos === 'Foro,Buzón,Examen,Glosario,Buzón,Presentación,Proyecto' && R.lectura.unidades === 'Unidad 1,Unidad 1,Unidad 1,Unidad 2,Unidad 2,Unidad 3,Unidad 3'
-    && R.lectura.entregas.startsWith('2026-09-07 23:59 | 2026-09-13 23:59 | 2026-09-15 20:00') && R.lectura.entregas.endsWith('2026-10-16 19:30') && R.lectura.iniciosOk;
+    && R.lectura.entregas === '2026-09-07 | 2026-09-13 | 2026-09-15 | 2026-09-20 | 2026-09-27 | 2026-10-04 | 2026-10-16' && R.lectura.iniciosOk;
 
   // 3. Guardar con estatus: lo vencido como «Enviada», lo demás «Pendiente»; materia nueva con clave y ciclo
+  // 3a. Sin nombre de materia no se guarda (el cronograma sólo trae la clave)
+  await p.click('text=Cargar actividades'); await p.waitForTimeout(200);
+  R.exigeNombre = await p.evaluate(() => S.escolares.length === 0 && !!document.querySelector('#cr_nom_0') && document.activeElement.id === 'cr_nom_0');
   await p.fill('#cr_nom_0', 'Bases de datos'); await p.check('#crVencidas'); await p.click('text=Cargar actividades'); await p.waitForTimeout(300);
   R.guardado = await p.evaluate(() => { const m = S.materias.find(x => x.clave === 'XX123'); const l = S.escolares.filter(e => e.materia === m.id);
     return { materia: m.nombre + '|' + m.clave + '|' + m.ciclo, n: l.length, enviadas: l.filter(e => e.estatus === 'enviada').map(e => e.entrega).join(','), pendientes: l.filter(e => e.estatus === 'pendiente').length,
-      enLista: document.querySelectorAll('#pral tbody tr').length >= 7, hora: l.find(e => e.entrega === '2026-09-15').hora }; });
-  R.guardadoOk = R.guardado.materia === 'Bases de datos|XX123|2026B' && R.guardado.n === 7 && R.guardado.enviadas === '2026-09-07,2026-09-13' && R.guardado.pendientes === 5 && R.guardado.enLista && R.guardado.hora === '20:00';
+      enLista: document.querySelectorAll('#pral tbody tr').length >= 7, sinHora: !l.some(e => 'hora' in e), sinColumnaHora: !document.querySelector('#pral th') || ![...document.querySelectorAll('#pral th')].some(t => /hora/i.test(t.textContent)) }; });
+  R.guardadoOk = R.guardado.materia === 'Bases de datos|XX123|2026B' && R.guardado.n === 7 && R.guardado.enviadas === '2026-09-07,2026-09-13' && R.guardado.pendientes === 5 && R.guardado.enLista && R.guardado.sinHora && R.guardado.sinColumnaHora && R.exigeNombre;
 
+  // 3b. Calendario (línea de tiempo): conteo de entregas por día y marcado rápido del estado
+  await p.evaluate(() => { UI.esc.tab = 'tiempo'; UI.esc.rango = 'todo'; UI.esc.tst = ''; App.pintar(); });
+  R.calendario = await p.evaluate(() => ({ conteos: [...document.querySelectorAll('.tl .ccel')].map(c => c.textContent).join(','), barras: document.querySelectorAll('.tl .bar').length, etiqueta: !!document.evaluate("//*[contains(text(),'Vencen ese día')]", document, null, 9, null).singleNodeValue }));
+  await p.click('.tl .bar >> text=Quiz de la unidad 1'); await p.waitForSelector('#modal .btn >> text=Enviada');
+  await p.click('#modal .btn >> text=Enviada'); await p.waitForTimeout(200);
+  R.marcado = await p.evaluate(() => { const e = S.escolares.find(x => x.titulo === 'Quiz de la unidad 1'); return e.estatus === 'enviada' && S.historial.some(h => h.ref === e.id && h.a === 'Enviada'); });
+  await p.evaluate(() => { UI.esc.tst = 'enviada'; App.pintar(); }); R.filtroEnviadas = await p.evaluate(() => document.querySelectorAll('.tl .bar').length);
+  await p.evaluate(() => { UI.esc.tst = ''; UI.esc.tab = 'materias'; App.pintar(); });
+  // 3c. Renombrar la materia desde la pestaña Materias
+  await p.fill('#pral input[aria-label="Nombre de la materia"]', 'Bases de datos avanzadas'); await p.press('#pral input[aria-label="Nombre de la materia"]', 'Tab'); await p.waitForTimeout(200);
+  R.renombrada = await p.evaluate(() => S.materias[0].nombre === 'Bases de datos avanzadas');
+  await p.evaluate(() => { Esc.renombrar(S.materias[0].id, '   '); }); R.noVacia = await p.evaluate(() => S.materias[0].nombre === 'Bases de datos avanzadas');
+  await p.evaluate(() => { Esc.renombrar(S.materias[0].id, 'Bases de datos'); UI.esc.tab = 'lista'; App.pintar(); });
+  R.calendarioOk = R.calendario.conteos === '1,1,1,1,1,1,1' && R.calendario.barras === 7 && R.calendario.etiqueta && R.marcado && R.filtroEnviadas === 3 && R.renombrada && R.noVacia;
   // 4. Volver a cargar el mismo PDF: sugiere la materia existente y no duplica
   await leer([fNormal]); R.reimporta = await p.evaluate(() => { const s = document.getElementById('cr_mat_0'); return s.options[s.selectedIndex].text; });
   await p.click('text=Cargar actividades'); await p.waitForTimeout(300);
@@ -92,6 +109,6 @@ const html = (filas, extra = '') => `<!doctype html><meta charset="utf-8"><style
   R.semestreOk = R.semestre.materias === 0 && R.semestre.escolares === 0 && R.semestre.papelera === 2 && R.restaura;
 
   R.externas = externas; R.errores = errores.filter(e => !/No se pudo leer|Invalid PDF|PDF/.test(e));
-  R.TODO_OK = R.lecturaOk && R.guardadoOk && R.reimporta.startsWith('Bases de datos') && R.sinDuplicados && R.maliciosoOk && R.inundacionOk && R.semestreOk && !externas.length && !R.errores.length;
+  R.TODO_OK = R.lecturaOk && R.guardadoOk && R.reimporta.startsWith('Bases de datos') && R.sinDuplicados && R.calendarioOk && R.maliciosoOk && R.inundacionOk && R.semestreOk && !externas.length && !R.errores.length;
   console.log(JSON.stringify(R, null, 1)); if (!process.env.CONSERVAR) fs.rmSync(TMP, { recursive: true, force: true }); else console.log(TMP); await b.close(); process.exit(R.TODO_OK ? 0 : 1);
 })();

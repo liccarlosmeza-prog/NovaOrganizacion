@@ -334,9 +334,9 @@ Direcciones nuevas como texto: ninguna en el código propio. Dentro de pdf.js ap
 | Archivo que no es PDF con extensión `.pdf` | Se revisan extensión/tipo **y** la firma `%PDF-`; si falla, aviso «No se pudo leer» sin abrirlo (probado con un HTML disfrazado) |
 | Archivos enormes o PDF con miles de filas (bloqueo del navegador) | Máximo 20 MB, 40 páginas, 15 PDF por carga, 20 000 textos por página, 500 caracteres por texto, 300 filas por tabla (el emparejamiento crece n×m). Probado: 2 500 filas → recortado a 300 en 27 ms con aviso |
 | Texto del PDF con HTML (nombre, unidad, tipo, aviso, nombre de archivo) | Dato no confiable: en el borrador va en atributos `value` escapados con `esc()`; al guardar se escapa en lista, agenda y línea de tiempo. Probado (A5f y `pruebas/cronogramas.js`): sin ejecución |
-| Datos inválidos del borrador | Al guardar se aplican las mismas reglas que la carga masiva: fecha real, inicio ≤ entrega, valor 0–100, tipo de la lista `TIPOS_ESC`, hora `hh:mm`, textos recortados; sin repetidos (materia + actividad + entrega). Probado: inicio posterior a la entrega no se guarda |
+| Datos inválidos del borrador | Al guardar se aplican las mismas reglas que la carga masiva: fecha real, inicio ≤ entrega, valor 0–100, tipo de la lista `TIPOS_ESC`, textos recortados; sin repetidos (materia + actividad + entrega). Probado: inicio posterior a la entrega no se guarda |
 | Identificadores | Materias y actividades nuevas con `uid()`; nunca se toma un identificador del PDF |
-| Campos nuevos (`clave` de materia; `hora` y `unidad` de actividad) | `hora` ya estaba en `CAMPO.hora`; `sanear()` recorta `unidad` (60) y `clave`/`ciclo` (20), corrige `tipo` fuera de la lista e inicio > entrega en datos de archivo o almacenamiento |
+| Campos nuevos (`clave` de materia; `unidad` de actividad) | `sanear()` recorta `unidad` (60) y `clave`/`ciclo` (20), corrige `tipo` fuera de la lista e inicio > entrega en datos de archivo o almacenamiento |
 | «Nuevo semestre» borra calificaciones por accidente | Confirmación con resumen y botones para descargar respaldo y CSV antes; todo va a la **papelera** con `Papelera.mover()` (materia + sus actividades en `rel`), restaurable 7 días. Probado |
 | Direcciones `blob:` del lector | Se liberan (`revokeObjectURL`) en cuanto el módulo carga |
 
@@ -352,7 +352,7 @@ Sin hallazgos críticos, altos ni medios. Barrido de secretos y funciones peligr
 - `node pruebas/cronogramas.js` (nueva, PDF sintéticos con encabezados centrados, celdas en varios renglones, secciones y dos páginas): lectura, estatus, reimportación sin duplicados, PDF malicioso, PDF sin tablas, archivo falso, inundación de filas, «Nuevo semestre» y restauración. **Correcto**, 0 conexiones.
 - `node pruebas/ataque.js`: nuevo caso **A5f** (cronograma con HTML en todos los campos y fechas invertidas): sin ejecución; demás casos sin cambios.
 - `pruebas/papelera.js`: **Correcto**. `pruebas/lector-fotos.js`: **Correcto**. `pruebas/sincronizacion.js`: mismos resultados que la v0.9.
-- Cronogramas reales del usuario (no se guardan en el repositorio, el repositorio es público): 3 PDF → 35 actividades, cada materia suma 100 puntos, fechas y horas correctas, 3 vencidas marcadas como «Enviada».
+- Cronogramas reales del usuario (no se guardan en el repositorio, el repositorio es público): 3 PDF → 35 actividades, cada materia suma 100 puntos, fechas correctas, 3 vencidas marcadas como «Enviada».
 
 ### No verificado
 - Cronogramas de otras plataformas o con un formato de tabla distinto: el lector avisa si no encuentra las tablas, pero no se probó con más ejemplos.
@@ -366,4 +366,12 @@ Sin hallazgos críticos, altos ni medios. Barrido de secretos y funciones peligr
 
 | Fecha | Cambio | Validación automática | Pasada adversarial |
 |---|---|---|---|
-| 2026-11-15 | v0.10 — cronogramas en PDF (pdf.js incrustado), «Nuevo semestre», hora y unidad de entrega | APTO | Sin ejecución de código; 0 conexiones externas |
+| 2026-11-15 | v0.10 — cronogramas en PDF (pdf.js incrustado), «Nuevo semestre», unidad de entrega | APTO | Sin ejecución de código; 0 conexiones externas |
+| 2026-11-15 | v0.10.1 — nombre de materia obligatorio y editable en la lista de materias, calendario (línea de tiempo) con filtro por estado y marcado rápido, sin hora de entrega | APTO | Caso nuevo A5g (nombre de materia con HTML, filtro de estado manipulado): sin ejecución; 0 conexiones externas |
+
+### Ajustes v0.10.1
+- **Hora de entrega eliminada**: todas las entregas son hasta el final del día. `sanear()` borra el campo `hora` de las actividades escolares guardadas antes; la exportación y la carga masiva ya no la usan.
+- **Nombre de materia**: obligatorio al cargar un cronograma (el PDF sólo trae la clave) y editable directamente en Escuela → Materias (`Esc.renombrar()`: texto recortado a 120 caracteres, no admite vacío, se escapa al mostrarse).
+- **Marcado rápido** (`Esc.marcar()`): ventana con los estados y la calificación; usa `Esc.estado()`/`Esc.calificar()`, por lo que registra el historial (`regEstatus()`) y valida la calificación igual que la lista.
+- **Filtro por estado del calendario** (`UI.esc.tst`): se recuerda entre sesiones; si el valor guardado no es un estado válido se ignora (probado con HTML en el valor).
+- Pruebas: `pruebas/cronogramas.js` agrega exigencia de nombre, conteo de entregas por día, marcado desde el calendario con registro en el historial, filtro por estado y renombrado; `pruebas/ataque.js` agrega A5g. Todo **correcto**, 0 conexiones.

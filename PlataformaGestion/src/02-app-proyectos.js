@@ -7,7 +7,7 @@
 const UI = {
   proy: { f: 'activos', amb: '', pri: '', q: '', tab: 'actividades' },
   act: { f: 'pendientes', proy: '', cat: '', pri: '', q: '' },
-  esc: { tab: 'lista', mat: '', est: '', tipo: '', q: '', rango: 'mes', mes: hoyISO().slice(0, 7) },
+  esc: { tab: 'lista', mat: '', est: '', tipo: '', tst: '', q: '', rango: 'todo', mes: hoyISO().slice(0, 7) },
   ag: { mes: hoyISO().slice(0, 7), dia: hoyISO(), modo: 'mes', per: 'todos', proy: '', q: '', sel: new Set(), ver: { evento: true, actividad: true, entrega: true, cumple: true, recordatorio: true } },
   rec: { q: '' }, cum: { q: '', rel: '' }, pap: { tipo: '', q: '' },
   notas: { f: 'todas', id: null, q: '' },

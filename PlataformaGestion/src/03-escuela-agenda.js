@@ -10,7 +10,7 @@ const Esc = {
     { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: TIPOS_ESC, medio: true },
     { k: 'inicio', label: 'Fecha de inicio', tipo: 'date', medio: true },
     { k: 'entrega', label: 'Fecha de entrega', tipo: 'date', medio: true, req: true },
-    { k: 'hora', label: 'Hora de entrega', tipo: 'time', medio: true }, { k: 'unidad', label: 'Unidad', medio: true, ph: 'Unidad 1' },
+    { k: 'unidad', label: 'Unidad', medio: true, ph: 'Unidad 1' },
     { k: 'valor', label: 'Valor (puntos)', tipo: 'number', min: 0, max: 100, paso: 0.5, medio: true },
     { k: 'calif', label: 'Calificación obtenida (puntos)', tipo: 'number', min: 0, paso: 0.1, medio: true, ayuda: 'Déjala vacía si aún no te califican.' },
     { k: 'estatus', label: 'Estado', tipo: 'select', opciones: EST_ESC },
@@ -31,6 +31,22 @@ const Esc = {
     const e = por('escolares', id);
     Form.abrir({ titulo: 'Editar actividad escolar', campos: this.campos(), valores: e, nota: Hist.de(id),
       guardar: v => { const er = this._validar(v); if (er) return er; regEstatus('escolares', e, e.estatus, v.estatus); poner('escolares', { ...e, ...v }); }, eliminar: () => quitar('escolares', id) });
+  },
+  /** Ventana rápida para marcar el estado (desde la línea de tiempo), como en AcadTrack. */
+  marcar(id) {
+    const e = por('escolares', id); if (!e) return; const m = por('materias', e.materia) || {};
+    const ops = EST_ESC.filter(([k]) => k !== 'calificada').map(([k, n]) => `<button type="button" class="btn ${e.estatus === k ? 'pri' : ''}" onclick="Esc.estado('${e.id}','${k}');Modal.cerrar()">${n}</button>`).join('');
+    Modal.abrir(`<div class="form"><h2>${esc(e.titulo)}</h2><div class="campos" style="display:block">
+      <p class="d">${punto(m.color)}${esc(m.nombre || '')} · ${esc(e.tipo || '')}${e.valor ? ' · ' + e.valor + ' pts' : ''} · ${esc(fFecha(e.inicio))} → ${esc(fFecha(e.entrega))}</p>
+      <div class="barra" style="margin-top:12px">${ops}</div>
+      ${e.valor ? `<div class="barra"><label class="d" for="mkCal">Calificación (0 a ${e.valor})</label><input type="number" id="mkCal" min="0" max="${e.valor}" step="0.1" value="${e.calif ?? ''}" style="width:90px">
+        <button type="button" class="btn" onclick="Esc.calificar('${e.id}',document.getElementById('mkCal').value);Modal.cerrar()">Guardar calificación</button></div>` : ''}</div>
+      <div class="acciones"><button type="button" class="btn" onclick="Modal.cerrar();Esc.editar('${e.id}')">Editar</button><span class="esp"></span><button type="button" class="btn" onclick="Modal.cerrar()">Cerrar</button></div></div>`, 560);
+  },
+  renombrar(id, txt) {
+    const m = por('materias', id), n = String(txt || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    if (!m) return; if (!n) { toast('El nombre de la materia no puede quedar vacío', 'err'); App.pintar(); return; }
+    m.nombre = n; guardar(); toast('Materia renombrada'); App.pintar();
   },
   estado(id, v) { const e = por('escolares', id); regEstatus('escolares', e, e.estatus, v); e.estatus = v; if (v !== 'calificada') e.calif = null; guardar(); App.pintar(); },
   calificar(id, txt) {
@@ -65,7 +81,8 @@ Vistas.escuela = () => {
   const selMat = `<select onchange="UI.esc.mat=this.value;App.pintar()"><option value="">Todas las materias</option>${S.materias.map(m => `<option value="${m.id}" ${UI.esc.mat === m.id ? 'selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
   const cuerpo = t === 'lista' ? escLista(selMat) : t === 'tiempo' ? escTiempo(selMat) : t === 'eval' ? escEval(selMat) : escMaterias();
   return `${cab('Escuela', `${S.materias.length} materias · ${S.escolares.filter(e => e.tipo !== 'Vacaciones').length} actividades`, btnHist('escolares') + btnCarga(t === 'materias' ? 'materias' : 'escolares') + (Pdf.disponible() ? '<button class="btn" onclick="CronoUI.abrir()">Cargar cronogramas (PDF)</button>' : '') + '<button class="btn" onclick="CronoUI.nuevoSemestre()">Nuevo semestre</button>' + '<button class="btn" onclick="Esc.materia()">+ Materia</button><button class="btn pri" onclick="Esc.nueva()">+ Actividad</button>')}
-  <div class="tabs">${[['lista', 'Actividades'], ['tiempo', 'Línea de tiempo'], ['eval', 'Evaluación'], ['materias', 'Materias']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.esc.tab='${k}';App.pintar()">${n}</button>`).join('')}</div>${cuerpo}`;
+  ${(() => { const sin = S.materias.filter(m => m.clave && m.nombre === m.clave); return sin.length ? `<div class="panel" style="padding:10px 14px;margin-bottom:12px"><span class="ambar">${sin.length} materia(s) sólo tienen la clave del cronograma (${sin.map(m => esc(m.clave)).join(', ')}).</span> <button class="lnk" onclick="UI.esc.tab='materias';App.pintar()">Escribir sus nombres</button></div>` : ''; })()}
+  <div class="tabs">${[['lista', 'Actividades'], ['tiempo', 'Calendario (línea de tiempo)'], ['eval', 'Evaluación'], ['materias', 'Materias']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.esc.tab='${k}';App.pintar()">${n}</button>`).join('')}</div>${cuerpo}`;
 };
 
 function escLista(selMat) {
@@ -81,7 +98,7 @@ function escLista(selMat) {
   <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Actividad</th><th>Materia</th><th>Tipo</th><th class="num">Valor</th><th>Inicio</th><th>Entrega</th><th>Estado</th><th class="num">Calificación</th></tr></thead><tbody>
     ${l.map(e => { const m = por('materias', e.materia) || {}, cerr = ['enviada', 'calificada'].includes(e.estatus) || e.tipo === 'Vacaciones';
       return `<tr class="${cerr && e.tipo !== 'Vacaciones' ? 'hecho' : ''}"><td><span class="t" onclick="Esc.editar('${e.id}')">${esc(e.titulo)}</span>${e.unidad ? `<div class="d">${esc(e.unidad)}</div>` : ''}</td><td class="nw">${punto(m.color)}${esc(m.nombre || '')}</td><td class="d nw">${esc(e.tipo || '')}</td>
-      <td class="num">${e.valor ? e.valor + ' pts' : '—'}</td><td class="d nw">${esc(fFecha(e.inicio))}</td><td class="nw">${fechaLim(e.entrega, cerr)}${e.hora ? `<div class="d">${esc(e.hora)} h</div>` : ''}</td>
+      <td class="num">${e.valor ? e.valor + ' pts' : '—'}</td><td class="d nw">${esc(fFecha(e.inicio))}</td><td class="nw">${fechaLim(e.entrega, cerr)}</td>
       <td>${e.tipo === 'Vacaciones' ? '<span class="d">—</span>' : `<select onchange="Esc.estado('${e.id}',this.value)">${EST_ESC.map(([k, n]) => `<option value="${k}" ${e.estatus === k ? 'selected' : ''}>${n}</option>`).join('')}</select>`}</td>
       <td class="num">${e.valor ? `<input type="number" min="0" max="${e.valor}" step="0.1" value="${e.calif ?? ''}" onchange="Esc.calificar('${e.id}',this.value)" aria-label="Calificación">` : ''}</td></tr>`; }).join('')}
     </tbody></table>` : vacio('Sin actividades escolares', 'Agrégalas una por una o impórtalas por CSV en Ajustes → Datos.')}</div>`;
@@ -97,7 +114,12 @@ function escTiempo(selMat) {
   else { ini = sumaDias(fechas[0] || hoy, -2); fin = sumaDias(fechas[fechas.length - 1] || hoy, 2); }
   const n = difDias(ini, fin) + 1, ancho = n * W;
   const mats = S.materias.filter(m => !UI.esc.mat || m.id === UI.esc.mat);
-  const visibles = S.escolares.filter(e => mats.some(m => m.id === e.materia) && e.entrega && (e.inicio || e.entrega) <= fin && e.entrega >= ini);
+  const tst = EST_ESC.some(([k]) => k === UI.esc.tst) ? UI.esc.tst : '';
+  const enRango = S.escolares.filter(e => mats.some(m => m.id === e.materia) && e.entrega && (e.inicio || e.entrega) <= fin && e.entrega >= ini);
+  const visibles = enRango.filter(e => !tst || e.tipo === 'Vacaciones' || e.estatus === tst);
+  // Filtro por estado con conteo (como la leyenda de AcadTrack)
+  const cuenta = k => enRango.filter(e => e.tipo !== 'Vacaciones' && (!k || e.estatus === k)).length;
+  const estados = `<div class="fil">${[['', 'Todos'], ...EST_ESC].map(([k, n]) => `<button class="${tst === k ? 'on' : ''}" onclick="UI.esc.tst='${k}';App.pintar()">${n} <span class="d">${cuenta(k)}</span></button>`).join('')}</div>`;
   // Encabezado: meses, días y conteo de entregas por día
   let meses = '', dias = '', carga = '', mesAnt = '';
   for (let i = 0; i < n; i++) {
@@ -105,7 +127,7 @@ function escTiempo(selMat) {
     if (iso.slice(0, 7) !== mesAnt) { mesAnt = iso.slice(0, 7); meses += `<div class="mescel" style="left:${i * W}px">${MESES_C[d.getMonth()]} ${d.getFullYear()}</div>`; }
     dias += `<div class="dcel ${ds === 0 || ds === 6 ? 'fs' : ''} ${iso === hoy ? 'hoy' : ''}" style="left:${i * W}px;width:${W}px"><b>${d.getDate()}</b>${'DLMMJVS'[ds]}</div>`;
     const c = visibles.filter(e => e.entrega === iso && e.tipo !== 'Vacaciones').length;
-    if (c) carga += `<div class="ccel" title="${c} entrega(s) el ${esc(fFecha(iso))}" style="left:${i * W + 2}px;width:${W - 4}px;background:${c >= 3 ? 'var(--bad)' : c === 2 ? 'var(--warn)' : 'var(--ac-s)'};color:${c >= 2 ? '#fff' : 'var(--ac)'}">${c}</div>`;
+    if (c) carga += `<div class="ccel c${Math.min(c, 3)}" title="${c} actividad(es) vence(n) el ${esc(fFecha(iso))}" style="left:${i * W + 2}px;width:${W - 4}px">${c}</div>`;
   }
   const filas = mats.map(m => {
     const its = visibles.filter(e => e.materia === m.id).sort((a, b) => (a.inicio || a.entrega).localeCompare(b.inicio || b.entrega));
@@ -113,7 +135,7 @@ function escTiempo(selMat) {
     for (const e of its) {
       const a = Math.max(0, difDias(ini, e.inicio || e.entrega)), b = Math.min(n - 1, difDias(ini, e.entrega));
       let c = carriles.findIndex(f => f < a); if (c < 0) { c = carriles.length; carriles.push(-1); } carriles[c] = b;
-      barras += `<div class="bar ${e.tipo === 'Vacaciones' ? 'vac' : esc(e.estatus)}" onclick="Esc.editar('${e.id}')" title="${esc(e.titulo)} · ${esc(fFecha(e.inicio))} → ${esc(fFecha(e.entrega))}${e.valor ? ' · ' + e.valor + ' pts' : ''}"
+      barras += `<div class="bar ${e.tipo === 'Vacaciones' ? 'vac' : esc(e.estatus)}" onclick="${e.tipo === 'Vacaciones' ? `Esc.editar('${e.id}')` : `Esc.marcar('${e.id}')`}" title="${esc(e.titulo)} · ${esc(fFecha(e.inicio))} → ${esc(fFecha(e.entrega))}${e.valor ? ' · ' + e.valor + ' pts' : ''} · ${esc((EST_ESC.find(x => x[0] === e.estatus) || ['', ''])[1])} (clic para marcar el estado)"
         style="left:${a * W + 1}px;width:${(b - a + 1) * W - 2}px;top:${c * 24 + 5}px;background:${esc(m.color)}">${['enviada', 'calificada'].includes(e.estatus) ? '✓ ' : ''}${esc(e.titulo)}</div>`;
     }
     return `<div class="fila"><div class="rot">${punto(m.color)}<span title="${esc(m.nombre)}">${esc(m.nombre)}</span></div><div class="pista" style="width:${ancho}px;height:${Math.max(1, carriles.length) * 24 + 8}px;background-size:${W}px 100%">${barras}</div></div>`;
@@ -121,15 +143,15 @@ function escTiempo(selMat) {
   const posHoy = hoy >= ini && hoy <= fin ? 170 + difDias(ini, hoy) * W + W / 2 : '';
   const etMes = `${MESES[mm - 1]} ${y}`;
   const mover = k => { const d = new Date(y, mm - 1 + k, 1); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}`; };
-  return `<div class="barra">${selMat}${filtro('esc', 'rango', [['mes', 'Mes'], ['tri', '3 meses'], ['todo', 'Todo el ciclo']])}
+  return `<div class="barra">${selMat}${filtro('esc', 'rango', [['todo', 'Semestre'], ['mes', 'Mes'], ['tri', '3 meses']])}${estados}
     ${UI.esc.rango !== 'todo' ? `<button class="btn ch" onclick="UI.esc.mes='${mover(-1)}';App.pintar()">‹</button><b style="min-width:120px;text-align:center">${may(etMes)}</b><button class="btn ch" onclick="UI.esc.mes='${mover(1)}';App.pintar()">›</button>
     <button class="btn ch" onclick="UI.esc.mes='${hoy.slice(0, 7)}';App.pintar()">Hoy</button>` : ''}</div>
   ${mats.length ? `<div class="tl" id="tl" data-hoy="${posHoy}"><div class="in" style="width:${ancho + 170}px">
     <div class="fila cabz"><div class="rot mut">Materia</div><div class="pista" style="width:${ancho}px;height:52px;background-image:none">${meses}${dias}</div></div>
-    <div class="fila"><div class="rot mut">Entregas por día</div><div class="pista" style="width:${ancho}px;height:26px;background-size:${W}px 100%">${carga}</div></div>
+    <div class="fila cargaf"><div class="rot mut">Vencen ese día</div><div class="pista" style="width:${ancho}px;height:28px;background-size:${W}px 100%">${carga}</div></div>
     ${filas}${posHoy ? `<div class="hoyl" style="left:${posHoy}px"></div>` : ''}</div></div>
     <div class="ley"><span><i></i>Pendiente</span><span><i style="background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.5) 0 4px,transparent 4px 8px)"></i>En proceso</span><span><i style="opacity:.7"></i>Guardada</span><span><i style="opacity:.38"></i>Enviada / calificada</span>
-    <span>Entregas por día: <b style="color:var(--ac)">1</b> · <b class="ambar">2</b> · <b class="rojo">3 o más</b></span></div>` : `<div class="panel">${vacio('Sin materias', 'Registra tus materias para ver la línea de tiempo.')}</div>`}`;
+    <span>Vencen ese día: <b class="ccel-l c1">1</b> <b class="ccel-l c2">2</b> <b class="ccel-l c3">3+</b></span><span class="d">Clic en una actividad para marcar su estado.</span></div>` : `<div class="panel">${vacio('Sin materias', 'Registra tus materias para ver la línea de tiempo.')}</div>`}`;
 }
 
 /* ---------- Modelo de evaluación ---------- */
@@ -159,8 +181,8 @@ function escEval(selMat) {
 }
 
 function escMaterias() {
-  return `<div class="panel scrollx">${S.materias.length ? `<table class="lista"><thead><tr><th>Materia</th><th>Profesor(a)</th><th>Ciclo</th><th class="num">Actividades</th><th class="num">Puntos</th><th class="num">Meta</th><th></th></tr></thead><tbody>
-    ${S.materias.map(m => { const r = Esc.resumen(m); return `<tr><td>${punto(m.color)}<span class="t" onclick="Esc.materia('${m.id}')">${esc(m.nombre)}</span></td><td class="d">${esc(m.profesor || '—')}</td><td class="d">${esc(m.ciclo || '—')}</td>
+  return `<div class="panel scrollx">${S.materias.length ? `<table class="lista"><thead><tr><th>Materia (clic para escribir el nombre)</th><th>Clave</th><th>Profesor(a)</th><th>Ciclo</th><th class="num">Actividades</th><th class="num">Puntos</th><th class="num">Meta</th><th></th></tr></thead><tbody>
+    ${S.materias.map(m => { const r = Esc.resumen(m); return `<tr><td class="nw">${punto(m.color)}<input type="text" value="${esc(m.nombre)}" maxlength="120" style="width:260px" aria-label="Nombre de la materia" onchange="Esc.renombrar('${m.id}',this.value)"> <button class="lnk" onclick="Esc.materia('${m.id}')">Editar</button></td><td class="d">${esc(m.clave || '—')}</td><td class="d">${esc(m.profesor || '—')}</td><td class="d">${esc(m.ciclo || '—')}</td>
       <td class="num">${r.a.length}</td><td class="num">${r1(r.obtenido)} / ${r1(r.total)}</td><td class="num">${r.meta}</td><td class="num"><button class="lnk" onclick="UI.esc.mat='${m.id}';UI.esc.tab='eval';App.pintar()">Ver evaluación</button></td></tr>`; }).join('')}</tbody></table>`
     : vacio('Sin materias', 'Agrega tus materias con el botón “+ Materia”.')}</div>`;
 }
@@ -175,7 +197,7 @@ const Agenda = {
     const [, m, d] = iso.split('-').map(Number), r = [], ambP = id => (por('proyectos', id) || {}).ambito;
     for (const e of S.eventos) if (e.fecha === iso) r.push({ clase: 'evento', amb: e.tipo === 'Personal' ? 'Personal' : e.tipo === 'Clase' ? 'Escuela' : (ambP(e.proyecto) || 'Trabajo'), hora: e.horaIni || '', titulo: e.titulo + (e.lugar ? ' · ' + e.lugar : ''), tipo: e.tipo || 'Evento', color: 'var(--ac)', clic: `Agenda.evento('${e.id}')`, peso: 1 });
     for (const a of S.actividades) if (a.limite === iso && !estFinal(a.estatus)) r.push({ clase: 'actividad', amb: ambAct(a), cat: a.categoria || '', hora: a.hora || '', titulo: a.titulo, tipo: 'Actividad', color: (por('estatus', a.estatus) || {}).color, clic: `Act.editar('${a.id}')`, peso: 1 });
-    for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ clase: 'entrega', amb: 'Escuela', hora: e.hora || '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
+    for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ clase: 'entrega', amb: 'Escuela', hora: '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
     for (const c of S.cumples) if (c.dia === d && c.mes === m) r.push({ clase: 'cumple', amb: 'Personal', hora: '', titulo: 'Cumpleaños de ' + c.nombre, tipo: 'Cumpleaños', color: '#db2777', clic: `Cumples.editar('${c.id}')`, peso: 0 });
     for (const x of S.recordatorios) if (!x.hecho && Rec.ocurre(x, iso)) r.push({ clase: 'recordatorio', amb: '', hora: x.hora || '', titulo: x.texto, tipo: 'Recordatorio', color: 'var(--oro)', clic: `Rec.editar('${x.id}')`, peso: 0 });
     return r.sort((a, b) => (a.hora || '00:00').localeCompare(b.hora || '00:00'));
