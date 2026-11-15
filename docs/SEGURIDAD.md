@@ -369,6 +369,15 @@ Sin hallazgos críticos, altos ni medios. Barrido de secretos y funciones peligr
 | 2026-11-15 | v0.10 — cronogramas en PDF (pdf.js incrustado), «Nuevo semestre», unidad de entrega | APTO | Sin ejecución de código; 0 conexiones externas |
 | 2026-11-15 | v0.10.1 — nombre de materia obligatorio y editable en la lista de materias, calendario (línea de tiempo) con filtro por estado y marcado rápido, sin hora de entrega | APTO | Caso nuevo A5g (nombre de materia con HTML, filtro de estado manipulado): sin ejecución; 0 conexiones externas |
 
+### Ajustes v0.10.3 (tarjeta «Entregas escolares» de Inicio)
+- **Falla corregida**: la tarjeta incluía las entregas vencidas sin marcar y las ordenaba primero; con cronogramas cargados a mitad del semestre, las de agosto–octubre ocupaban todos los renglones y las próximas no aparecían. Ahora muestra sólo de hoy a N días (7 por omisión; 7, 15 o 30 desde la tarjeta o en Ajustes → Inicio) y resume las vencidas en un aviso con «Revisar» y «Marcar todas como enviadas» (con confirmación; cada cambio pasa por `regEstatus()`).
+- Casilla por renglón para marcar como enviada y clic en el título para la ventana de estado.
+- Seguridad: títulos, materias y fechas se escapan con `esc()`; los identificadores de los botones vienen de `uid()`; el número de días se acepta sólo de la lista 7/15/30. Sin conexiones nuevas. Prueba nueva en `pruebas/cronogramas.js` (próximos 7 y 15 días, aviso de vencidas y marcado masivo); A5g ahora también dibuja Inicio con un nombre de materia con HTML: sin ejecución.
+
+| Fecha | Cambio | Validación automática | Pasada adversarial |
+|---|---|---|---|
+| 2026-11-15 | v0.10.3 — tarjeta de entregas escolares de los próximos días en Inicio | APTO | Sin ejecución de código; 0 conexiones externas |
+
 ### Ajustes v0.10.2
 - Las materias nuevas se crean con la **clave** del cronograma como nombre (o el nombre del archivo si no trae clave); el nombre se cambia después en Escuela → Materias y, como las actividades se ligan por identificador, se actualiza en todas. Probado.
 - Ventana de carga en tableta: la altura usa `100dvh` (altura visible real; antes `100vh` incluía la zona tapada por la barra del navegador y el botón quedaba oculto). La casilla «Enviada» y el contador pasaron al pie fijo junto a «Cargar actividades». Probado en Chromium con viewports de tableta (810×1080, 1080×810, 712×1138) y reduciendo la altura visible: el botón siempre queda visible. **No verificado** en Safari/Chrome de una tableta física.

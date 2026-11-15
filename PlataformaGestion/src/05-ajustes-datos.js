@@ -78,7 +78,7 @@ Vistas.ajustes = () => {
         <td><input type="checkbox" ${w.on ? 'checked' : ''} onchange="Aj.wSet(${i},'on',this.checked)" aria-label="Visible"></td><td><b>${esc(WIDGETS[w.id] || w.id)}</b></td>
         <td><select onchange="Aj.wSet(${i},'ancho',this.value)" style="border-color:var(--bd)">${[[2, 'Un tercio'], [3, 'Mitad'], [4, 'Dos tercios'], [6, 'Ancho completo']].map(([v, n]) => `<option value="${v}" ${w.ancho === v ? 'selected' : ''}>${n}</option>`).join('')}</select></td>
         <td>${w.id === 'frase' ? '<span class="mut">—</span>' : `<select onchange="Aj.wSet(${i},'filas',this.value)" style="border-color:var(--bd)">${[3, 5, 6, 8, 10, 12, 15, 20, 30].map(v => `<option ${w.filas === v ? 'selected' : ''}>${v}</option>`).join('')}</select>`}</td>
-        <td>${'dias' in w ? `<select onchange="Aj.wSet(${i},'dias',this.value)" style="border-color:var(--bd)">${(w.id === 'agenda' ? [[1, 'Sólo hoy'], [2, 'Hoy y mañana'], [3, '3 días'], [7, '7 días'], [14, '14 días']] : w.id === 'actividades' ? [[0, 'Todas las pendientes'], [1, 'Vencen hoy o mañana'], [7, 'Vencen en 7 días'], [14, 'Vencen en 14 días'], [30, 'Vencen en 30 días']] : [[7, '7 días'], [14, '14 días'], [30, '30 días'], [60, '60 días']]).map(([v, n]) => `<option value="${v}" ${w.dias === v ? 'selected' : ''}>${n}</option>`).join('')}</select>` : '<span class="mut">—</span>'}</td></tr>`).join('')}</tbody></table></div></section>
+        <td>${'dias' in w ? `<select onchange="Aj.wSet(${i},'dias',this.value)" style="border-color:var(--bd)">${(w.id === 'agenda' ? [[1, 'Sólo hoy'], [2, 'Hoy y mañana'], [3, '3 días'], [7, '7 días'], [14, '14 días']] : w.id === 'actividades' ? [[0, 'Todas las pendientes'], [1, 'Vencen hoy o mañana'], [7, 'Vencen en 7 días'], [14, 'Vencen en 14 días'], [30, 'Vencen en 30 días']] : w.id === 'entregas' ? [[7, 'Próximos 7 días'], [15, 'Próximos 15 días'], [30, 'Próximos 30 días']] : [[7, '7 días'], [14, '14 días'], [30, '30 días'], [60, '60 días']]).map(([v, n]) => `<option value="${v}" ${w.dias === v ? 'selected' : ''}>${n}</option>`).join('')}</select>` : '<span class="mut">—</span>'}</td></tr>`).join('')}</tbody></table></div></section>
     <section class="blq"><h3>Cómo funciona</h3><div class="cu d"><p>• El orden de la lista es el orden en pantalla (de izquierda a derecha y de arriba abajo). Los tamaños se acomodan en una rejilla: dos mitades, tres tercios o un tercio + dos tercios por renglón.</p>
       <p>• En Inicio, la barra superior filtra todos los bloques por <b>ámbito</b> (Trabajo, Escuela, Personal) y por <b>clasificación</b>.</p><p>• <a href="#/inicio">Ver Inicio</a></p></div></section>`;
   else if (t === 'catalogos') cuerpo = `
@@ -217,6 +217,8 @@ function fusionar(original) {
   // Bloques de Inicio: se conservan los guardados y se agregan los que falten
   const ini = Array.isArray(ae.inicio) ? ae.inicio.filter(w => WIDGETS[w.id]) : [];
   for (const w of inicioDefecto()) if (!ini.some(x => x.id === w.id)) ini.push(w);
+  // Entregas escolares: el antiguo valor predeterminado (14 días) pasa a 7; ahora se elige 7, 15 o 30 desde el bloque
+  for (const w of ini) if (w.id === 'entregas' && ![7, 15, 30].includes(w.dias)) w.dias = 7;
   r.ajustes.inicio = ini;
   for (const k of Object.keys(b)) if (Array.isArray(b[k]) && !Array.isArray(r[k])) r[k] = b[k];
   if (!r.estatus.length) r.estatus = b.estatus;

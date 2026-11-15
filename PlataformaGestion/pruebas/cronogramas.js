@@ -70,8 +70,20 @@ const html = (filas, extra = '') => `<!doctype html><meta charset="utf-8"><style
       enLista: document.querySelectorAll('#pral tbody tr').length >= 7, sinHora: !l.some(e => 'hora' in e), sinColumnaHora: !document.querySelector('#pral th') || ![...document.querySelectorAll('#pral th')].some(t => /hora/i.test(t.textContent)) }; });
   R.guardadoOk = R.guardado.materia === 'Bases de datos|XX123|2026B' && R.guardado.n === 7 && R.guardado.enviadas === '2026-09-07,2026-09-13' && R.guardado.pendientes === 5 && R.guardado.enLista && R.guardado.sinHora && R.guardado.sinColumnaHora && R.nombrePorClave && R.guardado.renombradaEnTodas;
 
+  // 3a-bis. Inicio: tarjeta «Entregas escolares» con los próximos 7 días (hoy = 14 sep), vencidas resumidas aparte
+  await p.evaluate(() => { location.hash = '#/inicio'; App.ruta(); });
+  const tarjeta = () => p.evaluate(() => { const s = [...document.querySelectorAll('.blq')].find(x => /Entregas escolares/.test(x.textContent)); return { filas: [...s.querySelectorAll('li .x')].map(x => x.textContent), aviso: (s.querySelector('p .ambar') || {}).textContent || '' }; });
+  R.inicio7 = await tarjeta();
+  await p.click('.blq button:has-text("15 d")'); R.inicio15 = await tarjeta();
+  await p.click('.blq button:has-text("7 d")');
+  await p.evaluate(() => { const e = S.escolares.find(x => x.entrega === '2026-09-07'); e.estatus = 'pendiente'; App.pintar(); }); R.inicioVencida = await tarjeta();
+  await p.click('text=Marcar todas como enviadas'); await p.click('#confirma .btn.peligro'); await p.waitForTimeout(200);
+  R.inicioTrasMarcar = await tarjeta();
+  R.inicioOk = R.inicio7.filas.join('|') === 'Quiz de la unidad 1|Actividad 2.1 Glosario de términos de bases de datos relacionales' && !R.inicio7.aviso
+    && R.inicio15.filas.length === 3 && /^1 entrega/.test(R.inicioVencida.aviso) && !R.inicioTrasMarcar.aviso
+    && await p.evaluate(() => S.escolares.find(x => x.entrega === '2026-09-07').estatus === 'enviada');
   // 3b. Calendario (línea de tiempo): conteo de entregas por día y marcado rápido del estado
-  await p.evaluate(() => { UI.esc.tab = 'tiempo'; UI.esc.rango = 'todo'; UI.esc.tst = ''; App.pintar(); });
+  await p.evaluate(() => { UI.esc.tab = 'tiempo'; UI.esc.rango = 'todo'; UI.esc.tst = ''; location.hash = '#/escuela'; App.ruta(); });
   R.calendario = await p.evaluate(() => ({ conteos: [...document.querySelectorAll('.tl .ccel')].map(c => c.textContent).join(','), barras: document.querySelectorAll('.tl .bar').length, etiqueta: !!document.evaluate("//*[contains(text(),'Vencen ese día')]", document, null, 9, null).singleNodeValue }));
   await p.click('.tl .bar >> text=Quiz de la unidad 1'); await p.waitForSelector('#modal .btn >> text=Enviada');
   await p.click('#modal .btn >> text=Enviada'); await p.waitForTimeout(200);
@@ -118,6 +130,6 @@ const html = (filas, extra = '') => `<!doctype html><meta charset="utf-8"><style
   R.semestreOk = R.semestre.materias === 0 && R.semestre.escolares === 0 && R.semestre.papelera === 2 && R.restaura;
 
   R.externas = externas; R.errores = errores.filter(e => !/No se pudo leer|Invalid PDF|PDF/.test(e));
-  R.TODO_OK = R.lecturaOk && R.guardadoOk && R.reimporta.startsWith('Bases de datos') && R.sinDuplicados && R.calendarioOk && R.tabletaOk && R.maliciosoOk && R.inundacionOk && R.semestreOk && !externas.length && !R.errores.length;
+  R.TODO_OK = R.lecturaOk && R.guardadoOk && R.reimporta.startsWith('Bases de datos') && R.sinDuplicados && R.inicioOk && R.calendarioOk && R.tabletaOk && R.maliciosoOk && R.inundacionOk && R.semestreOk && !externas.length && !R.errores.length;
   console.log(JSON.stringify(R, null, 1)); if (!process.env.CONSERVAR) fs.rmSync(TMP, { recursive: true, force: true }); else console.log(TMP); await b.close(); process.exit(R.TODO_OK ? 0 : 1);
 })();

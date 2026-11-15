@@ -77,7 +77,7 @@ const HTML = 'file://' + require('path').resolve(__dirname, '..', 'PlataformaGes
     return new Promise(res => setTimeout(() => res({ ejecuto: window.__cr, imgEnBorrador: enBorrador, tipoValido: !!e && TIPOS_ESC.includes(e.tipo), sinHora: !!e && !('hora' in e), inicioMayorAEntregaGuardado: S.escolares.some(z => z.titulo === 'Fecha falsa'), materiaTexto: !!m && m.nombre === y, imgEnLista: document.querySelectorAll('#pral img[src="x"]').length }), 300)); });
   // A5g: renombrar materia con HTML y marcar estado desde la línea de tiempo
   R.A5g_materiaYCalendario = await p.evaluate(() => { window.__mg = 0; const m = S.materias.find(x => x.clave); Esc.renombrar(m.id, '"><img src=x onerror=window.__mg=1>'); UI.esc.tab = 'materias'; App.pintar(); const enMaterias = document.querySelectorAll('#pral img[src="x"]').length;
-    UI.esc.tab = 'tiempo'; UI.esc.rango = 'todo'; UI.esc.tst = '"><img src=x onerror=window.__mg=2>'; App.pintar(); const e = S.escolares.find(x => x.materia === m.id); Esc.marcar(e.id);
+    UI.esc.tab = 'tiempo'; UI.esc.rango = 'todo'; UI.esc.tst = '"><img src=x onerror=window.__mg=2>'; App.pintar(); const e = S.escolares.find(x => x.materia === m.id); Esc.marcar(e.id); location.hash = '#/inicio'; App.ruta();
     return new Promise(res => setTimeout(() => { const r = { ejecuto: window.__mg, imgs: enMaterias + document.querySelectorAll('#pral img[src="x"], #modal img[src="x"]').length }; Modal.cerrar(); UI.esc.tst = ''; UI.esc.tab = 'lista'; res(r); }, 300)); });
   // A6: nova_ui manipulado
   R.A6_ui = await p.evaluate(() => { localStorage.setItem('nova_ui', JSON.stringify({ acc: { sel: { a: 1 }, f: 5 }, ag: { ver: 'x' }, act: { f: "x';window.__ui=1;'" }, __proto__: { x: 1 } })); return true; });

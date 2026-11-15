@@ -202,6 +202,7 @@ Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identif
   - Clave y ciclo salen del nombre del archivo (`IH716_2026B__…`); la materia se sugiere si ya existe con esa clave y ciclo.
   - Borrador editable (materia nueva con su clave como nombre —se renombra después en Materias—, casilla, actividad, tipo, valor, unidad, inicio, entrega); las actividades sin fecha quedan desmarcadas. Opción para marcar como «Enviada» lo ya vencido; lo demás entra «Pendiente».
   - Al guardar se valida como la carga masiva y se omiten repetidos.
+- **Inicio → Entregas escolares** (v0.10.3): de hoy a 7/15/30 días; las vencidas sin marcar se resumen aparte (`Esc.enviarVencidas()`).
 - **Nuevo semestre**: manda todas las materias con sus actividades a la papelera (restaurables 7 días) después de ofrecer el respaldo.
 - Campos nuevos: materia `clave`; actividad `unidad`. Tipos nuevos: Presentación y Glosario. Sin hora de entrega: todas las entregas son hasta el final del día.
 - **Calendario (línea de tiempo)** (v0.10.1, como AcadTrack): vista Semestre (predeterminada), Mes o 3 meses; renglón «Vencen ese día» con el número de entregas (1 amarillo, 2 naranja, 3+ rojo); filtro por estado con conteo; clic en una actividad abre `Esc.marcar()` para cambiar el estado o capturar la calificación.

@@ -131,7 +131,7 @@ const WIDGETS = { frase: 'Frase del día', agenda: 'Agenda', actividades: 'Activ
 const inicioDefecto = () => [
   { id: 'agenda', on: true, ancho: 3, filas: 12, dias: 1 }, { id: 'actividades', on: true, ancho: 3, filas: 12, dias: 7 },
   { id: 'frase', on: true, ancho: 6, filas: 0 },
-  { id: 'entregas', on: true, ancho: 3, filas: 6, dias: 14 }, { id: 'proyectos', on: true, ancho: 3, filas: 6 },
+  { id: 'entregas', on: true, ancho: 3, filas: 8, dias: 7 }, { id: 'proyectos', on: true, ancho: 3, filas: 6 },
   { id: 'recordatorios', on: true, ancho: 2, filas: 5, dias: 7 }, { id: 'cumples', on: true, ancho: 2, filas: 5, dias: 30 }, { id: 'accesos', on: true, ancho: 2, filas: 8 }
 ];
 const temaDe = id => { const { nombre, ...c } = TEMAS[id]; return c; };

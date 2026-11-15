@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.10.2
+# Nova Organización — prueba v0.10.3
 
 > *Evolución sin límites.*
 
@@ -58,6 +58,10 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.10.3 (entregas escolares en Inicio)
+- La tarjeta **Entregas escolares** muestra las de los **próximos 7 días** (cambia a 15 o 30 desde la propia tarjeta): día, actividad, materia y puntos. Marca la casilla para dejarla como «Enviada» o pulsa el título para elegir otro estado.
+- Las entregas que ya vencieron sin marcar aparecen resumidas arriba, con **Revisar** y **Marcar todas como enviadas**.
 
 ### Novedades de la v0.10 (cronogramas en PDF y nuevo semestre)
 - **Escuela → Cargar cronogramas (PDF)**: elige uno o varios PDF de cronograma tal como los descargas de la plataforma de la universidad. Se leen en tu equipo, sin conexión, y verás un borrador por materia con nombre de la actividad, tipo, puntos, unidad, inicio, fecha y hora de entrega. Revisa, corrige lo que haga falta y pulsa **Cargar actividades**.

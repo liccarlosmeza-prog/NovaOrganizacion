@@ -43,6 +43,15 @@ const Esc = {
         <button type="button" class="btn" onclick="Esc.calificar('${e.id}',document.getElementById('mkCal').value);Modal.cerrar()">Guardar calificación</button></div>` : ''}</div>
       <div class="acciones"><button type="button" class="btn" onclick="Modal.cerrar();Esc.editar('${e.id}')">Editar</button><span class="esp"></span><button type="button" class="btn" onclick="Modal.cerrar()">Cerrar</button></div></div>`, 560);
   },
+  /** Marca como «Enviada» todas las entregas vencidas que siguen abiertas (pendiente, en proceso o guardada). */
+  enviarVencidas() {
+    const hoy = hoyISO(), l = S.escolares.filter(e => e.tipo !== 'Vacaciones' && ['pendiente', 'proceso', 'guardada'].includes(e.estatus) && e.entrega && e.entrega < hoy);
+    if (!l.length) return toast('No hay entregas vencidas sin marcar');
+    confirmar(`¿Marcar como «Enviada» las ${l.length} entrega(s) cuya fecha ya pasó? Cada cambio queda en el historial y puedes cambiarlo después.`, () => {
+      for (const e of l) { regEstatus('escolares', e, e.estatus, 'enviada'); e.estatus = 'enviada'; }
+      guardar(); App.pintar(); toast(`${l.length} entrega(s) marcadas como enviadas`);
+    }, 'Marcar como enviadas');
+  },
   renombrar(id, txt) {
     const m = por('materias', id), n = String(txt || '').replace(/\s+/g, ' ').trim().slice(0, 120);
     if (!m) return; if (!n) { toast('El nombre de la materia no puede quedar vacío', 'err'); App.pintar(); return; }

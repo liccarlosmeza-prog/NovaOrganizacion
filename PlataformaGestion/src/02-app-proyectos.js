@@ -143,12 +143,28 @@ const Ini = {
     return { t: c.dias ? `Actividades · vencen en ${c.dias} días` : 'Actividades pendientes', n: l.length, ir: 'actividades', h: this.lista(filas, 'Nada por atender', c.dias ? `Sin actividades que venzan en ${c.dias} días.` : ''),
       pie: `<div class="rap"><input type="text" id="rapida" placeholder="Agregar actividad… (Enter)" onkeydown="if(event.key==='Enter')Act.rapida(this.value,'')"></div>` };
   },
+  /**
+   * Entregas escolares de los próximos N días (7 por omisión): de hoy en adelante, en orden de fecha.
+   * Las vencidas sin marcar no ocupan renglones: se resumen en un aviso con acceso para revisarlas.
+   */
   entregas(c) {
-    const hoy = hoyISO(), ok = this.amb('Escuela');
-    const l = !ok ? [] : S.escolares.filter(e => e.tipo !== 'Vacaciones' && !['enviada', 'calificada'].includes(e.estatus) && e.entrega && difDias(hoy, e.entrega) <= (c.dias || 14)).sort((a, b) => a.entrega.localeCompare(b.entrega));
-    const filas = l.slice(0, c.filas).map(e => { const m = por('materias', e.materia) || {}; return `<li>${punto(m.color)}<span class="x clic" onclick="Esc.editar('${e.id}')">${esc(e.titulo)}</span><span class="m">${esc(m.nombre || '')}${e.valor ? ' · ' + e.valor + ' pts' : ''}</span><span class="m">${fechaLim(e.entrega)}</span></li>`; }).join('');
-    return { t: `Entregas escolares · ${c.dias || 14} días`, n: l.length, ir: 'escuela', h: this.lista(filas, ok ? 'Sin entregas próximas' : 'Oculto por el filtro de ámbito') };
+    const hoy = hoyISO(), dias = [7, 15, 30].includes(c.dias) ? c.dias : 7, ok = this.amb('Escuela'), lim = sumaDias(hoy, dias);
+    const abiertas = S.escolares.filter(e => e.tipo !== 'Vacaciones' && !['enviada', 'calificada'].includes(e.estatus) && e.entrega && por('materias', e.materia));
+    const l = ok ? abiertas.filter(e => e.entrega >= hoy && e.entrega <= lim).sort((a, b) => a.entrega.localeCompare(b.entrega) || a.titulo.localeCompare(b.titulo)) : [];
+    const vencidas = ok ? abiertas.filter(e => e.entrega < hoy).length : 0;
+    const cuando = iso => { const n = difDias(hoy, iso); return n === 0 ? '<b class="rojo">Hoy</b>' : n === 1 ? '<b class="ambar">Mañana</b>' : esc(may(deISO(iso).toLocaleDateString('es-MX', { weekday: 'short' }).replace('.', '')) + ' ' + fFecha(iso)); };
+    const filas = l.slice(0, c.filas).map(e => { const m = por('materias', e.materia) || {};
+      return `<li><input type="checkbox" title="Marcar como enviada" onchange="Esc.estado('${e.id}','enviada')"><span class="h" style="width:78px">${cuando(e.entrega)}</span><span class="x clic" onclick="Esc.marcar('${e.id}')" title="Cambiar estado">${esc(e.titulo)}</span><span class="m">${punto(m.color)}${esc(m.nombre || '')}${e.valor ? ' · ' + e.valor + ' pts' : ''}</span></li>`; }).join('');
+    const sig = abiertas.filter(e => e.entrega > lim).sort((a, b) => a.entrega.localeCompare(b.entrega))[0];
+    const vacioTxt = !ok ? ['Oculto por el filtro de ámbito', 'Elige «Todo» o «Escuela» arriba.']
+      : !S.escolares.length ? ['Sin actividades escolares en este equipo', 'Cárgalas en Escuela → Cargar cronogramas (PDF). Si las cargaste en otro equipo, sincroniza en Ajustes.']
+      : [`Nada vence en los próximos ${dias} días`, sig ? `La siguiente: ${sig.titulo} · ${fFecha(sig.entrega)}` : 'No hay entregas pendientes.'];
+    const rango = `<span class="fil peq">${[7, 15, 30].map(d => `<button class="${d === dias ? 'on' : ''}" onclick="Ini.dias('entregas',${d})">${d} d</button>`).join('')}</span>`;
+    const aviso = vencidas ? `<p class="d" style="margin:0 0 6px"><span class="ambar">${vencidas} entrega(s) vencida(s) sin marcar.</span> <button class="lnk" onclick="UI.esc.tab='lista';UI.esc.est='abiertas';UI.esc.mat='';App.ir('escuela')">Revisar</button> · <button class="lnk" onclick="Esc.enviarVencidas()">Marcar todas como enviadas</button></p>` : '';
+    return { t: `Entregas escolares · próximos ${dias} días`, n: l.length, ir: 'escuela', extra: rango, h: aviso + this.lista(filas, ...vacioTxt) };
   },
+  /** Cambia los días de un bloque desde el propio bloque. */
+  dias(id, d) { const w = S.ajustes.inicio.find(x => x.id === id); if (w && [7, 15, 30].includes(d)) { w.dias = d; guardar(); App.pintar(); } },
   proyectos(c) {
     const l = S.proyectos.filter(p => !estFinal(p.estatus) && this.amb(p.ambito)).sort((a, b) => (a.prioridad || '3').localeCompare(b.prioridad || '3'));
     const filas = l.slice(0, c.filas).map(p => { const e = por('estatus', p.estatus) || {}; return `<li><span class="x clic" onclick="App.ir('proyecto','${p.id}')">${esc(p.nombre)}</span><span class="m">${punto(e.color)}${esc(e.nombre || '')}</span><span class="m">${Proy.avance(p)}%</span><span class="m">${fechaLim(p.objetivo)}</span></li>`; }).join('');
