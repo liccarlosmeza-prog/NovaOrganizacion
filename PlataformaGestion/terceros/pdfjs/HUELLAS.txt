@@ -1,0 +1,4 @@
+# Huellas SHA-256 de las versiones revisadas. Si se actualiza la librería, se revisa y se actualiza esta lista.
+# pdfjs-dist 5.4.624 (Apache-2.0)
+5f1177175790dcf5b5b0a888205f132bea690c35194e4613099d421a16423d0b  pdf.min.mjs
+f499515a0dc93d97787d693a75218a439675719283f56812067c036dcae1f8d5  pdf.worker.min.mjs

@@ -106,6 +106,7 @@ NovaOrganizacion/
         ├── 055-sincronizacion.js     Sincronización cifrada con un repositorio privado de GitHub
         ├── 057-lector-fotos.js       Lector de fotos (Tesseract.js incrustado) e interpretación de agendas
         ├── 058-papelera.js           Papelera de reciclaje (7 días)
+        ├── 059-cronogramas.js        Cronogramas en PDF (pdf.js incrustado) y «Nuevo semestre»
         └── 06-inicio.js              datos de ejemplo y arranque
 ```
 
@@ -194,6 +195,15 @@ Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identif
   - Mensaje: puntos que faltan para la meta, meta alcanzada o meta ya inalcanzable.
   - Aviso si los valores de la materia no suman 100.
 - La calificación no puede exceder el valor; al capturarla el estado pasa a "Calificada".
+- **Cargar cronogramas (PDF)** (v0.10, `src/059-cronogramas.js`): lee los PDF que descarga la plataforma de la universidad.
+  - `Pdf.paginas()` extrae cada texto con su posición (pdf.js incrustado, motor en la misma página porque como archivo local el navegador no permite su proceso aparte).
+  - `Crono.interpretar()` agrupa los textos en renglones, localiza la tabla de **ponderación** (Actividad · Tipo · Valor · Duración) y la de **fechas** (Sección · Actividad · Fecha de inicio · Fecha de entrega…), asigna columnas por posición (los encabezados vienen centrados; si el contenido alineado a la izquierda empieza antes, el límite se recorre), une celdas de varios renglones y nombres partidos, y empareja ambas tablas en orden por parecido de palabras (alineación tipo *diff*).
+  - Inicio: el del PDF; si no trae, la entrega anterior + 1 día (regla de AcadTrack), sin rebasar la duración indicada.
+  - Clave y ciclo salen del nombre del archivo (`IH716_2026B__…`); la materia se sugiere si ya existe con esa clave y ciclo.
+  - Borrador editable (casilla, actividad, tipo, valor, unidad, inicio, entrega, hora); las actividades sin fecha quedan desmarcadas. Opción para marcar como «Enviada» lo ya vencido; lo demás entra «Pendiente».
+  - Al guardar se valida como la carga masiva y se omiten repetidos.
+- **Nuevo semestre**: manda todas las materias con sus actividades a la papelera (restaurables 7 días) después de ofrecer el respaldo.
+- Campos nuevos: materia `clave`; actividad `hora` (de entrega, aparece en la lista y la agenda) y `unidad`. Tipos nuevos: Presentación y Glosario.
 
 ### Agenda
 - Reúne eventos, actividades con fecha límite, entregas escolares, cumpleaños y recordatorios.
@@ -263,6 +273,8 @@ Los colores se aplican como variables CSS (`--bg`, `--sup`, `--tx`, `--mut`, `--
 ---
 
 ## 8. Pruebas realizadas
+
+> Desde la v0.3 las baterías viven en `PlataformaGestion/pruebas/` (`ataque.js`, `sincronizacion.js`, `lector-fotos.js`, `papelera.js` y, desde la v0.10, `cronogramas.js`).
 
 Automatizadas con Playwright sobre Chromium (los scripts no forman parte del repositorio). Resultado: **sin errores de consola en ambas baterías**.
 

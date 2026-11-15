@@ -6,7 +6,7 @@ const dir = __dirname, src = path.join(dir, 'src');
 const htmlCompleto = fs.readFileSync(path.join(dir, 'PlataformaGestion.html'), 'utf8');
 // Librerías de terceros incrustadas como bloques de texto (lector de imágenes). Se validan aparte, por huella digital:
 // el resto de las reglas revisa sólo el código propio de la aplicación.
-const BLOQUES = ['ocrLib', 'ocrWorker', 'ocrCore', 'ocrLang'];
+const BLOQUES = ['ocrLib', 'ocrWorker', 'ocrCore', 'ocrLang', 'pdfLib', 'pdfWorker'];
 const html = BLOQUES.reduce((h, id) => h.replace(new RegExp(`(<script type="text/plain" id="${id}">)[\\s\\S]*?(</script>)`), '$1$2'), htmlCompleto);
 const fuentes = fs.readdirSync(src).map(f => ({ f, t: fs.readFileSync(path.join(src, f), 'utf8') }));
 const lineas = (t, re, filtro = () => true) => t.split('\n').map((l, i) => re.test(l) && filtro(l) ? `${i + 1}: ${l.trim().slice(0, 110)}` : null).filter(Boolean);
@@ -34,9 +34,10 @@ regla('Sincronización: repositorio privado obligatorio, cifrado, token fuera de
   /console\.[a-z]+\([^)]*(token|pass)/.test(sy) ? 'no registrar el token ni la contraseña' : null, /credentials: 'omit'/.test(sy) ? null : "falta credentials: 'omit'",
   /fusionar\(estado\)/.test(sy) ? null : 'lo recibido debe pasar por fusionar()/sanear()'].filter(Boolean));
 // 2c. Librerías de terceros: deben coincidir byte a byte con las versiones revisadas (terceros/tesseract/HUELLAS.txt)
-const crypto = require('crypto'), ter = path.join(dir, 'terceros', 'tesseract');
-const huellas = fs.existsSync(path.join(ter, 'HUELLAS.txt')) ? Object.fromEntries(fs.readFileSync(path.join(ter, 'HUELLAS.txt'), 'utf8').split('\n').filter(l => /^[0-9a-f]{64}\s/.test(l)).map(l => l.trim().split(/\s+/).reverse())) : {};
-const mapa = { ocrLib: 'tesseract.min.js', ocrWorker: 'worker.min.js', ocrCore: 'tesseract-core-lstm.wasm.js', ocrLang: 'spa.traineddata.gz' };
+const crypto = require('crypto');
+const leeHuellas = carpeta => { const f = path.join(dir, 'terceros', carpeta, 'HUELLAS.txt'); return fs.existsSync(f) ? Object.fromEntries(fs.readFileSync(f, 'utf8').split('\n').filter(l => /^[0-9a-f]{64}\s/.test(l)).map(l => l.trim().split(/\s+/).reverse())) : {}; };
+const huellas = { ...leeHuellas('tesseract'), ...leeHuellas('pdfjs') };
+const mapa = { ocrLib: 'tesseract.min.js', ocrWorker: 'worker.min.js', ocrCore: 'tesseract-core-lstm.wasm.js', ocrLang: 'spa.traineddata.gz', pdfLib: 'pdf.min.mjs', pdfWorker: 'pdf.worker.min.mjs' };
 const terc = [];
 for (const [id, f] of Object.entries(mapa)) {
   const bloque = (htmlCompleto.match(new RegExp(`<script type="text/plain" id="${id}">([\\s\\S]*?)</script>`)) || [])[1];
@@ -60,7 +61,7 @@ regla('Controles de seguridad presentes', debe.filter(([c]) => !html.includes(c)
 const sinEsc = buscar(/\$\{[a-z]\.(titulo|nombre|texto|nota|desc|detalle|descripcion|lugar|autor|relacion|profesor|comentario|tags|etiquetas|asignadoPor|usuario|lema)\}/);
 regla('Textos del usuario escapados con esc() al mostrarse', sinEsc, true);
 regla('Sin console.log de depuración', buscar(/console\.log\(/), false);
-regla('Tamaño razonable: código propio < 1 MB y archivo total < 15 MB', [html.length > 1048576 ? `código propio ${(html.length / 1024).toFixed(0)} KB` : null, htmlCompleto.length > 15 * 1048576 ? `archivo total ${(htmlCompleto.length / 1048576).toFixed(1)} MB` : null].filter(Boolean), false, `código propio ${(html.length / 1024).toFixed(0)} KB · total ${(htmlCompleto.length / 1048576).toFixed(1)} MB (incluye el lector de imágenes)`);
+regla('Tamaño razonable: código propio < 1 MB y archivo total < 15 MB', [html.length > 1048576 ? `código propio ${(html.length / 1024).toFixed(0)} KB` : null, htmlCompleto.length > 15 * 1048576 ? `archivo total ${(htmlCompleto.length / 1048576).toFixed(1)} MB` : null].filter(Boolean), false, `código propio ${(html.length / 1024).toFixed(0)} KB · total ${(htmlCompleto.length / 1048576).toFixed(1)} MB (incluye los lectores de imágenes y de PDF)`);
 
 // Reporte
 const fallos = R.filter(r => !r.ok && r.bloquea), avisos = R.filter(r => !r.ok && !r.bloquea);
@@ -81,7 +82,7 @@ Sólo https://api.github.com se usa para conexiones, y únicamente si el usuario
 |---|---|
 ${URLS.map(u => `| \`${u}\` | ${/w3\.org/.test(u) ? 'Identificador del formato SVG (no es una conexión)' : /api\.github\.com/.test(u) ? '**Conexión real**: sincronización cifrada con el repositorio privado del usuario (opcional)' : 'Enlace de ejemplo o plantilla; sólo se abre con clic del usuario'} |`).join('\n') || '| — | — |'}
 
-**Dependencias de terceros:** Tesseract.js 5.1.1 (Apache-2.0) y el modelo de idioma español, **incrustados** en el archivo y verificados por huella SHA-256. No se descargan de ningún CDN; no hay nada más que empaquetar. La sincronización usa la API de GitHub como servicio, no como código.
+**Dependencias de terceros:** Tesseract.js 5.1.1 con el modelo de idioma español y pdf.js 5.4.624 (todos Apache-2.0), **incrustados** en el archivo y verificados por huella SHA-256. No se descargan de ningún CDN; no hay nada más que empaquetar. La sincronización usa la API de GitHub como servicio, no como código.
 `;
 fs.writeFileSync(path.join(dir, 'SEGURIDAD-AUTOMATICA.md'), md);
 for (const r of R) console.log(`${r.ok ? '  ok ' : r.bloquea ? ' FALLA' : ' aviso'}  ${r.t}${r.ok ? '' : '\n        ' + r.d.join('\n        ')}`);

@@ -313,3 +313,57 @@ Comprobado en ejecución: leyendo 4 fotos reales y 5 imágenes sintéticas, el n
 | Fecha | Cambio | Validación automática | Pasada adversarial |
 |---|---|---|---|
 | 2026-11-13 | v0.9 — lectura con varias preparaciones, orientación y correcciones aprendidas | APTO | Sin ejecución de código; 0 conexiones externas |
+
+## 17. Revisión del lector de cronogramas en PDF y «Nuevo semestre» (v0.10)
+
+Revisión manual con la skill `web-security-review` sobre `src/059-cronogramas.js` (nuevo, 322 líneas), `src/03-escuela-agenda.js`, `src/05-ajustes-datos.js`, `src/01-nucleo.js`, `src/plantilla.html`, `construir.js`, `seguridad.js` y `terceros/pdfjs/`.
+
+### Conexiones externas y dependencias
+| Elemento | Antes | Ahora | Acción |
+|---|---|---|---|
+| Lector de PDF (pdf.js / `pdfjs-dist` 5.4.624, Apache-2.0) | No existía | **Incrustado** en el HTML como bloques de texto `pdfLib` y `pdfWorker` (≈ 1.5 MB); `seguridad.js` verifica su SHA-256 contra `terceros/pdfjs/HUELLAS.txt` en cada construcción | Se mantiene empaquetado; **no** se descarga de ningún CDN |
+| Conexiones externas | Sólo `api.github.com` (sincronización opcional) | **Sin cambios** | El lector de PDF no se conecta a nada; la CSP no cambió |
+| Versión para Power Pages | Sin lector de fotos | También **sin** lector de PDF (límite de tamaño); el botón no aparece y queda la carga masiva por CSV | — |
+
+Direcciones nuevas como texto: ninguna en el código propio. Dentro de pdf.js aparecen direcciones de su documentación y de mapas de caracteres que nunca se cargan (no se configuró `cMapUrl` ni `standardFontDataUrl`, y la CSP bloquearía cualquier carga). Comprobado en ejecución: leyendo los 3 cronogramas reales y 4 PDF sintéticos, **0 conexiones externas**.
+
+### Controles
+| Riesgo | Control |
+|---|---|
+| PDF con código (JavaScript de PDF, formularios XFA, fuentes que compilan código — CVE-2024-4367) | pdf.js ≥ 4.2.67 (corrige el CVE) con `isEvalSupported: false`, `enableXfa: false`, `disableFontFace: true`; sólo se extrae texto, no se dibuja la página. La CSP sigue sin `'unsafe-eval'` |
+| Archivo que no es PDF con extensión `.pdf` | Se revisan extensión/tipo **y** la firma `%PDF-`; si falla, aviso «No se pudo leer» sin abrirlo (probado con un HTML disfrazado) |
+| Archivos enormes o PDF con miles de filas (bloqueo del navegador) | Máximo 20 MB, 40 páginas, 15 PDF por carga, 20 000 textos por página, 500 caracteres por texto, 300 filas por tabla (el emparejamiento crece n×m). Probado: 2 500 filas → recortado a 300 en 27 ms con aviso |
+| Texto del PDF con HTML (nombre, unidad, tipo, aviso, nombre de archivo) | Dato no confiable: en el borrador va en atributos `value` escapados con `esc()`; al guardar se escapa en lista, agenda y línea de tiempo. Probado (A5f y `pruebas/cronogramas.js`): sin ejecución |
+| Datos inválidos del borrador | Al guardar se aplican las mismas reglas que la carga masiva: fecha real, inicio ≤ entrega, valor 0–100, tipo de la lista `TIPOS_ESC`, hora `hh:mm`, textos recortados; sin repetidos (materia + actividad + entrega). Probado: inicio posterior a la entrega no se guarda |
+| Identificadores | Materias y actividades nuevas con `uid()`; nunca se toma un identificador del PDF |
+| Campos nuevos (`clave` de materia; `hora` y `unidad` de actividad) | `hora` ya estaba en `CAMPO.hora`; `sanear()` recorta `unidad` (60) y `clave`/`ciclo` (20), corrige `tipo` fuera de la lista e inicio > entrega en datos de archivo o almacenamiento |
+| «Nuevo semestre» borra calificaciones por accidente | Confirmación con resumen y botones para descargar respaldo y CSV antes; todo va a la **papelera** con `Papelera.mover()` (materia + sus actividades en `rel`), restaurable 7 días. Probado |
+| Direcciones `blob:` del lector | Se liberan (`revokeObjectURL`) en cuanto el módulo carga |
+
+### Hallazgos de esta revisión
+| ID | Severidad | Hallazgo | Estado |
+|---|---|---|---|
+| H-17.1 | Bajo | Un PDF manipulado con miles de filas hacía crecer sin límite la tabla de emparejamiento (posible bloqueo de la pestaña; sólo afecta a quien carga el archivo) | **Corregido**: tope de 300 filas por tabla y aviso |
+| H-17.2 | Informativo | Las direcciones `blob:` de los módulos de pdf.js no se liberaban | **Corregido** |
+
+Sin hallazgos críticos, altos ni medios. Barrido de secretos y funciones peligrosas en el código propio: sin coincidencias (`seguridad.js`: APTO).
+
+### Pruebas ejecutadas
+- `node pruebas/cronogramas.js` (nueva, PDF sintéticos con encabezados centrados, celdas en varios renglones, secciones y dos páginas): lectura, estatus, reimportación sin duplicados, PDF malicioso, PDF sin tablas, archivo falso, inundación de filas, «Nuevo semestre» y restauración. **Correcto**, 0 conexiones.
+- `node pruebas/ataque.js`: nuevo caso **A5f** (cronograma con HTML en todos los campos y fechas invertidas): sin ejecución; demás casos sin cambios.
+- `pruebas/papelera.js`: **Correcto**. `pruebas/lector-fotos.js`: **Correcto**. `pruebas/sincronizacion.js`: mismos resultados que la v0.9.
+- Cronogramas reales del usuario (no se guardan en el repositorio, el repositorio es público): 3 PDF → 35 actividades, cada materia suma 100 puntos, fechas y horas correctas, 3 vencidas marcadas como «Enviada».
+
+### No verificado
+- Cronogramas de otras plataformas o con un formato de tabla distinto: el lector avisa si no encuentra las tablas, pero no se probó con más ejemplos.
+- Firefox y Safari.
+
+### Recomendaciones
+| # | Recomendación |
+|---|---|
+| R-17 | Al actualizar pdf.js, revisar sus avisos de seguridad, actualizar `HUELLAS.txt` y repetir `pruebas/cronogramas.js` |
+| R-18 | Antes de «Nuevo semestre», descargar el respaldo: tras 7 días la papelera borra definitivamente las calificaciones del semestre anterior |
+
+| Fecha | Cambio | Validación automática | Pasada adversarial |
+|---|---|---|---|
+| 2026-11-15 | v0.10 — cronogramas en PDF (pdf.js incrustado), «Nuevo semestre», hora y unidad de entrega | APTO | Sin ejecución de código; 0 conexiones externas |

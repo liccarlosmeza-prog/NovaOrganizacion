@@ -9,9 +9,10 @@ if (/<\/script/i.test(js)) throw new Error('El código contiene "</script>": sep
 // Lector de imágenes (Tesseract.js): se incrusta como texto para que no haya que descargar nada
 const ter = path.join(__dirname, 'terceros', 'tesseract'), leeT = f => fs.readFileSync(path.join(ter, f), 'utf8');
 const ocr = { LIB: leeT('tesseract.min.js'), WORKER: leeT('worker.min.js'), CORE: leeT('tesseract-core-lstm.wasm.js'), LANG: fs.readFileSync(path.join(ter, 'spa.traineddata.gz')).toString('base64') };
-for (const [k, v] of Object.entries(ocr)) if (/<\/script|<!--/i.test(v)) throw new Error(`El archivo de terceros ${k} contiene una secuencia que rompería el HTML`);
+const pdfDir = path.join(__dirname, 'terceros', 'pdfjs'), pdf = { LIB: fs.readFileSync(path.join(pdfDir, 'pdf.min.mjs'), 'utf8'), WORKER: fs.readFileSync(path.join(pdfDir, 'pdf.worker.min.mjs'), 'utf8') };
+for (const [k, v] of Object.entries({ ...ocr, PDF_LIB: pdf.LIB, PDF_WORKER: pdf.WORKER })) if (/<\/script|<!--/i.test(v)) throw new Error(`El archivo de terceros ${k} contiene una secuencia que rompería el HTML`);
 const base = fs.readFileSync(path.join(src, 'plantilla.html'), 'utf8').replace('/*__CSS__*/', () => css).replace('/*__JS__*/', () => js);
-const conOcr = lleno => base.replace('/*__OCR_LIB__*/', () => lleno ? ocr.LIB : '').replace('/*__OCR_WORKER__*/', () => lleno ? ocr.WORKER : '').replace('/*__OCR_CORE__*/', () => lleno ? ocr.CORE : '').replace('/*__OCR_LANG__*/', () => lleno ? ocr.LANG : '');
+const conOcr = lleno => base.replace('/*__OCR_LIB__*/', () => lleno ? ocr.LIB : '').replace('/*__OCR_WORKER__*/', () => lleno ? ocr.WORKER : '').replace('/*__OCR_CORE__*/', () => lleno ? ocr.CORE : '').replace('/*__OCR_LANG__*/', () => lleno ? ocr.LANG : '').replace('/*__PDF_LIB__*/', () => lleno ? pdf.LIB : '').replace('/*__PDF_WORKER__*/', () => lleno ? pdf.WORKER : '');
 const html = conOcr(true);
 fs.writeFileSync(path.join(__dirname, 'PlataformaGestion.html'), html);
 // Versión para pegar en una Web Template de Power Pages: {% raw %} evita que Liquid interprete el código

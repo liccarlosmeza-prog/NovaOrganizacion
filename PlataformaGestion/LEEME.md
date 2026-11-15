@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.9
+# Nova Organización — prueba v0.10
 
 > *Evolución sin límites.*
 
@@ -58,6 +58,15 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.10 (cronogramas en PDF y nuevo semestre)
+- **Escuela → Cargar cronogramas (PDF)**: elige uno o varios PDF de cronograma tal como los descargas de la plataforma de la universidad. Se leen en tu equipo, sin conexión, y verás un borrador por materia con nombre de la actividad, tipo, puntos, unidad, inicio, fecha y hora de entrega. Revisa, corrige lo que haga falta y pulsa **Cargar actividades**.
+  - La materia se reconoce por la clave y el ciclo del nombre del archivo (p. ej. `IH716_2026B…`); si es nueva, escribe su nombre.
+  - Las actividades sin fecha en el cronograma quedan desmarcadas; puedes ponerles fecha y marcarlas.
+  - Casilla para marcar como **Enviada** lo que ya venció; lo demás entra como **Pendiente**. Después cambias el estado desde la lista como siempre.
+  - Volver a cargar el mismo PDF no duplica actividades.
+- **Escuela → Nuevo semestre**: manda todas las materias y sus actividades a la papelera (se pueden restaurar 7 días) para empezar a cargar las nuevas. Antes te ofrece descargar el respaldo o el CSV con tus calificaciones.
+- La hora de entrega aparece en la lista y en la agenda; tipos nuevos **Presentación** y **Glosario**; la materia tiene **clave**.
 
 ### Novedades de la v0.9 (lector ajustado con tus ejemplos)
 - **Nota desde foto** prueba varias preparaciones de la imagen y se queda con la mejor; detecta fotos de lado (o elige la orientación a mano). Las capturas con fondo oscuro ahora se leen.
@@ -128,7 +137,7 @@ PlataformaGestion/
 ├── construir.js                  ← une los archivos de src/ y ejecuta la validación de seguridad
 ├── seguridad.js                  ← validación automática de seguridad
 ├── SEGURIDAD-AUTOMATICA.md       ← resultado de la última validación
-├── pruebas/ataque.js             ← pasada adversarial en navegador (Playwright)
+├── pruebas/                      ← ataque.js, cronogramas.js, lector-fotos.js, papelera.js, sincronizacion.js
 └── src/
     ├── plantilla.html            estructura HTML
     ├── estilos.css               estilos y variables de color
@@ -137,6 +146,7 @@ PlataformaGestion/
     ├── 03-escuela-agenda.js      Escuela, línea de tiempo, evaluación, Agenda, Recordatorios
     ├── 04-notas-accesos.js       Notas, Accesos directos, Cumpleaños, Frases
     ├── 05-ajustes-datos.js       Ajustes, exportar/importar, respaldo
+    ├── 055-sincronizacion.js … 059-cronogramas.js   sincronización, lector de fotos, papelera, cronogramas PDF
     └── 06-inicio.js              datos de ejemplo y arranque
 ```
 Para modificar: edita los archivos de `src/` y ejecuta `node construir.js` (requiere Node.js). Si no tienes Node, puedes editar directamente `PlataformaGestion.html`.

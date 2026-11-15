@@ -1,7 +1,7 @@
 # Validación automática de seguridad
 
 > Generado por `seguridad.js` en cada construcción. No editar a mano.
-> Fecha: 2026-11-13 05:08 UTC · Resultado: **APTO**
+> Fecha: 2026-11-15 06:41 UTC · Resultado: **APTO**
 
 ## Comprobaciones
 | Resultado | Comprobación | Detalle |
@@ -10,7 +10,7 @@
 | ✅ Correcto | CSP presente y sin orígenes externos | `default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'unsafe-inline'; img-src blob: data:; connect-src data: blob: https://api.github.com; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src blob:; base-uri 'none'; form-action 'none'` |
 | ✅ Correcto | fetch() sólo en el módulo de sincronización, hacia api.github.com | `Sin coincidencias` |
 | ✅ Correcto | Sincronización: repositorio privado obligatorio, cifrado, token fuera del estado y sin credenciales del navegador | `Sin coincidencias` |
-| ✅ Correcto | Librerías de terceros sin alterar (huella SHA-256) | `tesseract.min.js · worker.min.js · tesseract-core-lstm.wasm.js · spa.traineddata.gz` |
+| ✅ Correcto | Librerías de terceros sin alterar (huella SHA-256) | `tesseract.min.js · worker.min.js · tesseract-core-lstm.wasm.js · spa.traineddata.gz · pdf.min.mjs · pdf.worker.min.mjs` |
 | ✅ Correcto | Sin eval, new Function, document.write ni temporizadores con texto | `Sin coincidencias` |
 | ✅ Correcto | Sin claves, tokens ni contraseñas en el código | `Sin coincidencias` |
 | ✅ Correcto | Todo enlace en pestaña nueva usa rel="noopener noreferrer" | `Sin coincidencias` |
@@ -18,7 +18,7 @@
 | ✅ Correcto | Controles de seguridad presentes | `saneamiento de respaldos y datos guardados · filtro de direcciones · validación de imágenes del respaldo · neutralización de fórmulas al exportar CSV · enrutador protegido · derivación de clave · cifrado de notas privadas` |
 | ✅ Correcto | Textos del usuario escapados con esc() al mostrarse | `Sin coincidencias` |
 | ✅ Correcto | Sin console.log de depuración | `Sin coincidencias` |
-| ✅ Correcto | Tamaño razonable: código propio < 1 MB y archivo total < 15 MB | `código propio 281 KB · total 6.9 MB (incluye el lector de imágenes)` |
+| ✅ Correcto | Tamaño razonable: código propio < 1 MB y archivo total < 15 MB | `código propio 309 KB · total 8.3 MB (incluye los lectores de imágenes y de PDF)` |
 
 ## Inventario de direcciones externas que aparecen en el código
 Sólo https://api.github.com se usa para conexiones, y únicamente si el usuario activa la sincronización. Las demás son texto: enlaces de ejemplo que sólo se abren con clic, o identificadores.
@@ -37,4 +37,4 @@ Sólo https://api.github.com se usa para conexiones, y únicamente si el usuario
 | `https://www.udgvirtual.udg.mx` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |
 | `http://www.w3.org/2000/svg` | Identificador del formato SVG (no es una conexión) |
 
-**Dependencias de terceros:** Tesseract.js 5.1.1 (Apache-2.0) y el modelo de idioma español, **incrustados** en el archivo y verificados por huella SHA-256. No se descargan de ningún CDN; no hay nada más que empaquetar. La sincronización usa la API de GitHub como servicio, no como código.
+**Dependencias de terceros:** Tesseract.js 5.1.1 con el modelo de idioma español y pdf.js 5.4.624 (todos Apache-2.0), **incrustados** en el archivo y verificados por huella SHA-256. No se descargan de ningún CDN; no hay nada más que empaquetar. La sincronización usa la API de GitHub como servicio, no como código.

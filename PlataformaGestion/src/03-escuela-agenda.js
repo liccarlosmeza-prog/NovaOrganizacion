@@ -10,6 +10,7 @@ const Esc = {
     { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: TIPOS_ESC, medio: true },
     { k: 'inicio', label: 'Fecha de inicio', tipo: 'date', medio: true },
     { k: 'entrega', label: 'Fecha de entrega', tipo: 'date', medio: true, req: true },
+    { k: 'hora', label: 'Hora de entrega', tipo: 'time', medio: true }, { k: 'unidad', label: 'Unidad', medio: true, ph: 'Unidad 1' },
     { k: 'valor', label: 'Valor (puntos)', tipo: 'number', min: 0, max: 100, paso: 0.5, medio: true },
     { k: 'calif', label: 'Calificación obtenida (puntos)', tipo: 'number', min: 0, paso: 0.1, medio: true, ayuda: 'Déjala vacía si aún no te califican.' },
     { k: 'estatus', label: 'Estado', tipo: 'select', opciones: EST_ESC },
@@ -42,7 +43,7 @@ const Esc = {
   materia(id) {
     const m = id ? por('materias', id) : null;
     Form.abrir({ titulo: m ? 'Editar materia' : 'Nueva materia', valores: m || { color: PALETA[S.materias.length % PALETA.length], meta: S.ajustes.metaEscolar },
-      campos: [{ k: 'nombre', label: 'Materia', req: true }, { k: 'profesor', label: 'Profesor(a)', medio: true }, { k: 'ciclo', label: 'Ciclo', medio: true, ph: '2026-B' },
+      campos: [{ k: 'nombre', label: 'Materia', req: true }, { k: 'clave', label: 'Clave', medio: true, ph: 'IH716', ayuda: 'Se usa para reconocer el cronograma en PDF.' }, { k: 'profesor', label: 'Profesor(a)', medio: true }, { k: 'ciclo', label: 'Ciclo', medio: true, ph: '2026B' },
                { k: 'color', label: 'Color', tipo: 'color', medio: true }, { k: 'meta', label: 'Meta de calificación', tipo: 'number', min: 0, max: 100, medio: true, ayuda: 'Puntos que quieres alcanzar al final.' }],
       guardar: v => { poner('materias', { id: m ? m.id : uid(), ...v }); },
       eliminar: m ? () => { Papelera.mover('materias', m.id, { rel: [{ lista: 'escolares', filtro: e => e.materia === m.id }] }); toast('Materia y sus actividades enviadas a la papelera'); return false; } : null });
@@ -63,7 +64,7 @@ Vistas.escuela = () => {
   const t = UI.esc.tab;
   const selMat = `<select onchange="UI.esc.mat=this.value;App.pintar()"><option value="">Todas las materias</option>${S.materias.map(m => `<option value="${m.id}" ${UI.esc.mat === m.id ? 'selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
   const cuerpo = t === 'lista' ? escLista(selMat) : t === 'tiempo' ? escTiempo(selMat) : t === 'eval' ? escEval(selMat) : escMaterias();
-  return `${cab('Escuela', `${S.materias.length} materias · ${S.escolares.filter(e => e.tipo !== 'Vacaciones').length} actividades`, btnHist('escolares') + btnCarga(t === 'materias' ? 'materias' : 'escolares') + '<button class="btn" onclick="Esc.materia()">+ Materia</button><button class="btn pri" onclick="Esc.nueva()">+ Actividad</button>')}
+  return `${cab('Escuela', `${S.materias.length} materias · ${S.escolares.filter(e => e.tipo !== 'Vacaciones').length} actividades`, btnHist('escolares') + btnCarga(t === 'materias' ? 'materias' : 'escolares') + (Pdf.disponible() ? '<button class="btn" onclick="CronoUI.abrir()">Cargar cronogramas (PDF)</button>' : '') + '<button class="btn" onclick="CronoUI.nuevoSemestre()">Nuevo semestre</button>' + '<button class="btn" onclick="Esc.materia()">+ Materia</button><button class="btn pri" onclick="Esc.nueva()">+ Actividad</button>')}
   <div class="tabs">${[['lista', 'Actividades'], ['tiempo', 'Línea de tiempo'], ['eval', 'Evaluación'], ['materias', 'Materias']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" onclick="UI.esc.tab='${k}';App.pintar()">${n}</button>`).join('')}</div>${cuerpo}`;
 };
 
@@ -79,8 +80,8 @@ function escLista(selMat) {
     ${campoBuscar('esc', 'eBuscar', 'Buscar actividad…')}<span class="d">${l.length} resultado(s) · ${r1(l.reduce((s, e) => s + (e.valor || 0), 0))} pts</span></div>
   <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Actividad</th><th>Materia</th><th>Tipo</th><th class="num">Valor</th><th>Inicio</th><th>Entrega</th><th>Estado</th><th class="num">Calificación</th></tr></thead><tbody>
     ${l.map(e => { const m = por('materias', e.materia) || {}, cerr = ['enviada', 'calificada'].includes(e.estatus) || e.tipo === 'Vacaciones';
-      return `<tr class="${cerr && e.tipo !== 'Vacaciones' ? 'hecho' : ''}"><td><span class="t" onclick="Esc.editar('${e.id}')">${esc(e.titulo)}</span></td><td class="nw">${punto(m.color)}${esc(m.nombre || '')}</td><td class="d nw">${esc(e.tipo || '')}</td>
-      <td class="num">${e.valor ? e.valor + ' pts' : '—'}</td><td class="d nw">${esc(fFecha(e.inicio))}</td><td class="nw">${fechaLim(e.entrega, cerr)}</td>
+      return `<tr class="${cerr && e.tipo !== 'Vacaciones' ? 'hecho' : ''}"><td><span class="t" onclick="Esc.editar('${e.id}')">${esc(e.titulo)}</span>${e.unidad ? `<div class="d">${esc(e.unidad)}</div>` : ''}</td><td class="nw">${punto(m.color)}${esc(m.nombre || '')}</td><td class="d nw">${esc(e.tipo || '')}</td>
+      <td class="num">${e.valor ? e.valor + ' pts' : '—'}</td><td class="d nw">${esc(fFecha(e.inicio))}</td><td class="nw">${fechaLim(e.entrega, cerr)}${e.hora ? `<div class="d">${esc(e.hora)} h</div>` : ''}</td>
       <td>${e.tipo === 'Vacaciones' ? '<span class="d">—</span>' : `<select onchange="Esc.estado('${e.id}',this.value)">${EST_ESC.map(([k, n]) => `<option value="${k}" ${e.estatus === k ? 'selected' : ''}>${n}</option>`).join('')}</select>`}</td>
       <td class="num">${e.valor ? `<input type="number" min="0" max="${e.valor}" step="0.1" value="${e.calif ?? ''}" onchange="Esc.calificar('${e.id}',this.value)" aria-label="Calificación">` : ''}</td></tr>`; }).join('')}
     </tbody></table>` : vacio('Sin actividades escolares', 'Agrégalas una por una o impórtalas por CSV en Ajustes → Datos.')}</div>`;
@@ -174,7 +175,7 @@ const Agenda = {
     const [, m, d] = iso.split('-').map(Number), r = [], ambP = id => (por('proyectos', id) || {}).ambito;
     for (const e of S.eventos) if (e.fecha === iso) r.push({ clase: 'evento', amb: e.tipo === 'Personal' ? 'Personal' : e.tipo === 'Clase' ? 'Escuela' : (ambP(e.proyecto) || 'Trabajo'), hora: e.horaIni || '', titulo: e.titulo + (e.lugar ? ' · ' + e.lugar : ''), tipo: e.tipo || 'Evento', color: 'var(--ac)', clic: `Agenda.evento('${e.id}')`, peso: 1 });
     for (const a of S.actividades) if (a.limite === iso && !estFinal(a.estatus)) r.push({ clase: 'actividad', amb: ambAct(a), cat: a.categoria || '', hora: a.hora || '', titulo: a.titulo, tipo: 'Actividad', color: (por('estatus', a.estatus) || {}).color, clic: `Act.editar('${a.id}')`, peso: 1 });
-    for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ clase: 'entrega', amb: 'Escuela', hora: '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
+    for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ clase: 'entrega', amb: 'Escuela', hora: e.hora || '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
     for (const c of S.cumples) if (c.dia === d && c.mes === m) r.push({ clase: 'cumple', amb: 'Personal', hora: '', titulo: 'Cumpleaños de ' + c.nombre, tipo: 'Cumpleaños', color: '#db2777', clic: `Cumples.editar('${c.id}')`, peso: 0 });
     for (const x of S.recordatorios) if (!x.hecho && Rec.ocurre(x, iso)) r.push({ clase: 'recordatorio', amb: '', hora: x.hora || '', titulo: x.texto, tipo: 'Recordatorio', color: 'var(--oro)', clic: `Rec.editar('${x.id}')`, peso: 0 });
     return r.sort((a, b) => (a.hora || '00:00').localeCompare(b.hora || '00:00'));

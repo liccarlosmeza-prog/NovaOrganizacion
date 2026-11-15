@@ -143,7 +143,7 @@ const LOGO = `<svg viewBox="0 0 64 64" role="img" aria-label="Nova"><defs><linea
 const AMBITOS = ['Trabajo', 'Escuela', 'Personal'];
 const PRIORIDADES = [['1', 'Urgente'], ['2', 'Alta'], ['3', 'Media'], ['4', 'Baja']];
 const EST_ESC = [['pendiente', 'Pendiente'], ['proceso', 'En proceso'], ['guardada', 'Guardada'], ['enviada', 'Enviada'], ['calificada', 'Calificada']];
-const TIPOS_ESC = ['Buzón', 'Foro', 'Examen', 'H5P', 'Proyecto', 'Tarea', 'Vacaciones', 'Otro'];
+const TIPOS_ESC = ['Buzón', 'Foro', 'Examen', 'Glosario', 'H5P', 'Presentación', 'Proyecto', 'Tarea', 'Vacaciones', 'Otro'];
 const PALETA = ['#2f5fd0', '#7c3aed', '#0d9488', '#c77700', '#d23b3b', '#0ea5e9', '#65a30d', '#db2777', '#64748b', '#9a5b2b'];
 
 function estadoVacio() {

@@ -68,6 +68,13 @@ const HTML = 'file://' + require('path').resolve(__dirname, '..', 'PlataformaGes
     const t0 = performance.now(); const r = Correcciones.aplicar('a'.repeat(5000) + '! texto normal .* <b>x</b> (a+)+$ fin'); const ms = performance.now() - t0;
     const n = { id: uid(), titulo: r.slice(-80), texto: r.slice(-200), ocr: 'x', proyecto: '', etiquetas: '', fijada: false, creado: '', actualizado: '' }; S.notas.push(n); UI.notas.f = 'todas'; UI.notas.id = n.id; location.hash = '#/notas'; App.ruta(); UI.aj.tab = 'lector'; location.hash = '#/ajustes'; App.ruta();
     return new Promise(res => setTimeout(() => res({ ejecuto: window.__cor, lento: ms > 200, comodinComoRegex: !r.includes('texto normal') }), 300)); });
+  // A5f: cronograma PDF con textos maliciosos (nombre, unidad, clave, ciclo y aviso) en el borrador y al guardar
+  R.A5f_cronograma = await p.evaluate(() => { window.__cr = 0; Modal.cerrar(); const x = '" autofocus onfocus="window.__cr=1" x="', y = '<img src=x onerror=window.__cr=2>';
+    CronoUI._d = [{ archivo: y + '.pdf', clave: x, ciclo: y, avisos: [y], filas: [{ titulo: x + y, tipo: '<b>Foro</b>', valor: '5" onmouseover="window.__cr=3', unidad: y, inicio: '2026-12-01', entrega: '2026-12-03', hora: '"><svg onload=window.__cr=4>', nota: y, incluir: true },
+      { titulo: 'Fecha falsa', tipo: 'Foro', valor: 5, unidad: '', inicio: '2026-12-09', entrega: '2026-12-02', hora: '', nota: '', incluir: true }] }];
+    CronoUI.borrador(); const enBorrador = document.querySelectorAll('#modal img, #modal [onfocus], #modal [onmouseover], #modal [onload], #modal [onerror]').length; document.getElementById('cr_nom_0').value = y; CronoUI.aplicar();
+    const e = S.escolares.find(z => z.titulo === x + y), m = e && por('materias', e.materia); UI.esc.tab = 'lista'; location.hash = '#/escuela'; App.ruta();
+    return new Promise(res => setTimeout(() => res({ ejecuto: window.__cr, imgEnBorrador: enBorrador, tipoValido: !!e && TIPOS_ESC.includes(e.tipo), horaValida: !!e && e.hora === '', inicioMayorAEntregaGuardado: S.escolares.some(z => z.titulo === 'Fecha falsa'), materiaTexto: !!m && m.nombre === y, imgEnLista: document.querySelectorAll('#pral img[src="x"]').length }), 300)); });
   // A6: nova_ui manipulado
   R.A6_ui = await p.evaluate(() => { localStorage.setItem('nova_ui', JSON.stringify({ acc: { sel: { a: 1 }, f: 5 }, ag: { ver: 'x' }, act: { f: "x';window.__ui=1;'" }, __proto__: { x: 1 } })); return true; });
   await p.reload(); await p.waitForTimeout(800); R.A6_tras = await p.evaluate(() => ({ cab: !!document.querySelector('.cab'), ui: window.__ui, selEsSet: UI.acc.sel instanceof Set })); 
