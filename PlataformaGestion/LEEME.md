@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.10.1
+# Nova Organización — prueba v0.10.2
 
 > *Evolución sin límites.*
 
@@ -66,7 +66,8 @@ Para actualizar después: `git pull` dentro de la carpeta.
   - Casilla para marcar como **Enviada** lo que ya venció; lo demás entra como **Pendiente**. Después cambias el estado desde la lista como siempre.
   - Volver a cargar el mismo PDF no duplica actividades.
 - **Escuela → Nuevo semestre**: manda todas las materias y sus actividades a la papelera (se pueden restaurar 7 días) para empezar a cargar las nuevas. Antes te ofrece descargar el respaldo o el CSV con tus calificaciones.
-- **Nombre de la materia**: el PDF sólo trae la clave, así que al cargar escribes el nombre de cada materia nueva (es obligatorio). Después lo puedes cambiar directo en **Escuela → Materias**.
+- **Nombre de la materia**: cada materia nueva se crea con la clave del cronograma (p. ej. IH716). Después le cambias el nombre directo en **Escuela → Materias** y se actualiza en todas sus actividades, el calendario y la evaluación.
+- En tableta, el botón **Cargar actividades**, la casilla de «Enviada» y el contador quedan fijos al pie de la ventana.
 - **Escuela → Calendario (línea de tiempo)**: barras por materia en todo el semestre, el renglón **Vencen ese día** con el número de entregas (1 amarillo, 2 naranja, 3+ rojo), filtro por estado con su conteo y **clic en una actividad para marcarla** (Pendiente, En proceso, Guardada, Enviada) o capturar su calificación.
 - Sin hora de entrega: todas las entregas son hasta el final del día. Tipos nuevos **Presentación** y **Glosario**; la materia tiene **clave**.
 

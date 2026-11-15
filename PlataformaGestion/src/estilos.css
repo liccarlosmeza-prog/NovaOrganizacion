@@ -15,7 +15,7 @@ a:hover{text-decoration:underline}
 #fondo{position:fixed;inset:0;background-size:cover;background-position:center;pointer-events:none;z-index:0}
 
 /* ---------- Estructura ---------- */
-.app{position:relative;z-index:1;display:grid;grid-template-columns:216px minmax(0,1fr);height:calc(100vh / var(--z))}
+.app{position:relative;z-index:1;display:grid;grid-template-columns:216px minmax(0,1fr);height:calc(100vh / var(--z));height:calc(100dvh / var(--z))}
 .lat{background:var(--lat);color:var(--lat-tx);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
 .marca{display:flex;align-items:center;gap:10px;padding:18px 16px 14px}
 .marca svg{width:44px;height:44px;flex:none;border-radius:11px;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--lat-tx) 55%,transparent)}
@@ -219,7 +219,7 @@ table.lista{width:100%;border-collapse:collapse}
 /* ---------- Modal / avisos ---------- */
 .velo{position:fixed;inset:0;background:rgba(10,15,25,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
 .velo.on{display:flex}
-.caja{background:var(--sup);border:1px solid var(--bd);border-radius:10px;width:100%;max-width:560px;max-height:calc(100vh / var(--z) - 32px);display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden}
+.caja{background:var(--sup);border:1px solid var(--bd);border-radius:10px;width:100%;max-width:560px;max-height:calc(100vh / var(--z) - 32px);max-height:calc(100dvh / var(--z) - 32px);display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden}
 .form{display:flex;flex-direction:column;min-height:0;flex:1}
 .form h2{font-size:16px;padding:14px 18px 10px;border-bottom:1px solid var(--bd);flex:none}
 .campos{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:14px 18px;overflow:auto;flex:1;min-height:0;align-content:start}
@@ -237,6 +237,12 @@ table.lista{width:100%;border-collapse:collapse}
 #avisos{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:80}
 .aviso{background:var(--tx);color:var(--bg);padding:9px 14px;border-radius:7px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:360px}
 .aviso.err{background:var(--bad);color:#fff}
+
+/* Borrador de cronogramas: anchos que caben en tableta; el pie (Cargar actividades) siempre visible */
+.crono .crtit{width:clamp(170px,28vw,340px)}
+.crono .acciones{align-items:center}
+.crono .acciones .chk{display:flex;gap:8px;align-items:center;font-size:13.5px}
+@media (max-width:900px){ .crono .campos{padding:10px 12px} .crono table.lista td,.crono table.lista th{padding:6px 6px} }
 
 /* ---------- Móvil ---------- */
 @media (max-width:820px){

@@ -60,14 +60,15 @@ const html = (filas, extra = '') => `<!doctype html><meta charset="utf-8"><style
     && R.lectura.entregas === '2026-09-07 | 2026-09-13 | 2026-09-15 | 2026-09-20 | 2026-09-27 | 2026-10-04 | 2026-10-16' && R.lectura.iniciosOk;
 
   // 3. Guardar con estatus: lo vencido como «Enviada», lo demás «Pendiente»; materia nueva con clave y ciclo
-  // 3a. Sin nombre de materia no se guarda (el cronograma sólo trae la clave)
-  await p.click('text=Cargar actividades'); await p.waitForTimeout(200);
-  R.exigeNombre = await p.evaluate(() => S.escolares.length === 0 && !!document.querySelector('#cr_nom_0') && document.activeElement.id === 'cr_nom_0');
-  await p.fill('#cr_nom_0', 'Bases de datos'); await p.check('#crVencidas'); await p.click('text=Cargar actividades'); await p.waitForTimeout(300);
+  // 3a. La materia nueva se crea con la clave del cronograma como nombre
+  R.nombrePorClave = await p.inputValue('#cr_nom_0') === 'XX123';
+  await p.check('#crVencidas'); await p.click('text=Cargar actividades'); await p.waitForTimeout(300);
   R.guardado = await p.evaluate(() => { const m = S.materias.find(x => x.clave === 'XX123'); const l = S.escolares.filter(e => e.materia === m.id);
-    return { materia: m.nombre + '|' + m.clave + '|' + m.ciclo, n: l.length, enviadas: l.filter(e => e.estatus === 'enviada').map(e => e.entrega).join(','), pendientes: l.filter(e => e.estatus === 'pendiente').length,
+    const ren = { antes: document.querySelectorAll('#pral tbody tr').length }; Esc.renombrar(m.id, 'Bases de datos'); UI.esc.tab = 'lista'; App.pintar();
+    const filasMat = [...document.querySelectorAll('#pral tbody tr')].filter(tr => tr.textContent.includes('Bases de datos')).length;
+    return { renombradaEnTodas: filasMat === 7 && !S.escolares.some(e => e.materia !== m.id), materia: m.nombre + '|' + m.clave + '|' + m.ciclo, n: l.length, enviadas: l.filter(e => e.estatus === 'enviada').map(e => e.entrega).join(','), pendientes: l.filter(e => e.estatus === 'pendiente').length,
       enLista: document.querySelectorAll('#pral tbody tr').length >= 7, sinHora: !l.some(e => 'hora' in e), sinColumnaHora: !document.querySelector('#pral th') || ![...document.querySelectorAll('#pral th')].some(t => /hora/i.test(t.textContent)) }; });
-  R.guardadoOk = R.guardado.materia === 'Bases de datos|XX123|2026B' && R.guardado.n === 7 && R.guardado.enviadas === '2026-09-07,2026-09-13' && R.guardado.pendientes === 5 && R.guardado.enLista && R.guardado.sinHora && R.guardado.sinColumnaHora && R.exigeNombre;
+  R.guardadoOk = R.guardado.materia === 'Bases de datos|XX123|2026B' && R.guardado.n === 7 && R.guardado.enviadas === '2026-09-07,2026-09-13' && R.guardado.pendientes === 5 && R.guardado.enLista && R.guardado.sinHora && R.guardado.sinColumnaHora && R.nombrePorClave && R.guardado.renombradaEnTodas;
 
   // 3b. Calendario (línea de tiempo): conteo de entregas por día y marcado rápido del estado
   await p.evaluate(() => { UI.esc.tab = 'tiempo'; UI.esc.rango = 'todo'; UI.esc.tst = ''; App.pintar(); });
@@ -83,6 +84,14 @@ const html = (filas, extra = '') => `<!doctype html><meta charset="utf-8"><style
   await p.evaluate(() => { Esc.renombrar(S.materias[0].id, '   '); }); R.noVacia = await p.evaluate(() => S.materias[0].nombre === 'Bases de datos avanzadas');
   await p.evaluate(() => { Esc.renombrar(S.materias[0].id, 'Bases de datos'); UI.esc.tab = 'lista'; App.pintar(); });
   R.calendarioOk = R.calendario.conteos === '1,1,1,1,1,1,1' && R.calendario.barras === 7 && R.calendario.etiqueta && R.marcado && R.filtroEnviadas === 3 && R.renombrada && R.noVacia;
+  // 3d. Tableta con barra del navegador: el pie con «Cargar actividades» queda dentro de la altura visible
+  R.tableta = await (async () => { const t = await b.newContext({ viewport: { width: 810, height: 1080 }, hasTouch: true, isMobile: true }), q = await t.newPage();
+    await q.goto(APP); await q.waitForSelector('.cab'); await q.evaluate(() => { location.hash = '#/escuela'; App.ruta(); CronoUI.abrir(); });
+    await q.setInputFiles('#crArchivos', [fNormal]); await q.evaluate(() => CronoUI.leer()); await q.waitForSelector('text=Revisar cronogramas', { timeout: 120000 });
+    await q.setViewportSize({ width: 810, height: 900 });   // la barra del navegador aparece y reduce la altura visible
+    const r = await q.evaluate(() => { const bt = [...document.querySelectorAll('#modal button')].find(x => /Cargar actividades/.test(x.textContent)).getBoundingClientRect(); return { abajo: Math.round(bt.bottom), alto: innerHeight, ancho: document.documentElement.scrollWidth <= innerWidth }; });
+    await t.close(); return r; })();
+  R.tabletaOk = R.tableta.abajo <= R.tableta.alto && R.tableta.ancho;
   // 4. Volver a cargar el mismo PDF: sugiere la materia existente y no duplica
   await leer([fNormal]); R.reimporta = await p.evaluate(() => { const s = document.getElementById('cr_mat_0'); return s.options[s.selectedIndex].text; });
   await p.click('text=Cargar actividades'); await p.waitForTimeout(300);
@@ -109,6 +118,6 @@ const html = (filas, extra = '') => `<!doctype html><meta charset="utf-8"><style
   R.semestreOk = R.semestre.materias === 0 && R.semestre.escolares === 0 && R.semestre.papelera === 2 && R.restaura;
 
   R.externas = externas; R.errores = errores.filter(e => !/No se pudo leer|Invalid PDF|PDF/.test(e));
-  R.TODO_OK = R.lecturaOk && R.guardadoOk && R.reimporta.startsWith('Bases de datos') && R.sinDuplicados && R.calendarioOk && R.maliciosoOk && R.inundacionOk && R.semestreOk && !externas.length && !R.errores.length;
+  R.TODO_OK = R.lecturaOk && R.guardadoOk && R.reimporta.startsWith('Bases de datos') && R.sinDuplicados && R.calendarioOk && R.tabletaOk && R.maliciosoOk && R.inundacionOk && R.semestreOk && !externas.length && !R.errores.length;
   console.log(JSON.stringify(R, null, 1)); if (!process.env.CONSERVAR) fs.rmSync(TMP, { recursive: true, force: true }); else console.log(TMP); await b.close(); process.exit(R.TODO_OK ? 0 : 1);
 })();

@@ -369,6 +369,15 @@ Sin hallazgos críticos, altos ni medios. Barrido de secretos y funciones peligr
 | 2026-11-15 | v0.10 — cronogramas en PDF (pdf.js incrustado), «Nuevo semestre», unidad de entrega | APTO | Sin ejecución de código; 0 conexiones externas |
 | 2026-11-15 | v0.10.1 — nombre de materia obligatorio y editable en la lista de materias, calendario (línea de tiempo) con filtro por estado y marcado rápido, sin hora de entrega | APTO | Caso nuevo A5g (nombre de materia con HTML, filtro de estado manipulado): sin ejecución; 0 conexiones externas |
 
+### Ajustes v0.10.2
+- Las materias nuevas se crean con la **clave** del cronograma como nombre (o el nombre del archivo si no trae clave); el nombre se cambia después en Escuela → Materias y, como las actividades se ligan por identificador, se actualiza en todas. Probado.
+- Ventana de carga en tableta: la altura usa `100dvh` (altura visible real; antes `100vh` incluía la zona tapada por la barra del navegador y el botón quedaba oculto). La casilla «Enviada» y el contador pasaron al pie fijo junto a «Cargar actividades». Probado en Chromium con viewports de tableta (810×1080, 1080×810, 712×1138) y reduciendo la altura visible: el botón siempre queda visible. **No verificado** en Safari/Chrome de una tableta física.
+- Sin cambios de seguridad: los textos siguen escapados y el nombre se recorta a 120 caracteres.
+
+| Fecha | Cambio | Validación automática | Pasada adversarial |
+|---|---|---|---|
+| 2026-11-15 | v0.10.2 — materia nombrada por clave y ventana de carga adaptada a tableta | APTO | Sin ejecución de código; 0 conexiones externas |
+
 ### Ajustes v0.10.1
 - **Hora de entrega eliminada**: todas las entregas son hasta el final del día. `sanear()` borra el campo `hora` de las actividades escolares guardadas antes; la exportación y la carga masiva ya no la usan.
 - **Nombre de materia**: obligatorio al cargar un cronograma (el PDF sólo trae la clave) y editable directamente en Escuela → Materias (`Esc.renombrar()`: texto recortado a 120 caracteres, no admite vacío, se escapa al mostrarse).

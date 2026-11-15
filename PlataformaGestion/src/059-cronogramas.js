@@ -251,6 +251,9 @@ const CronoUI = {
     }
     this.borrador();
   },
+  contar() { const n = document.querySelectorAll('#modal input[id^="cr_ok_"]:checked').length, t = $('#crTotal'); if (t) t.textContent = `${n} actividad(es) por cargar`; },
+  /** Nombre con que se crea una materia: la clave del cronograma (o el nombre del archivo si no la trae). */
+  _nombreBase(d) { return (d.clave || String(d.archivo || '').replace(/\.pdf$/i, '').replace(/_+/g, ' ').trim() || 'Materia nueva').slice(0, 120); },
   /** Materia sugerida: la que ya tenga esa clave y ciclo; si no, una nueva con la clave como nombre. */
   _materia(d) { const m = S.materias.find(x => d.clave && x.clave === d.clave && (!d.ciclo || x.ciclo === d.ciclo)); return m ? m.id : ''; },
   borrador() {
@@ -261,21 +264,21 @@ const CronoUI = {
         <div class="cu"><div class="barra" style="margin:0 0 8px">
           <label class="d">Materia</label><select id="cr_mat_${i}" onchange="document.getElementById('cr_nom_${i}').style.display=this.value?'none':''">
             <option value="">Nueva materia…</option>${S.materias.map(m => `<option value="${m.id}" ${m.id === mat ? 'selected' : ''}>${esc(m.nombre)}${m.ciclo ? ' · ' + esc(m.ciclo) : ''}</option>`).join('')}</select>
-          <input type="text" id="cr_nom_${i}" value="" maxlength="120" placeholder="Escribe el nombre de la materia${d.clave ? ' (' + esc(d.clave) + ')' : ''}" style="width:300px;${mat ? 'display:none' : ''}" aria-label="Nombre de la materia">
+          <input type="text" id="cr_nom_${i}" value="${esc(this._nombreBase(d))}" maxlength="120" placeholder="Nombre de la materia" style="width:200px;${mat ? 'display:none' : ''}" aria-label="Nombre de la materia" title="Se crea con la clave; después puedes cambiar el nombre en Escuela → Materias">
           <label class="d">Clave</label><input type="text" id="cr_cla_${i}" value="${esc(d.clave)}" style="width:90px" aria-label="Clave">
           <label class="d">Ciclo</label><input type="text" id="cr_cic_${i}" value="${esc(d.ciclo)}" style="width:80px" aria-label="Ciclo"></div>
           ${d.avisos.length ? `<div class="d ambar" style="margin-bottom:6px">${d.avisos.map(esc).join('<br>')}</div>` : ''}</div>
         ${d.filas.length ? `<div class="scrollx"><table class="lista"><thead><tr><th style="width:28px"></th><th>Actividad</th><th>Tipo</th><th class="num">Valor</th><th>Unidad</th><th>Inicio</th><th>Entrega</th></tr></thead><tbody>
-          ${d.filas.map((f, j) => `<tr title="${esc(f.nota || '')}"><td><input type="checkbox" id="cr_ok_${i}_${j}" ${f.incluir ? 'checked' : ''} aria-label="Incluir"></td>
-            <td>${camp(i, j, 'tit', 'text', f.titulo, '340px')}${f.nota ? `<div class="d ambar" style="font-size:11.5px">${esc(f.nota)}</div>` : ''}</td>
+          ${d.filas.map((f, j) => `<tr title="${esc(f.nota || '')}"><td><input type="checkbox" id="cr_ok_${i}_${j}" ${f.incluir ? 'checked' : ''} aria-label="Incluir" onchange="CronoUI.contar()"></td>
+            <td>${camp(i, j, 'tit', 'text', f.titulo, '', 'class="crtit"')}${f.nota ? `<div class="d ambar" style="font-size:11.5px">${esc(f.nota)}</div>` : ''}</td>
             <td><select id="cr_tip_${i}_${j}" style="height:28px" aria-label="Tipo">${TIPOS_ESC.map(t => `<option ${t === f.tipo ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
-            <td class="num">${camp(i, j, 'val', 'number', f.valor, '64px', 'min="0" max="100" step="0.5"')}</td><td>${camp(i, j, 'uni', 'text', f.unidad, '110px')}</td>
-            <td>${camp(i, j, 'ini', 'date', f.inicio, '130px')}</td><td>${camp(i, j, 'ent', 'date', f.entrega, '130px')}</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
+            <td class="num">${camp(i, j, 'val', 'number', f.valor, '64px', 'min="0" max="100" step="0.5"')}</td><td>${camp(i, j, 'uni', 'text', f.unidad, '88px')}</td>
+            <td>${camp(i, j, 'ini', 'date', f.inicio, '122px')}</td><td>${camp(i, j, 'ent', 'date', f.entrega, '122px')}</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
     }).join('');
-    Modal.abrir(`<div class="form"><h2>Revisar cronogramas</h2><div class="campos" style="display:block">
-      <p class="d" style="margin-bottom:10px">Escribe el nombre de cada materia nueva (el cronograma sólo trae la clave) y revisa actividades, valores y fechas. Las entregas son hasta el final del día indicado. Las actividades sin fecha de entrega quedan desmarcadas. Lo repetido (misma materia, actividad y entrega) se omite.</p>${html}
-      <label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="crVencidas"> Marcar como «Enviada» las actividades cuya fecha de entrega ya pasó</label></div>
-      <div class="acciones"><span class="esp"></span><button class="btn" type="button" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri" type="button" onclick="CronoUI.aplicar()">Cargar actividades</button></div></div>`, 1180);
+    const total = this._d.reduce((s, d) => s + d.filas.filter(f => f.incluir).length, 0);
+    Modal.abrir(`<div class="form crono"><h2>Revisar cronogramas</h2><div class="campos" style="display:block">
+      <p class="d" style="margin-bottom:10px">Cada materia nueva se crea con su clave (p. ej. IH716); después puedes cambiarle el nombre en Escuela → Materias y se actualiza en todas sus actividades. Revisa actividades, valores y fechas; las entregas son hasta el final del día indicado. Las actividades sin fecha de entrega quedan desmarcadas. Lo repetido (misma materia, actividad y entrega) se omite.</p>${html}</div>
+      <div class="acciones"><label class="chk"><input type="checkbox" id="crVencidas"> Marcar como «Enviada» lo ya vencido</label><span class="esp"></span><span class="d" id="crTotal">${total} actividad(es) por cargar</span><button class="btn" type="button" onclick="Modal.cerrar()">Cancelar</button><button class="btn pri" type="button" onclick="CronoUI.aplicar()">Cargar actividades</button></div></div>`, 1180);
   },
   aplicar() {
     const hoy = hoyISO(), vencidas = $('#crVencidas').checked, nuevas = []; let omitidas = 0, materiasNuevas = 0;
@@ -286,8 +289,7 @@ const CronoUI = {
       return { i, cla, cic, sel, nom, filas };
     }).filter(p => p.filas.length);
     if (!plan.length) return toast('No hay actividades marcadas', 'err');
-    const falta = plan.findIndex(p => !p.sel && !p.nom);
-    if (falta >= 0) { const c = $(`#cr_nom_${plan[falta].i}`); if (c) { c.focus(); c.style.borderColor = 'var(--bad)'; } return toast('Escribe el nombre de cada materia nueva (el cronograma no lo trae)', 'err'); }
+    for (const p of plan) if (!p.sel && !p.nom) p.nom = this._nombreBase({ clave: p.cla, archivo: this._d[p.i].archivo });   // sin nombre: la clave
     for (const p of plan) {
       let m = p.sel && por('materias', p.sel);
       if (!m) { m = S.materias.find(x => Crono._n(x.nombre) === Crono._n(p.nom) && (x.ciclo || '') === p.cic); }

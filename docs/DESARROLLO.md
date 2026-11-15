@@ -200,7 +200,7 @@ Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identif
   - `Crono.interpretar()` agrupa los textos en renglones, localiza la tabla de **ponderación** (Actividad · Tipo · Valor · Duración) y la de **fechas** (Sección · Actividad · Fecha de inicio · Fecha de entrega…), asigna columnas por posición (los encabezados vienen centrados; si el contenido alineado a la izquierda empieza antes, el límite se recorre), une celdas de varios renglones y nombres partidos, y empareja ambas tablas en orden por parecido de palabras (alineación tipo *diff*).
   - Inicio: el del PDF; si no trae, la entrega anterior + 1 día (regla de AcadTrack), sin rebasar la duración indicada.
   - Clave y ciclo salen del nombre del archivo (`IH716_2026B__…`); la materia se sugiere si ya existe con esa clave y ciclo.
-  - Borrador editable (nombre de la materia —obligatorio, el PDF sólo trae la clave—, casilla, actividad, tipo, valor, unidad, inicio, entrega); las actividades sin fecha quedan desmarcadas. Opción para marcar como «Enviada» lo ya vencido; lo demás entra «Pendiente».
+  - Borrador editable (materia nueva con su clave como nombre —se renombra después en Materias—, casilla, actividad, tipo, valor, unidad, inicio, entrega); las actividades sin fecha quedan desmarcadas. Opción para marcar como «Enviada» lo ya vencido; lo demás entra «Pendiente».
   - Al guardar se valida como la carga masiva y se omiten repetidos.
 - **Nuevo semestre**: manda todas las materias con sus actividades a la papelera (restaurables 7 días) después de ofrecer el respaldo.
 - Campos nuevos: materia `clave`; actividad `unidad`. Tipos nuevos: Presentación y Glosario. Sin hora de entrega: todas las entregas son hasta el final del día.
