@@ -56,10 +56,10 @@ const Sync = {
     const ref = await this._gh('GET', `/git/ref/heads/${encodeURIComponent(rama)}`);
     const commit = this._sha(ref && ref.object && ref.object.sha), cm = await this._gh('GET', `/git/commits/${commit}`);
     const arbol = await this._gh('GET', `/git/trees/${this._sha(cm && cm.tree && cm.tree.sha)}?recursive=1`);
-    const m = { rama, commit, datos: null, imgs: {}, otros: [] };
+    const m = { rama, commit, datos: null, imgs: {}, otros: [], tam: {} };
     for (const e of arbol.tree || []) {
       if (e.type !== 'blob' || typeof e.path !== 'string') continue;
-      const sha = this._sha(e.sha);
+      const sha = this._sha(e.sha); if (Number.isFinite(e.size)) m.tam[e.path] = e.size;   // tamaño informado por GitHub (las noticias se filtran antes de descargarlas)
       if (e.path === 'datos.json') m.datos = sha;
       else if (/^img\/[A-Za-z0-9_-]{1,64}$/.test(e.path)) m.imgs[e.path.slice(4)] = sha;
       else if (!e.path.startsWith('img/')) m.otros.push({ path: e.path, mode: /^100(644|755)$/.test(e.mode) ? e.mode : '100644', type: 'blob', sha });   // otros archivos del repositorio se conservan
@@ -77,9 +77,21 @@ const Sync = {
   },
 
   /* ---------- Subir (este equipo → GitHub) ---------- */
+  /**
+   * ¿Cambiaron en GitHub los datos de Nova desde la última sincronización? Se compara el archivo datos.json
+   * (no el commit): así los archivos que agrega Claude (noticias/) no se confunden con cambios de otro equipo.
+   */
+  _cambioDatos(m) { return !!m.datos && (this.cfg.datos ? m.datos !== this.cfg.datos : m.commit !== this.cfg.commit); },
   async subir(forzar) {
+    for (let intento = 1; ; intento++) {
+      if (await this._subirUna(forzar)) return;
+      if (intento >= 3) throw new Error('El repositorio cambió varias veces mientras se sincronizaba; se reintentará en un momento.');
+    }
+  },
+  /** Una subida. Devuelve false si el repositorio cambió (p. ej. llegó una noticia) antes de mover la rama: se rehace. */
+  async _subirUna(forzar) {
     const m = await this._remoto();
-    if (!forzar && m.commit !== this.cfg.commit && (m.datos || this.cfg.commit)) { const e = new Error('conflicto'); e.conflicto = true; throw e; }
+    if (!forzar && (m.datos || this.cfg.commit) && this._cambioDatos(m)) { const e = new Error('conflicto'); e.conflicto = true; throw e; }
     this.cfg.sucio = false;
     try {
       const datos = await this._crearBlob({ app: 'NovaSync', v: 1, sal: this.cfg.sal, iter: this.cfg.iter, fecha: ahoraTxt(), ...(await this._cifrar(new TextEncoder().encode(JSON.stringify(S)))) });
@@ -91,8 +103,12 @@ const Sync = {
       }
       const t = await this._gh('POST', '/git/trees', { tree: arbol });
       const c = await this._gh('POST', '/git/commits', { message: 'Nova Organización: sincronización', tree: t.sha, parents: [] });
+      // Justo antes de mover la rama se vuelve a leer: si cambió, se rehace incluyendo lo nuevo (una sola versión, sin historial)
+      const ref = await this._gh('GET', `/git/ref/heads/${encodeURIComponent(m.rama)}`);
+      if (this._sha(ref && ref.object && ref.object.sha) !== m.commit) { this.cfg.sucio = true; return false; }
       await this._gh('PATCH', `/git/refs/heads/${encodeURIComponent(m.rama)}`, { sha: c.sha, force: true });
-      this.cfg.commit = c.sha; this.cfg.ultima = ahoraTxt();
+      this.cfg.commit = c.sha; this.cfg.datos = datos; this.cfg.ultima = ahoraTxt();
+      return true;
     } catch (e) { this.cfg.sucio = true; throw e; }
     finally { await this._guardarCfg(); }
   },
@@ -114,7 +130,7 @@ const Sync = {
     for (const id of [...Img.blobs.keys()]) if (!m.imgs[id]) await Img.quitar(id);
     this._silencio = true;
     try { S = fusionar(estado); Boveda.cerrar(); await DB.escribirEstado(S); } finally { this._silencio = false; }   // fusionar() sanea lo recibido
-    this.cfg.commit = m.commit; this.cfg.sucio = false; this.cfg.ultima = ahoraTxt(); await this._guardarCfg();
+    this.cfg.commit = m.commit; this.cfg.datos = m.datos; this.cfg.sucio = false; this.cfg.ultima = ahoraTxt(); await this._guardarCfg();
     aplicarTema(); if (!$('#modal').classList.contains('on')) App.pintar();
   },
 
@@ -131,7 +147,7 @@ const Sync = {
     if (!navigator.onLine) { this._pon(this.cfg.sucio ? 'pendiente' : 'aldia', 'Sin conexión a internet.'); return; }
     this._ocupado = true; clearTimeout(this._t); this._pon('trabajando');
     try {
-      const m = await this._remoto(), cambioRemoto = m.commit !== this.cfg.commit && !!m.datos;
+      const m = await this._remoto(), cambioRemoto = this._cambioDatos(m);
       if (cambioRemoto && this.cfg.sucio) { this._pon('conflicto', 'Hay cambios en este equipo y también en GitHub.'); return; }
       if (cambioRemoto) await this.traer(); else if (this.cfg.sucio || !m.datos) await this.subir(false);
       this._pon(this.cfg.sucio ? 'pendiente' : 'aldia'); if (manual) toast('Sincronización completa');

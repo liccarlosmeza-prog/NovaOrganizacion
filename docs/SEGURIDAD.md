@@ -393,3 +393,53 @@ Sin hallazgos críticos, altos ni medios. Barrido de secretos y funciones peligr
 - **Marcado rápido** (`Esc.marcar()`): ventana con los estados y la calificación; usa `Esc.estado()`/`Esc.calificar()`, por lo que registra el historial (`regEstatus()`) y valida la calificación igual que la lista.
 - **Filtro por estado del calendario** (`UI.esc.tst`): se recuerda entre sesiones; si el valor guardado no es un estado válido se ignora (probado con HTML en el valor).
 - Pruebas: `pruebas/cronogramas.js` agrega exigencia de nombre, conteo de entregas por día, marcado desde el calendario con registro en el historial, filtro por estado y renombrado; `pruebas/ataque.js` agrega A5g. Todo **correcto**, 0 conexiones.
+
+## 18. Revisión de Noticias e investigación (v0.11)
+
+Revisión manual con `web-security-review` sobre `src/056-noticias.js` (nuevo, 218 líneas), `src/055-sincronizacion.js`, `src/01-nucleo.js`, `src/02-app-proyectos.js`, `src/05-ajustes-datos.js`, `src/058-papelera.js` y `src/estilos.css`.
+
+### Conexiones externas
+| Dirección | Cambio | Se carga sola | Acción |
+|---|---|---|---|
+| `https://api.github.com` | Ya autorizada (sincronización). Ahora también se lee la carpeta `noticias/` de nova-datos y se borran sus archivos (`DELETE /contents/noticias/…`) | No: sólo con la sincronización configurada y al pulsar «Actualizar» o «Eliminar» | Se mantiene; la CSP **no cambió** |
+| Direcciones de las fuentes de cada noticia | Nuevas, como enlaces | No: sólo se abren si haces clic (pestaña nueva, `noopener noreferrer`) | Sólo `https://`; `javascript:`, `data:` y `http:` no se enlazan |
+
+Todas las peticiones siguen en el módulo de sincronización (`Sync._gh`); `056-noticias.js` no hace peticiones propias. Comprobado: 0 peticiones fuera de `api.github.com` en las pruebas.
+
+### Controles
+| Riesgo | Control |
+|---|---|
+| Contenido de internet con HTML o código (escrito por Claude o por quien tenga acceso al repositorio) | `Noticias.validar()`: exige `formato: "nova-noticia"`, recorta cada campo, listas y tipos cerrados; todo se escapa con `esc()` al mostrarse. Probado (A8): sin ejecución |
+| Enlaces peligrosos en fuentes | Sólo `https://`, validadas con `urlSegura()` al leer y al pintar |
+| Archivos enormes o demasiados | Se usa el tamaño informado por GitHub antes de descargar (máx. 100 KB) y máx. 300 archivos |
+| Borrar algo que no sea una noticia | Sólo rutas `noticias/<nombre>.json` (sin `/` ni rutas relativas) y el identificador exacto del archivo; un respaldo alterado con `datos.json` o `img/` en la lista de borrado se descarta en `sanear()`. Probado (A8) |
+| Contaminación del prototipo o campos inesperados | Las noticias se construyen con campos fijos; `sanear()` acota longitudes, tipo, relevancia, ruta e identificador |
+| La sincronización podía perder noticias que Claude agregara durante una subida, o marcar un conflicto falso | Ahora compara `datos.json` (no el commit) y vuelve a leer la rama justo antes de moverla: si cambió, rehace la subida con lo nuevo (máx. 3 intentos). Probado con una noticia que llega a mitad de la subida |
+| Instrucciones dentro del texto de una noticia («prompt injection») | Nova sólo muestra el texto; ninguna acción se ejecuta sin un clic tuyo |
+| Eliminar | Como en Notas: confirmación, papelera 7 días; el archivo se borra del repositorio y, sin conexión, queda pendiente (`S.porBorrar`) y se completa al actualizar |
+
+### Hallazgos
+| ID | Severidad | Hallazgo | Estado |
+|---|---|---|---|
+| H-18.1 | Medio | La sincronización forzaba la rama con una versión armada antes; una noticia agregada en ese intervalo se perdía, y cualquier archivo nuevo provocaba un «conflicto» falso con cambios locales | **Corregido** (comparación por `datos.json` y relectura antes de mover la rama) |
+| H-18.2 | Bajo | El límite de 100 KB se comprobaba después de descargar el archivo | **Corregido** (se filtra con el tamaño del árbol de GitHub) |
+| H-18.3 | Informativo | Las noticias se guardan sin cifrar en nova-datos | Aceptado: son información pública; repositorio privado. Tus datos siguen cifrados |
+
+### Pruebas
+- `node pruebas/noticias.js` (nueva, GitHub simulado): sin conexión, recepción (sólo archivos válidos de `noticias/`), sin duplicados, lectura (marca leída, fuentes https con `noopener`), guardar, crear nota, tarjeta de Inicio, noticia que llega durante la sincronización (reintento, sin pérdida), sin conflicto falso, eliminar (papelera + repositorio + abre la siguiente), no reaparece, restaurar, borrado pendiente sin red, carga CSV y exportación, instrucción para Claude. **Correcto**.
+- `pruebas/ataque.js` caso **A8**: sin ejecución, sólo enlaces https, rutas de borrado alteradas descartadas. Demás casos sin cambios.
+- `pruebas/sincronizacion.js`: mismos resultados que antes (el conflicto real entre equipos se sigue detectando). `pruebas/papelera.js` y `pruebas/cronogramas.js`: correctas.
+
+### No verificado
+- GitHub real (las pruebas usan un GitHub simulado con las mismas respuestas).
+- Que tu sesión de Claude pueda escribir en la rama principal de nova-datos: depende de cómo le des acceso.
+
+### Recomendaciones
+| # | Recomendación |
+|---|---|
+| R-19 | Da a Claude acceso sólo a nova-datos y pídele usar la herramienta de GitHub para crear archivos, no `git push` |
+| R-20 | Revisa las fuentes antes de actuar sobre una noticia de relevancia alta |
+
+| Fecha | Cambio | Validación automática | Pasada adversarial |
+|---|---|---|---|
+| 2026-11-17 | v0.11 — Noticias e investigación desde nova-datos, tarjeta de Inicio, sincronización que respeta archivos nuevos | APTO | Sin ejecución de código; 0 conexiones fuera de api.github.com |

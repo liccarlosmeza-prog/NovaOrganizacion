@@ -1,7 +1,7 @@
 # Validación automática de seguridad
 
 > Generado por `seguridad.js` en cada construcción. No editar a mano.
-> Fecha: 2026-11-15 07:04 UTC · Resultado: **APTO**
+> Fecha: 2026-11-17 01:34 UTC · Resultado: **APTO**
 
 ## Comprobaciones
 | Resultado | Comprobación | Detalle |
@@ -18,7 +18,7 @@
 | ✅ Correcto | Controles de seguridad presentes | `saneamiento de respaldos y datos guardados · filtro de direcciones · validación de imágenes del respaldo · neutralización de fórmulas al exportar CSV · enrutador protegido · derivación de clave · cifrado de notas privadas` |
 | ✅ Correcto | Textos del usuario escapados con esc() al mostrarse | `Sin coincidencias` |
 | ✅ Correcto | Sin console.log de depuración | `Sin coincidencias` |
-| ✅ Correcto | Tamaño razonable: código propio < 1 MB y archivo total < 15 MB | `código propio 317 KB · total 8.4 MB (incluye los lectores de imágenes y de PDF)` |
+| ✅ Correcto | Tamaño razonable: código propio < 1 MB y archivo total < 15 MB | `código propio 345 KB · total 8.4 MB (incluye los lectores de imágenes y de PDF)` |
 
 ## Inventario de direcciones externas que aparecen en el código
 Sólo https://api.github.com se usa para conexiones, y únicamente si el usuario activa la sincronización. Las demás son texto: enlaces de ejemplo que sólo se abren con clic, o identificadores.
@@ -26,9 +26,12 @@ Sólo https://api.github.com se usa para conexiones, y únicamente si el usuario
 | Dirección | Uso |
 |---|---|
 | `https://api.github.com;` | **Conexión real**: sincronización cifrada con el repositorio privado del usuario (opcional) |
+| `https://example.com/aviso` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |
 | `https://outlook.office.com` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |
 | `https://app.powerbi.com` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |
 | `https://api.github.com` | **Conexión real**: sincronización cifrada con el repositorio privado del usuario (opcional) |
+| `//i.test(u` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |
+| `//i.test(url` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |
 | `https://teams.microsoft.com` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |
 | `https://www.office.com/launch/sharepoint` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |
 | `https://make.powerautomate.com` | Enlace de ejemplo o plantilla; sólo se abre con clic del usuario |

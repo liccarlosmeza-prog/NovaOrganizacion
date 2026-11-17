@@ -12,6 +12,7 @@ const UI = {
   rec: { q: '' }, cum: { q: '', rel: '' }, pap: { tipo: '', q: '' },
   notas: { f: 'todas', id: null, q: '' },
   acc: { f: 'todos', q: '', sel: new Set() },
+  not: { f: 'sinleer', tema: '', tipo: '', q: '', id: null },
   aj: { tab: 'apariencia' }
 };
 
@@ -19,7 +20,7 @@ const Vistas = {};   // cada pantalla registra aquí su función: () => html
 const App = {
   vista: 'inicio', param: null,
   NAV: [['inicio', 'Inicio'], ['proyectos', 'Proyectos'], ['actividades', 'Actividades'], ['escuela', 'Escuela'], ['agenda', 'Agenda'],
-        ['recordatorios', 'Recordatorios'], ['notas', 'Notas'], ['accesos', 'Accesos directos'], ['cumples', 'Cumpleaños'], ['frases', 'Frases del día'], null, ['papelera', 'Papelera'], ['ajustes', 'Ajustes']],
+        ['recordatorios', 'Recordatorios'], ['notas', 'Notas'], ['accesos', 'Accesos directos'], ['cumples', 'Cumpleaños'], ['frases', 'Frases del día'], ['noticias', 'Noticias'], null, ['papelera', 'Papelera'], ['ajustes', 'Ajustes']],
   ir(v, p) { const h = '#/' + v + (p ? '/' + p : ''); if (location.hash === h) this.ruta(); else location.hash = h; },
   ruta() {
     const [, v, p] = location.hash.split('/');
@@ -30,7 +31,7 @@ const App = {
     return {
       actividades: S.actividades.filter(a => !estFinal(a.estatus)).length || '',
       recordatorios: S.recordatorios.filter(r => !r.hecho && r.fecha <= hoy).length || '',
-      papelera: S.papelera.length || '',
+      papelera: S.papelera.length || '', noticias: Noticias.sinLeer() || '',
       escuela: S.escolares.filter(e => e.tipo !== 'Vacaciones' && ['pendiente', 'proceso'].includes(e.estatus) && e.entrega >= hoy && difDias(hoy, e.entrega) <= 7).length || ''
     };
   },
@@ -162,6 +163,12 @@ const Ini = {
     const rango = `<span class="fil peq">${[7, 15, 30].map(d => `<button class="${d === dias ? 'on' : ''}" onclick="Ini.dias('entregas',${d})">${d} d</button>`).join('')}</span>`;
     const aviso = vencidas ? `<p class="d" style="margin:0 0 6px"><span class="ambar">${vencidas} entrega(s) vencida(s) sin marcar.</span> <button class="lnk" onclick="UI.esc.tab='lista';UI.esc.est='abiertas';UI.esc.mat='';App.ir('escuela')">Revisar</button> · <button class="lnk" onclick="Esc.enviarVencidas()">Marcar todas como enviadas</button></p>` : '';
     return { t: `Entregas escolares · próximos ${dias} días`, n: l.length, ir: 'escuela', extra: rango, h: aviso + this.lista(filas, ...vacioTxt) };
+  },
+  noticias(c) {
+    const l = S.noticias.filter(n => !n.leida).sort((a, b) => ({ alta: 0, media: 1, baja: 2 }[a.relevancia] - { alta: 0, media: 1, baja: 2 }[b.relevancia]) || b.fecha.localeCompare(a.fecha));
+    const filas = l.slice(0, c.filas).map(n => `<li>${punRel(n.relevancia)}<span class="x clic" onclick="UI.not.f='sinleer';App.ir('noticias');Noticias.abrir('${n.id}')">${esc(n.titulo)}</span><span class="m">${esc(n.tema)}</span><span class="m">${esc(grupoDia(n.fecha) === 'Hoy' ? n.fecha.slice(11) : grupoDia(n.fecha))}</span></li>`).join('');
+    return { t: 'Noticias sin leer', n: l.length, ir: 'noticias', extra: Noticias.conectado() ? '<button class="lnk" onclick="Noticias.actualizar()">Actualizar</button>' : '',
+      h: this.lista(filas, S.noticias.length ? 'Todo leído' : 'Sin noticias', S.noticias.length ? '' : (Noticias.conectado() ? 'Pide una búsqueda a Claude y pulsa Actualizar.' : 'Conecta nova-datos en Ajustes → Sincronización.')) };
   },
   /** Cambia los días de un bloque desde el propio bloque. */
   dias(id, d) { const w = S.ajustes.inicio.find(x => x.id === id); if (w && [7, 15, 30].includes(d)) { w.dias = d; guardar(); App.pintar(); } },

@@ -79,6 +79,18 @@ const HTML = 'file://' + require('path').resolve(__dirname, '..', 'PlataformaGes
   R.A5g_materiaYCalendario = await p.evaluate(() => { window.__mg = 0; const m = S.materias.find(x => x.clave); Esc.renombrar(m.id, '"><img src=x onerror=window.__mg=1>'); UI.esc.tab = 'materias'; App.pintar(); const enMaterias = document.querySelectorAll('#pral img[src="x"]').length;
     UI.esc.tab = 'tiempo'; UI.esc.rango = 'todo'; UI.esc.tst = '"><img src=x onerror=window.__mg=2>'; App.pintar(); const e = S.escolares.find(x => x.materia === m.id); Esc.marcar(e.id); location.hash = '#/inicio'; App.ruta();
     return new Promise(res => setTimeout(() => { const r = { ejecuto: window.__mg, imgs: enMaterias + document.querySelectorAll('#pral img[src="x"], #modal img[src="x"]').length }; Modal.cerrar(); UI.esc.tst = ''; UI.esc.tab = 'lista'; res(r); }, 300)); });
+  // A8: noticia manipulada (como si Claude o un tercero escribiera en nova-datos) y respaldo con rutas de borrado alteradas
+  R.A8_noticias = await p.evaluate(() => { window.__nt = 0; Modal.cerrar(); const x = '<img src=x onerror=window.__nt=1>', y = '"><svg onload=window.__nt=2>';
+    const n = Noticias.validar({ formato: 'nova-noticia', titulo: x + ' titular', tema: y, tipo: '<b>x</b>', relevancia: 'alta" onmouseover="window.__nt=3', resumen: x + '\n' + y, puntos: [x, y, { a: 1 }],
+      fuentes: [{ medio: x, titulo: y, url: 'javascript:window.__nt=4' }, { medio: 'd', url: 'data:text/html,<script>window.__nt=5<\/script>' }, { medio: 'h', url: 'http://inseguro.example/x' }, { medio: 'ok', url: 'https://example.com/ok' }],
+      etiquetas: [x, y], consulta: y, fecha: '"><img src=x onerror=window.__nt=6>', __proto__: { contaminado: 1 } });
+    S.noticias.push({ id: uid(), archivo: '', sha: '', recibida: ahoraTxt(), ...n });
+    const malos = sanear({ noticias: [{ id: 'a', titulo: 't', archivo: '../datos.json', sha: 'zz' }], porBorrar: [{ archivo: 'datos.json', sha: 'a'.repeat(40) }, { archivo: 'noticias/../datos.json', sha: 'a'.repeat(40) }, { archivo: 'img/abc', sha: 'b'.repeat(40) }] });
+    UI.not.f = 'todas'; UI.not.id = S.noticias[S.noticias.length - 1].id; location.hash = '#/noticias'; App.ruta(); const enLectura = document.querySelectorAll('#pral img[src="x"], #pral svg[onload]').length;
+    const hrefs = [...document.querySelectorAll('.nw2 .fu a')].map(a => a.getAttribute('href'));
+    location.hash = '#/inicio'; App.ruta();
+    return new Promise(res => setTimeout(() => res({ ejecuto: window.__nt, imgs: enLectura + document.querySelectorAll('#pral img[src="x"], #pral svg[onload]').length, hrefs: hrefs.join(' '), sinHttpNiJs: hrefs.every(h => /^https:\/\//.test(h)),
+      relevanciaValida: ['alta', 'media', 'baja'].includes(n.relevancia), tipoValido: n.tipo === 'noticia', prototipo: ({}).contaminado === 1, rutaMala: malos.noticias[0].archivo, borradosPermitidos: malos.porBorrar.length }), 300)); });
   // A6: nova_ui manipulado
   R.A6_ui = await p.evaluate(() => { localStorage.setItem('nova_ui', JSON.stringify({ acc: { sel: { a: 1 }, f: 5 }, ag: { ver: 'x' }, act: { f: "x';window.__ui=1;'" }, __proto__: { x: 1 } })); return true; });
   await p.reload(); await p.waitForTimeout(800); R.A6_tras = await p.evaluate(() => ({ cab: !!document.querySelector('.cab'), ui: window.__ui, selEsSet: UI.acc.sel instanceof Set })); 

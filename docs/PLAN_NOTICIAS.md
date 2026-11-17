@@ -1,6 +1,6 @@
 # Plan — Noticias e investigación (propuesta para validar)
 
-Estado: **propuesta, sin implementar**. Maquetas en `docs/mockups/noticias/` (datos de ejemplo).
+Estado: **implementado en la v0.11** (aprobado por el usuario: eliminar como en Notas; temas Seguridad, IA, Power Platform —actualizaciones de sus aplicaciones— y Desarrollo web; las leídas se conservan hasta eliminarlas). Formato e instrucción: `docs/NOTICIAS_CLAUDE.md`. Maquetas en `docs/mockups/noticias/` (datos de ejemplo).
 
 ## 1. Objetivo
 Pedir a Claude búsquedas de noticias (seguridad, IA, Power Platform…) o investigaciones por palabras clave. Claude guarda cada resultado en el repositorio privado **nova-datos**; Nova Organización lo lee, lo muestra en una pantalla **Noticias** y en una tarjeta de **Inicio**, y al terminar de leerlo puedes eliminarlo (también del repositorio).

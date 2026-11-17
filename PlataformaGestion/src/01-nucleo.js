@@ -127,11 +127,11 @@ const TEMAS = {
 };
 const COLORES_TEMA = [['ac', 'Color de acento'], ['lat', 'Barra lateral'], ['oro', 'Detalle (línea y marcas)'], ['bg', 'Fondo'], ['sup', 'Superficies (paneles)'], ['tx', 'Texto'], ['mut', 'Texto secundario'], ['bd', 'Bordes']];
 /** Bloques de la pantalla de Inicio (el orden, tamaño y filas se editan en Ajustes → Inicio). */
-const WIDGETS = { frase: 'Frase del día', agenda: 'Agenda', actividades: 'Actividades por atender', entregas: 'Entregas escolares', proyectos: 'Proyectos activos', recordatorios: 'Recordatorios', cumples: 'Cumpleaños próximos', accesos: 'Accesos favoritos' };
+const WIDGETS = { frase: 'Frase del día', agenda: 'Agenda', actividades: 'Actividades por atender', entregas: 'Entregas escolares', noticias: 'Noticias sin leer', proyectos: 'Proyectos activos', recordatorios: 'Recordatorios', cumples: 'Cumpleaños próximos', accesos: 'Accesos favoritos' };
 const inicioDefecto = () => [
   { id: 'agenda', on: true, ancho: 3, filas: 12, dias: 1 }, { id: 'actividades', on: true, ancho: 3, filas: 12, dias: 7 },
   { id: 'frase', on: true, ancho: 6, filas: 0 },
-  { id: 'entregas', on: true, ancho: 3, filas: 8, dias: 7 }, { id: 'proyectos', on: true, ancho: 3, filas: 6 },
+  { id: 'entregas', on: true, ancho: 3, filas: 8, dias: 7 }, { id: 'proyectos', on: true, ancho: 3, filas: 6 }, { id: 'noticias', on: true, ancho: 3, filas: 5 },
   { id: 'recordatorios', on: true, ancho: 2, filas: 5, dias: 7 }, { id: 'cumples', on: true, ancho: 2, filas: 5, dias: 30 }, { id: 'accesos', on: true, ancho: 2, filas: 8 }
 ];
 const temaDe = id => { const { nombre, ...c } = TEMAS[id]; return c; };
@@ -162,7 +162,8 @@ function estadoVacio() {
     ],
     proyectos: [], actividades: [], bitacora: [], notas: [], boveda: null, notasPriv: [],
     recordatorios: [], eventos: [], cumples: [], materias: [], escolares: [],
-    carpetas: [], enlaces: [], grupos: [], frases: [], historial: [], papelera: [], correcciones: []
+    carpetas: [], enlaces: [], grupos: [], frases: [], historial: [], papelera: [], correcciones: [],
+    noticias: [], porBorrar: []
   };
 }
 let S = estadoVacio();

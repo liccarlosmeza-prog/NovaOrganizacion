@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.10.3
+# Nova Organización — prueba v0.11
 
 > *Evolución sin límites.*
 
@@ -58,6 +58,12 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.11 (Noticias e investigación)
+- Pantalla **Noticias**: lista agrupada por día (punto azul = sin leer; color = relevancia) y panel de lectura con resumen, puntos clave y fuentes. Filtros Sin leer · Todas · Guardadas, por tema y tipo, y búsqueda.
+- **Instrucción para Claude**: copia una instrucción lista con tus temas (Seguridad, IA, Power Platform, Desarrollo web) para que Claude busque y guarde las noticias en tu repositorio privado nova-datos. Luego pulsa **Actualizar desde nova-datos**.
+- Acciones: Marcar leída, Guardar, Crear nota, Crear actividad y **Eliminar** (como en Notas: confirma, va a la papelera 7 días y se borra de nova-datos).
+- Tarjeta **Noticias sin leer** en Inicio, configurable en Ajustes → Inicio. Detalle en `docs/NOTICIAS_CLAUDE.md`.
 
 ### Novedades de la v0.10.3 (entregas escolares en Inicio)
 - La tarjeta **Entregas escolares** muestra las de los **próximos 7 días** (cambia a 15 o 30 desde la propia tarjeta): día, actividad, materia y puntos. Marca la casilla para dejarla como «Enviada» o pulsa el título para elegir otro estado.

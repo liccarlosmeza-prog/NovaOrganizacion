@@ -136,8 +136,8 @@ const CAMPO = {
   id: ['id', 'proyecto', 'categoria', 'estatus', 'materia', 'carpeta', 'img', 'ref', 'fondoImg', 'bandaImg', 'cat', 'temaId', 'origenId'],
   num: ['usos', 'valor', 'calif', 'horas', 'avanceManual', 'dia', 'mes', 'anio', 'meta', 'ancho', 'filas', 'dias', 'fondoOp', 'metaEscolar', 'escala', 'avisoCumple', 'iter', 'v'],
   color: ['color', 'bg', 'sup', 'tx', 'mut', 'bd', 'ac', 'lat', 'oro'],
-  listaId: ['ids', 'imgs'], fecha: ['inicio', 'objetivo', 'limite', 'entrega', 'completada', 'vista'], fechaHora: ['fecha', 'creado', 'actualizado', 'avisado', 'editado'], hora: ['hora', 'horaIni', 'horaFin'],
-  bool: ['on', 'final', 'fav', 'fijada', 'hecho']
+  listaId: ['ids', 'imgs'], fecha: ['inicio', 'objetivo', 'limite', 'entrega', 'completada', 'vista'], fechaHora: ['fecha', 'creado', 'actualizado', 'avisado', 'editado', 'recibida', 'noticiasAct'], hora: ['hora', 'horaIni', 'horaFin'],
+  bool: ['on', 'final', 'fav', 'fijada', 'hecho', 'leida', 'guardada']
 };
 function sanearValor(k, v) {
   if (CAMPO.id.includes(k)) return v == null || v === '' ? '' : (ID_OK.test(String(v)) ? String(v) : (k === 'id' ? uid() : ''));
@@ -196,6 +196,13 @@ function sanear(e) {
   r.eventos = r.eventos.filter(x => FECHA_OK.test(x.fecha)); r.recordatorios = r.recordatorios.filter(x => FECHA_OK.test(x.fecha));
   r.recordatorios.forEach(x => { if (!['', 'diario', 'semanal', 'mensual', 'anual'].includes(x.repetir)) x.repetir = ''; });
   r.correcciones = r.correcciones.filter(c => typeof c.mal === 'string' && typeof c.bien === 'string' && c.mal.trim().length >= 2 && c.bien.trim() && c.mal.length <= 80 && c.bien.length <= 80).slice(0, 5000).map(c => ({ ...c, mal: c.mal.trim(), bien: c.bien.trim(), usos: Math.max(0, c.usos || 0) }));
+  // Noticias: textos acotados, tipo y relevancia de lista, ruta del repositorio validada (se usa para borrar en GitHub)
+  const RUTA_NOT = /^noticias\/[A-Za-z0-9._-]{1,120}\.json$/, SHA_OK = /^[0-9a-f]{40,64}$/;
+  r.noticias = r.noticias.filter(n => typeof n.titulo === 'string' && n.titulo.trim()).slice(0, 5000).map(n => ({ ...n, titulo: n.titulo.slice(0, 300), tema: String(n.tema || 'General').slice(0, 60),
+    tipo: n.tipo === 'investigacion' ? 'investigacion' : 'noticia', relevancia: ['alta', 'media', 'baja'].includes(n.relevancia) ? n.relevancia : 'media',
+    resumen: String(n.resumen || '').slice(0, 8000), puntos: String(n.puntos || '').slice(0, 15000), fuentes: String(n.fuentes || '').slice(0, 30000), etiquetas: String(n.etiquetas || '').slice(0, 500), consulta: String(n.consulta || '').slice(0, 300),
+    archivo: RUTA_NOT.test(String(n.archivo)) ? n.archivo : '', sha: SHA_OK.test(String(n.sha)) ? n.sha : '', fecha: n.fecha || ahoraTxt() }));
+  r.porBorrar = r.porBorrar.filter(x => RUTA_NOT.test(String(x.archivo)) && SHA_OK.test(String(x.sha))).slice(0, 1000);
   r.cumples = r.cumples.filter(c => c.dia >= 1 && c.dia <= 31 && c.mes >= 1 && c.mes <= 12);
   r.bitacora = r.bitacora.filter(x => x.fecha && x.proyecto); r.notasPriv = r.notasPriv.filter(x => x.id && typeof x.iv === 'string' && typeof x.ct === 'string');
   r.enlaces.forEach(l => { l.url = urlSegura(l.url); }); r.enlaces = r.enlaces.filter(l => l.url);
@@ -236,6 +243,8 @@ const Datos = {
       { nombre: 'actividades.csv', enc: ['Id', 'Titulo', 'Proyecto', 'Clasificacion', 'Estatus', 'Prioridad', 'FechaInicio', 'FechaLimite', 'Hora', 'Horas', 'Detalle', 'Checklist', 'FechaTerminada'],
         filas: S.actividades.map(a => [a.id, a.titulo, nom('proyectos', a.proyecto), nom('categorias', a.categoria), nom('estatus', a.estatus), pri(a.prioridad), aDMY(a.inicio), aDMY(a.limite), a.hora, a.horas, a.detalle, a.checklist, aDMY(a.completada)]) },
       { nombre: 'bitacora.csv', enc: ['Id', 'Proyecto', 'FechaHora', 'Tipo', 'Texto', 'Imagenes'], filas: S.bitacora.map(b => [b.id, nom('proyectos', b.proyecto), b.fecha, b.tipo, b.texto, (b.imgs || []).length]) },
+      { nombre: 'noticias.csv', enc: ['Titulo', 'Tema', 'Tipo', 'Relevancia', 'Fecha', 'Leida', 'Guardada', 'Consulta', 'Etiquetas', 'Resumen', 'Puntos', 'Fuentes'],
+        filas: S.noticias.map(n => [n.titulo, n.tema, n.tipo, n.relevancia, n.fecha, n.leida ? 'SI' : 'NO', n.guardada ? 'SI' : 'NO', n.consulta, n.etiquetas, n.resumen, n.puntos.split('\n').join(' | '), Noticias.fuentes(n).map(f => f.url).filter(Boolean).join(' ')]) },
       { nombre: 'notas.csv', enc: ['Id', 'Titulo', 'Proyecto', 'Etiquetas', 'Fijada', 'Creada', 'Actualizada', 'TieneFoto', 'Texto'], filas: S.notas.map(n => [n.id, n.titulo, nom('proyectos', n.proyecto), n.etiquetas, n.fijada ? 'SI' : 'NO', n.creado, n.actualizado, n.img ? 'SI' : 'NO', n.texto]) },
       { nombre: 'recordatorios.csv', enc: ['Id', 'Texto', 'Fecha', 'Hora', 'Repeticion', 'Hecho'], filas: S.recordatorios.map(r => [r.id, r.texto, aDMY(r.fecha), r.hora, r.repetir, r.hecho ? 'SI' : 'NO']) },
       { nombre: 'agenda.csv', enc: ['Id', 'Evento', 'Fecha', 'HoraInicio', 'HoraFin', 'Tipo', 'Proyecto', 'Lugar', 'Notas', 'Origen'], filas: S.eventos.map(e => [e.id, e.titulo, aDMY(e.fecha), e.horaIni, e.horaFin, e.tipo, nom('proyectos', e.proyecto), e.lugar, e.nota, e.origen]) },
@@ -422,6 +431,9 @@ const LAYOUTS = {
     ej: d => [['Revisión de avance', d(1), '10:00', '11:00', 'Revisión', '', 'Teams', ''], ['Junta de área', d(4), '09:30', '11:00', 'Reunión', '', 'Sala 2', 'Llevar indicadores']] },
   recordatorios: { t: 'Recordatorios', cols: [['Recordatorio', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Repeticion', 0, 'Vacío, Diario, Semanal, Mensual o Anual']],
     ej: d => [['Enviar reporte semanal', d(2), '17:00', 'Semanal'], ['Renovar licencia de software', d(20), '10:00', '']] },
+  noticias: { t: 'Noticias e investigación', cols: [['Titulo', 1, 'Texto'], ['Tema', 0, 'Seguridad, IA, Power Platform, Desarrollo web u otro'], ['Tipo', 0, 'Noticia o Investigacion'], ['Relevancia', 0, 'Alta, Media o Baja'],
+    ['Resumen', 0, 'Texto'], ['Puntos', 0, 'Puntos clave separados por |'], ['Fuentes', 0, 'Direcciones https separadas por espacio'], ['Etiquetas', 0, 'Separadas por coma'], ['Consulta', 0, 'Palabras clave de la búsqueda'], ['Fecha', 0, 'dd/mm/aaaa']],
+    ej: d => [['Actualización de seguridad del navegador', 'Seguridad', 'Noticia', 'Alta', 'Resumen de la noticia.', 'Actualizar el navegador | Reiniciar', 'https://example.com/aviso', 'navegador, parche', 'vulnerabilidad navegador', d(0)]] },
   notas: { t: 'Notas', cols: [['Titulo', 0, 'Texto (título o texto es obligatorio)'], ['Texto', 0, 'Contenido de la nota'], ['Proyecto', 0, 'Nombre de un proyecto existente; vacío = sin clasificar'], ['Etiquetas', 0, 'Separadas por coma']],
     ej: () => [['Ideas para la junta', 'Proponer tablero único de pendientes', '', 'junta, ideas'], ['Pendiente con proveedor', 'Enviar cotización antes del viernes', '', '']] },
   enlaces: { t: 'Accesos directos', cols: [['Nombre', 1, 'Texto'], ['URL', 1, 'Dirección http(s). No se repite.'], ['Carpeta', 0, 'Nombre de carpeta; si no existe, se crea'], ['Descripcion', 0, 'Texto'], ['Favorito', 0, 'SI o NO'], ['Tags', 0, 'Etiquetas separadas por ;']],
@@ -499,6 +511,19 @@ Object.assign(Datos, {
       lista.push({ texto, fecha, hora: parseHora(celda(f, col('hora'))), repetir: REP[norm(celda(f, col('repeticion', 'repetir')))] || '', hecho: false, avisado: '' });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.recordatorios.push({ id: uid(), ...x })) };
+  },
+  leer_noticias(filas) {
+    const col = columnas(filas[0] || []), iT = col('titulo'); if (iT < 0) return { n: 0, omitidas: filas.length };
+    const lista = []; let omitidas = 0;
+    for (const f of filas.slice(1)) {
+      const fe = parseFecha(celda(f, col('fecha')));
+      const n = Noticias.validar({ formato: 'nova-noticia', titulo: celda(f, iT), tema: celda(f, col('tema')), tipo: celda(f, col('tipo')), relevancia: celda(f, col('relevancia')), resumen: celda(f, col('resumen')),
+        puntos: celda(f, col('puntos')).split('|'), fuentes: celda(f, col('fuentes', 'urls')).split(/\s+/).filter(Boolean).map(url => ({ url, medio: (url.match(/^https?:\/\/([^/]+)/i) || [])[1] || '' })),
+        etiquetas: celda(f, col('etiquetas')), consulta: celda(f, col('consulta')), fecha: fe ? fe + 'T09:00' : '' });
+      if (!n || S.noticias.some(x => norm(x.titulo) === norm(n.titulo)) || lista.some(x => norm(x.titulo) === norm(n.titulo))) { omitidas++; continue; }
+      lista.push(n);
+    }
+    return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.noticias.push({ id: uid(), archivo: '', sha: '', recibida: ahoraTxt(), ...x })) };
   },
   leer_notas(filas) {
     const col = columnas(filas[0] || []), iT = col('titulo'), iX = col('texto', 'contenido', 'nota'); if (iT < 0 && iX < 0) return { n: 0, omitidas: filas.length };

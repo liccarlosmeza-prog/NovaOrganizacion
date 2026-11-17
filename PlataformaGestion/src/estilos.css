@@ -238,6 +238,27 @@ table.lista{width:100%;border-collapse:collapse}
 .aviso{background:var(--tx);color:var(--bg);padding:9px 14px;border-radius:7px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:360px}
 .aviso.err{background:var(--bad);color:#fff}
 
+/* Noticias: lista (agrupada por día) + lectura */
+.nw2{display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);background:var(--sup);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;height:calc(100vh / var(--z) - 190px);height:calc(100dvh / var(--z) - 190px);min-height:420px}
+.nw2 .izq{border-right:1px solid var(--bd);overflow:auto}
+.nw2 .gr{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);padding:10px 14px 6px;background:var(--bg);border-bottom:1px solid var(--bd)}
+.nw2 .it{display:grid;grid-template-columns:8px minmax(0,1fr);gap:10px;padding:10px 14px;border-bottom:1px solid var(--bd);cursor:pointer}
+.nw2 .it:hover{background:var(--hover)}.nw2 .it.on{background:var(--ac-s)}
+.nw2 .it .pt{width:8px;height:8px;border-radius:50%;margin-top:6px}
+.nw2 .it b{display:block;font-weight:600;line-height:1.3}.nw2 .it.leida b{font-weight:400;color:var(--mut)}
+.nw2 .it span{display:block;font-size:12px;color:var(--mut);margin-top:3px}
+.nw2 .der{overflow:auto;padding:18px 26px;min-width:0}
+.nw2 h2{font-size:21px;line-height:1.3;margin:10px 0 8px;overflow-wrap:anywhere}
+.nw2 .meta{font-size:12.5px;color:var(--mut);display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center}
+.nw2 .acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.nw2 .res{font-size:15px;line-height:1.6;margin:14px 0;white-space:pre-line;overflow-wrap:anywhere}
+.nw2 ul.pt2{margin:0 0 14px 18px;line-height:1.6;overflow-wrap:anywhere}
+.nw2 .fu{border-top:1px solid var(--bd);padding-top:10px;margin-top:6px}.nw2 .fu a{display:block;padding:5px 0;font-size:13.5px;overflow-wrap:anywhere}
+.chip{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:10px;background:var(--hover);color:var(--mut)}
+.chip.rel-alta{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}.chip.rel-media{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.prel{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle;flex:none}
+@media (max-width:820px){ .nw2{grid-template-columns:1fr;height:auto} .nw2 .izq{border-right:0;border-bottom:1px solid var(--bd);max-height:340px} .nw2 .der{padding:14px} }
+
 /* Selector de días dentro del título de un bloque de Inicio */
 .fil.peq{margin-left:8px;text-transform:none;letter-spacing:0}
 .fil.peq button{padding:1px 7px;font-size:11.5px;height:auto}

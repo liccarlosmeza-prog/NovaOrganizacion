@@ -104,6 +104,7 @@ NovaOrganizacion/
         ├── 04-notas-accesos.js       Notas, Accesos directos, Cumpleaños, Frases
         ├── 05-ajustes-datos.js       Ajustes, exportar/importar, respaldo, carga masiva, saneamiento
         ├── 055-sincronizacion.js     Sincronización cifrada con un repositorio privado de GitHub
+        ├── 056-noticias.js           Noticias e investigación desde nova-datos (noticias/*.json)
         ├── 057-lector-fotos.js       Lector de fotos (Tesseract.js incrustado) e interpretación de agendas
         ├── 058-papelera.js           Papelera de reciclaje (7 días)
         ├── 059-cronogramas.js        Cronogramas en PDF (pdf.js incrustado) y «Nuevo semestre»
