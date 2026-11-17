@@ -84,12 +84,12 @@ const Papelera = {
     guardar(); return '';
   },
   /** Borra definitivamente una o varias entradas, con sus imágenes si ya nadie más las usa. */
-  async borrar(ids) {
+  async borrar(ids, auto = false) {
     const fuera = S.papelera.filter(e => ids.includes(e.id)); if (!fuera.length) return;
     S.papelera = S.papelera.filter(e => !ids.includes(e.id));
     const usadas = this._imagenes(S), libres = [...this._imagenes({ papelera: fuera })].filter(i => !usadas.has(i));
     for (const i of libres) await Img.quitar(i);
-    guardar();
+    guardar(auto);
   },
   /** Identificadores de imagen a los que hace referencia un objeto (recorre todo). */
   _imagenes(raiz) {
@@ -97,7 +97,7 @@ const Papelera = {
     ver(raiz); return r;
   },
   /** Se ejecuta al abrir la plataforma y cada hora: borra lo que ya cumplió 7 días. */
-  async purgar() { const v = S.papelera.filter(e => Date.now() >= this.vence(e)).map(e => e.id); if (v.length) { await this.borrar(v); if (App.vista === 'papelera') App.pintar(); } return v.length; },
+  async purgar() { const v = S.papelera.filter(e => Date.now() >= this.vence(e)).map(e => e.id); if (v.length) { await this.borrar(v, true); if (App.vista === 'papelera') App.pintar(); } return v.length; },
 
   /* ---------- Pantalla ---------- */
   rest(eid) { const er = this.restaurar(eid); if (er) return toast(er, 'err'); App.pintar(); toast('Restaurado'); },

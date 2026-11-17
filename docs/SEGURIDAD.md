@@ -474,3 +474,21 @@ Sin hallazgos críticos, altos ni medios.
 | Fecha | Cambio | Validación automática | Pasada adversarial |
 |---|---|---|---|
 | 2026-11-17 | v0.12 — ámbitos en todas las pantallas, Trabajo por omisión, ámbitos sólo desde Ajustes | APTO | Sin ejecución de código; 0 conexiones externas |
+
+## 20. Sincronización: imagen de fondo y cambios automáticos (v0.12.1)
+
+**Falla reportada:** al cambiar la imagen de fondo en la computadora y abrir después la tableta o el celular, aparecía «Conflicto de sincronización» y el fondo nuevo no llegaba.
+
+**Causa (reproducida con `pruebas/fondo-sync.js`):** al abrir, la plataforma guarda cambios automáticos antes de sincronizar (frase del día, aviso de recordatorios vencidos, purga de la papelera). Eso marcaba el equipo como «con cambios locales» y, como GitHub sí había cambiado (el fondo nuevo), se declaraba conflicto. La frase del día lo provocaba además cada mañana.
+
+**Corrección:** `guardar(true)` marca un cambio como automático (`Sync.cambio(auto)` → `cfg.auto`). Si GitHub cambió, se trae primero lo de GitHub y el cambio automático se recalcula; si no cambió, se sube como siempre. Un cambio hecho por el usuario en ambos equipos **sigue** siendo conflicto (no se pierde nada sin preguntar). La imagen sigue viajando cifrada (`img/<id>`), igual que antes.
+
+**Conexiones externas:** sin cambios (sólo `api.github.com`, ya autorizada).
+
+**Riesgos:** ninguno nuevo; no hay entradas nuevas. Un cambio automático puede descartarse si llega una versión más nueva de GitHub, lo cual es intencional (se vuelve a calcular).
+
+**Pruebas:** `node pruebas/fondo-sync.js` (nueva, GitHub simulado: computadora cambia el fondo → tableta abre al día siguiente en Inicio → recibe el fondo sin conflicto y se ve; celular nuevo lo recibe; un cambio real en ambos lados sigue en conflicto). **Correcto**. Regresión: ataque, noticias, papelera, ámbitos y sincronización.
+
+| Fecha | Cambio | Validación automática | Pasada adversarial |
+|---|---|---|---|
+| 2026-11-17 | v0.12.1 — fondo sincronizado sin conflictos falsos | APTO | Sin ejecución de código; 0 conexiones externas |

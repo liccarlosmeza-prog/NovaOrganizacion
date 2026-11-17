@@ -107,7 +107,7 @@ const Sync = {
       const ref = await this._gh('GET', `/git/ref/heads/${encodeURIComponent(m.rama)}`);
       if (this._sha(ref && ref.object && ref.object.sha) !== m.commit) { this.cfg.sucio = true; return false; }
       await this._gh('PATCH', `/git/refs/heads/${encodeURIComponent(m.rama)}`, { sha: c.sha, force: true });
-      this.cfg.commit = c.sha; this.cfg.datos = datos; this.cfg.ultima = ahoraTxt();
+      this.cfg.commit = c.sha; this.cfg.datos = datos; this.cfg.auto = false; this.cfg.ultima = ahoraTxt();
       return true;
     } catch (e) { this.cfg.sucio = true; throw e; }
     finally { await this._guardarCfg(); }
@@ -130,15 +130,17 @@ const Sync = {
     for (const id of [...Img.blobs.keys()]) if (!m.imgs[id]) await Img.quitar(id);
     this._silencio = true;
     try { S = fusionar(estado); Boveda.cerrar(); await DB.escribirEstado(S); } finally { this._silencio = false; }   // fusionar() sanea lo recibido
-    this.cfg.commit = m.commit; this.cfg.datos = m.datos; this.cfg.sucio = false; this.cfg.ultima = ahoraTxt(); await this._guardarCfg();
+    this.cfg.commit = m.commit; this.cfg.datos = m.datos; this.cfg.sucio = false; this.cfg.auto = false; this.cfg.ultima = ahoraTxt(); await this._guardarCfg();
     aplicarTema(); if (!$('#modal').classList.contains('on')) App.pintar();
   },
 
   /* ---------- Ciclo automático ---------- */
   /** Se llama en cada guardar(): marca que hay cambios y programa la subida. */
-  cambio() {
+  cambio(auto = false) {
     if (!this.activo() || this._silencio) return;
-    this.cfg.sucio = true; if (!['conflicto', 'trabajando'].includes(this.estado)) { this.estado = 'pendiente'; this._pinta(); }
+    // Un cambio automático no se considera «cambio local»: si GitHub trae algo nuevo, se trae y el cambio se recalcula
+    if (auto) { if (!this.cfg.sucio) this.cfg.auto = true; } else this.cfg.sucio = true;
+    if (!['conflicto', 'trabajando'].includes(this.estado)) { this.estado = 'pendiente'; this._pinta(); }
     clearTimeout(this._tCfg); this._tCfg = setTimeout(() => this._guardarCfg().catch(() => {}), 1500);
     clearTimeout(this._t); this._t = setTimeout(() => this.sincronizar(), 90 * 1000);
   },
@@ -149,7 +151,7 @@ const Sync = {
     try {
       const m = await this._remoto(), cambioRemoto = this._cambioDatos(m);
       if (cambioRemoto && this.cfg.sucio) { this._pon('conflicto', 'Hay cambios en este equipo y también en GitHub.'); return; }
-      if (cambioRemoto) await this.traer(); else if (this.cfg.sucio || !m.datos) await this.subir(false);
+      if (cambioRemoto) await this.traer(); else if (this.cfg.sucio || this.cfg.auto || !m.datos) await this.subir(false);
       this._pon(this.cfg.sucio ? 'pendiente' : 'aldia'); if (manual) toast('Sincronización completa');
     } catch (e) {
       if (e.conflicto) this._pon('conflicto', 'Hay cambios en este equipo y también en GitHub.');

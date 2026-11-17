@@ -91,7 +91,7 @@ function elegirFrase(evitar) {
   if (!pend.length) { S.frases.forEach(f => { f.vista = ''; }); pend = S.frases.slice(); }   // nuevo ciclo
   if (pend.length > 1) pend = pend.filter(f => f.id !== evitar);     // no repetir la de ayer al reiniciar
   const f = pend[azar(pend.length)];
-  S.ajustes.fraseHoy = { fecha: hoyISO(), id: f.id }; guardar();
+  S.ajustes.fraseHoy = { fecha: hoyISO(), id: f.id }; guardar(true);   // automático: no compite con otros equipos
   return f;
 }
 Vistas.inicio = () => {

@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.12
+# Nova Organización — prueba v0.12.1
 
 > *Evolución sin límites.*
 
@@ -58,6 +58,9 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.12.1
+- La imagen de fondo (y cualquier ajuste) que cambias en un equipo llega a los demás sin «Conflicto de sincronización». Antes, la frase del día y otros cambios automáticos al abrir la tableta o el celular provocaban un conflicto falso.
 
 ### Novedades de la v0.12 (ámbitos en todas las pantallas)
 - Barra **Todo · Trabajo · Escuela · Personal · Otro** en Inicio, Proyectos, Actividades, Agenda, Recordatorios, Notas, Accesos y Noticias. Es un solo filtro para toda la plataforma y se recuerda.

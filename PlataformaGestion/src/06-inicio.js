@@ -92,7 +92,7 @@ async function iniciar() {
   // Sincronización: al abrir, cada 5 minutos y al ocultar la pestaña con cambios pendientes
   if (Sync.activo()) Sync.sincronizar();
   setInterval(() => { if (Sync.activo() && !document.hidden) Sync.sincronizar(); }, 5 * 60 * 1000);
-  document.addEventListener('visibilitychange', () => { if (document.hidden && Sync.activo() && Sync.cfg.sucio) Sync.sincronizar(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && Sync.activo() && (Sync.cfg.sucio || Sync.cfg.auto)) Sync.sincronizar(); });
   // Si la plataforma queda abierta de un día a otro, se actualiza sola
   let dia = hoyISO(); setInterval(() => { if (hoyISO() !== dia) { dia = hoyISO(); if (!$('#modal').classList.contains('on') && App.vista !== 'notas') App.pintar(); } }, 60000);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});   // pide al navegador no borrar los datos

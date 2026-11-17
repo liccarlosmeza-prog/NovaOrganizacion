@@ -325,7 +325,7 @@ const Rec = {
         if ('Notification' in window && Notification.permission === 'granted') { try { new Notification(S.ajustes.nombre, { body: r.texto }); } catch (e) { /* sin soporte */ } }
       }
     }
-    if (cambio) { guardar(); if (['inicio', 'recordatorios'].includes(App.vista) && !$('#modal').classList.contains('on')) App.pintar(); }
+    if (cambio) { guardar(true); if (['inicio', 'recordatorios'].includes(App.vista) && !$('#modal').classList.contains('on')) App.pintar(); }
   },
   async permiso() {
     if (!('Notification' in window)) return toast('Este navegador no admite notificaciones', 'err');

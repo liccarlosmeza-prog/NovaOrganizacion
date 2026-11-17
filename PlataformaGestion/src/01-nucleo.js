@@ -172,10 +172,14 @@ function estadoVacio() {
 let S = estadoVacio();
 
 let _tGuardar = null;
-/** Guarda el estado (con una pequeña espera para agrupar cambios seguidos). */
-function guardar() {
+/**
+ * Guarda el estado (con una pequeña espera para agrupar cambios seguidos).
+ * auto = true para cambios que la plataforma hace sola al abrir (frase del día, avisos, purga de la papelera):
+ * no compiten con los cambios hechos en otro equipo (ver Sync.cambio).
+ */
+function guardar(auto = false) {
   const pie = $('.lat .pie'); if (pie) { pie.classList.add('pend'); pie.lastChild.textContent = 'Guardando…'; }
-  Sync.cambio();
+  Sync.cambio(auto);
   clearTimeout(_tGuardar);
   _tGuardar = setTimeout(async () => {
     try { await DB.escribirEstado(S); Sync._pinta(); }
