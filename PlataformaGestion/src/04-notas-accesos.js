@@ -11,7 +11,7 @@ const Notas = {
   priv: () => UI.notas.f === 'priv',
   visibles() {
     const f = UI.notas.f, q = UI.notas.q.toLowerCase();
-    let l = this.priv() ? (Boveda.abierta() ? Boveda.notas.slice() : []) : S.notas.filter(n => f === 'todas' ? true : f === 'sin' ? !n.proyecto : n.proyecto === f);
+    let l = this.priv() ? (Boveda.abierta() ? Boveda.notas.slice() : []) : S.notas.filter(n => (f === 'todas' ? true : f === 'sin' ? !n.proyecto : n.proyecto === f) && Amb.ok(Amb.de('notas', n)));
     if (q) l = l.filter(n => ((n.titulo || '') + ' ' + (n.texto || '') + ' ' + (n.etiquetas || '')).toLowerCase().includes(q));
     return l.sort((a, b) => (!!b.fijada - !!a.fijada) || (b.actualizado || '').localeCompare(a.actualizado || ''));
   },
@@ -20,7 +20,7 @@ const Notas = {
     const n = { id: uid(), titulo: '', texto: '', creado: ahoraTxt(), actualizado: ahoraTxt() };
     if (proyecto) UI.notas.f = proyecto;
     if (this.priv()) { if (!Boveda.abierta()) return toast('Primero desbloquea tus notas privadas', 'err'); await Boveda.guardarNota(n); }
-    else poner('notas', { ...n, proyecto: proyecto || (['todas', 'sin'].includes(UI.notas.f) ? '' : UI.notas.f), etiquetas: '', fijada: false });
+    else poner('notas', { ...n, proyecto: proyecto || (['todas', 'sin'].includes(UI.notas.f) ? '' : UI.notas.f), ambito: Amb.nuevo(), etiquetas: '', fijada: false });
     UI.notas.id = n.id; UI.notas.q = '';
     if (App.vista !== 'notas') App.ir('notas'); else App.pintar();
     const t = $('#nTitulo'); if (t) t.focus();
@@ -103,7 +103,7 @@ const Notas = {
 
 Vistas.notas = () => {
   const priv = Notas.priv();
-  const filtros = `<div class="barra">${filtro('notas', 'f', [['todas', 'Todas'], ['sin', 'Sin clasificar'], ['priv', 'Privadas']])}
+  const filtros = `<div class="barra">${priv ? '' : Amb.barra()}${filtro('notas', 'f', [['todas', 'Todas'], ['sin', 'Sin clasificar'], ['priv', 'Privadas']])}
     <select onchange="UI.notas.f=this.value||'todas';UI.notas.id=null;App.pintar()"><option value="">Por proyecto…</option>${S.proyectos.map(p => `<option value="${p.id}" ${UI.notas.f === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
     ${priv && Boveda.abierta() ? '<button class="btn" onclick="Notas.bloquear()">Bloquear ahora</button>' : ''}</div>`;
   const encabezado = cab('Notas', `${S.notas.length} notas · ${S.notas.filter(n => !n.proyecto).length} sin clasificar · ${S.notasPriv.length} privadas`, (priv ? '' : btnCarga('notas')) + ((!priv || Boveda.abierta()) ? (Ocr.disponible() ? '<button class="btn" onclick="Notas.desdeFoto()">Nota desde foto</button>' : '') + '<button class="btn pri" onclick="Notas.nueva()">+ Nota</button>' : ''));
@@ -124,6 +124,7 @@ Vistas.notas = () => {
   const n = Notas.actual();
   const editor = !n ? vacio('Sin notas aquí', 'Crea una con el botón “+ Nota”. Puedes escribirla sin clasificar y asignarla a un proyecto después.') : `
     <div class="hd">${priv ? '<span class="et ac">Privada · cifrada</span>' : `<select onchange="Notas.clasificar(this.value)" aria-label="Proyecto"><option value="">Sin clasificar</option>${S.proyectos.map(p => `<option value="${p.id}" ${n.proyecto === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
+      <select onchange="Notas.cambio('ambito',this.value);App.pintar()" aria-label="Ámbito"><option value="">Ámbito: ${n.proyecto ? 'del proyecto' : 'por omisión'} (${esc(Amb.de('notas', { ...n, ambito: '' }))})</option>${ambitos().map(a => `<option ${n.ambito === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select>
       <input type="text" value="${esc(n.etiquetas || '')}" placeholder="Etiquetas" style="width:150px" oninput="Notas.cambio('etiquetas',this.value)">`}
       <span class="esp"></span><span class="d">${esc(fFecha((n.actualizado || '').slice(0, 10)))} ${esc((n.actualizado || '').slice(11))}</span>
       ${priv ? '<button class="lnk gris" onclick="Notas.quitarPrivacidad()">Quitar privacidad</button>' : `<button class="lnk gris" onclick="Notas.fijar()">${n.fijada ? 'Quitar fijado' : 'Fijar'}</button><button class="lnk gris" onclick="Notas.hacerPrivada()">Hacer privada</button>`}
@@ -145,12 +146,12 @@ const Acc = {
   host(u) { try { return new URL(urlSegura(u)).hostname.replace(/^www\./, ''); } catch (e) { return ''; } },
   campos: () => [
     { k: 'nombre', label: 'Nombre', req: true }, { k: 'url', label: 'Dirección (URL)', req: true, ph: 'https://…' },
-    { k: 'carpeta', label: 'Carpeta', tipo: 'select', opciones: [['', 'Sin carpeta'], ...S.carpetas.map(c => [c.id, c.nombre])], medio: true },
+    { k: 'carpeta', label: 'Carpeta', tipo: 'select', opciones: [['', 'Sin carpeta'], ...S.carpetas.map(c => [c.id, c.nombre])], medio: true }, Amb.campo(),
     { k: 'tags', label: 'Etiquetas', medio: true, ph: 'separadas por coma' }, { k: 'desc', label: 'Descripción' }, { k: 'fav', label: 'Favorito', tipo: 'check', texto: 'Mostrar en Inicio' }
   ],
   editar(id) {
     const l = id ? por('enlaces', id) : null;
-    Form.abrir({ titulo: l ? 'Editar acceso directo' : 'Nuevo acceso directo', campos: this.campos(), valores: l || { carpeta: S.carpetas.some(c => c.id === UI.acc.f) ? UI.acc.f : '' },
+    Form.abrir({ titulo: l ? 'Editar acceso directo' : 'Nuevo acceso directo', campos: this.campos(), valores: l || { carpeta: S.carpetas.some(c => c.id === UI.acc.f) ? UI.acc.f : '', ambito: Amb.nuevo() },
       guardar: v => { const u = urlSegura(v.url); if (!u) return 'La dirección no es válida (sólo http, https o mailto)'; poner('enlaces', { id: l ? l.id : uid(), ...v, url: u }); },
       eliminar: l ? () => quitar('enlaces', l.id) : null });
   },
@@ -175,12 +176,12 @@ const Acc = {
 };
 Vistas.accesos = () => {
   const f = UI.acc.f, q = UI.acc.q.toLowerCase();
-  let l = S.enlaces.filter(x => f === 'todos' ? true : f === 'fav' ? x.fav : f === 'sin' ? !x.carpeta : x.carpeta === f);
+  let l = S.enlaces.filter(x => (f === 'todos' ? true : f === 'fav' ? x.fav : f === 'sin' ? !x.carpeta : x.carpeta === f) && Amb.ok(Amb.de('enlaces', x)));
   if (q) l = l.filter(x => (x.nombre + ' ' + x.url + ' ' + (x.tags || '') + ' ' + (x.desc || '')).toLowerCase().includes(q));
   l.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const n = UI.acc.sel.size, carp = S.carpetas.find(c => c.id === f);
   return `${cab('Accesos directos', `${S.enlaces.length} accesos · ${S.enlaces.filter(x => x.fav).length} favoritos`, btnCarga('enlaces') + '<button class="btn" onclick="Acc.carpeta()">+ Carpeta</button><button class="btn pri" onclick="Acc.editar()">+ Acceso</button>')}
-  <div class="barra"><input type="search" id="aBuscar" placeholder="Buscar por nombre, dirección o etiqueta…" style="width:300px" value="${esc(UI.acc.q)}" oninput="buscar('acc',this.value,'aBuscar')">
+  <div class="barra">${Amb.barra()}<input type="search" id="aBuscar" placeholder="Buscar por nombre, dirección o etiqueta…" style="width:300px" value="${esc(UI.acc.q)}" oninput="buscar('acc',this.value,'aBuscar')">
     <select onchange="UI.acc.f=this.value;App.pintar()"><option value="todos">Todas las carpetas</option><option value="fav" ${f === 'fav' ? 'selected' : ''}>★ Favoritos</option><option value="sin" ${f === 'sin' ? 'selected' : ''}>Sin carpeta</option>
       ${S.carpetas.map(c => `<option value="${c.id}" ${f === c.id ? 'selected' : ''}>${esc(c.nombre)} (${S.enlaces.filter(x => x.carpeta === c.id).length})</option>`).join('')}</select>
     ${carp ? `<button class="lnk gris" onclick="Acc.carpeta('${carp.id}')">Editar carpeta</button>` : ''}<span class="esp"></span>

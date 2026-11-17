@@ -91,6 +91,12 @@ const HTML = 'file://' + require('path').resolve(__dirname, '..', 'PlataformaGes
     location.hash = '#/inicio'; App.ruta();
     return new Promise(res => setTimeout(() => res({ ejecuto: window.__nt, imgs: enLectura + document.querySelectorAll('#pral img[src="x"], #pral svg[onload]').length, hrefs: hrefs.join(' '), sinHttpNiJs: hrefs.every(h => /^https:\/\//.test(h)),
       relevanciaValida: ['alta', 'media', 'baja'].includes(n.relevancia), tipoValido: n.tipo === 'noticia', prototipo: ({}).contaminado === 1, rutaMala: malos.noticias[0].archivo, borradosPermitidos: malos.porBorrar.length }), 300)); });
+  // A9: ámbito manipulado en el filtro global y en un registro (respaldo o sincronización alterados)
+  R.A9_ambito = await p.evaluate(() => { window.__am = 0; Modal.cerrar(); S.ajustes.inicioFiltro.amb = "');window.__am=1;('"; S.notas.push({ id: uid(), titulo: 'n', texto: '', proyecto: '', ambito: '<img src=x onerror=window.__am=2>', creado: '', actualizado: '' });
+    const sano = sanear(JSON.parse(JSON.stringify(S))).notas.pop().ambito;
+    for (const v of ['inicio', 'agenda', 'actividades', 'notas', 'noticias']) { location.hash = '#/' + v; App.ruta(); }
+    document.querySelectorAll('.fil.amb button').forEach(b => b.click()); S.notas.pop(); S.ajustes.inicioFiltro.amb = '';
+    return new Promise(res => setTimeout(() => res({ ejecuto: window.__am, filtroInvalidoIgnorado: Amb.f() === '', ambitoSaneado: sano === '', imgs: document.querySelectorAll('#pral img[src="x"]').length }), 300)); });
   // A6: nova_ui manipulado
   R.A6_ui = await p.evaluate(() => { localStorage.setItem('nova_ui', JSON.stringify({ acc: { sel: { a: 1 }, f: 5 }, ag: { ver: 'x' }, act: { f: "x';window.__ui=1;'" }, __proto__: { x: 1 } })); return true; });
   await p.reload(); await p.waitForTimeout(800); R.A6_tras = await p.evaluate(() => ({ cab: !!document.querySelector('.cab'), ui: window.__ui, selEsSet: UI.acc.sel instanceof Set })); 

@@ -89,6 +89,7 @@ const Noticias = {
 
   /* ---------- Acciones ---------- */
   abrir(id) { const n = por('noticias', id); if (!n) return; UI.not.id = id; if (!n.leida) { n.leida = true; guardar(); } App.pintar(); },
+  ambito(id, v) { const n = por('noticias', id); if (!n) return; n.ambito = ambitos().includes(v) ? v : ''; guardar(); App.pintar(); },
   leida(id) { const n = por('noticias', id); if (!n) return; n.leida = !n.leida; guardar(); App.pintar(); },
   guardada(id) { const n = por('noticias', id); if (!n) return; n.guardada = !n.guardada; guardar(); App.pintar(); toast(n.guardada ? 'Guardada para después' : 'Quitada de guardadas'); },
   /** Eliminar: como en Notas, confirma, va a la papelera 7 días y queda abierta la siguiente. */
@@ -174,7 +175,7 @@ Al terminar dime cuántos archivos creaste.`;
   /* ---------- Lista ---------- */
   visibles() {
     const u = UI.not, l = S.noticias.filter(n => (u.f === 'todas' || (u.f === 'guardadas' ? n.guardada : (!n.leida || n.id === u.id)))
-      && (!u.tema || n.tema === u.tema) && (!u.tipo || n.tipo === u.tipo) && coincide(u.q, n.titulo, n.resumen, n.etiquetas, n.consulta, n.tema));
+      && Amb.ok(Amb.de('noticias', n)) && (!u.tema || n.tema === u.tema) && (!u.tipo || n.tipo === u.tipo) && coincide(u.q, n.titulo, n.resumen, n.etiquetas, n.consulta, n.tema));
     return l.sort((a, b) => b.fecha.localeCompare(a.fecha));
   }
 };
@@ -188,7 +189,7 @@ Vistas.noticias = () => {
   const temas = [...new Set([...Noticias.TEMAS, ...S.noticias.map(n => n.tema)])];
   const enc = cab('Noticias e investigación', `${total} elemento(s) · ${sinLeer} sin leer${S.ajustes.noticiasAct ? ' · actualizado ' + esc(fFecha(S.ajustes.noticiasAct.slice(0, 10)) + ' ' + S.ajustes.noticiasAct.slice(11)) : ''}`,
     btnCarga('noticias') + '<button class="btn" onclick="Noticias.importar()">Importar .json</button><button class="btn" onclick="Noticias.instruccion()">Instrucción para Claude</button>' + (Noticias.conectado() ? '<button class="btn pri" onclick="Noticias.actualizar()">Actualizar desde nova-datos</button>' : '<button class="btn pri" onclick="UI.aj.tab=\'sync\';App.ir(\'ajustes\')">Conectar nova-datos</button>'));
-  const barra = `<div class="barra"><div class="fil">${[['sinleer', 'Sin leer', sinLeer], ['todas', 'Todas', total], ['guardadas', 'Guardadas', guard]].map(([k, t, n]) => `<button class="${u.f === k ? 'on' : ''}" onclick="UI.not.f='${k}';App.pintar()">${t} <span class="d">${n}</span></button>`).join('')}</div>
+  const barra = `<div class="barra">${Amb.barra()}</div><div class="barra"><div class="fil">${[['sinleer', 'Sin leer', sinLeer], ['todas', 'Todas', total], ['guardadas', 'Guardadas', guard]].map(([k, t, n]) => `<button class="${u.f === k ? 'on' : ''}" onclick="UI.not.f='${k}';App.pintar()">${t} <span class="d">${n}</span></button>`).join('')}</div>
     <select onchange="UI.not.tema=this.value;App.pintar()" aria-label="Tema"><option value="">Todos los temas</option>${temas.map(t => `<option value="${esc(t)}" ${u.tema === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
     <select onchange="UI.not.tipo=this.value;App.pintar()" aria-label="Tipo"><option value="">Noticias e investigaciones</option><option value="noticia" ${u.tipo === 'noticia' ? 'selected' : ''}>Noticias</option><option value="investigacion" ${u.tipo === 'investigacion' ? 'selected' : ''}>Investigaciones</option></select>
     ${campoBuscar('not', 'nBuscar', 'Buscar…')}</div>`;
@@ -205,7 +206,8 @@ Vistas.noticias = () => {
   }
   const n = por('noticias', u.id), fu = n ? Noticias.fuentes(n) : [];
   const lectura = !n ? vacio('Nada que mostrar', u.f === 'sinleer' ? 'Ya leíste todo. Revisa «Todas» o «Guardadas».' : 'No hay noticias con estos filtros.') : `
-    <div class="meta"><span class="chip rel-${esc(n.relevancia)}">Relevancia ${esc(n.relevancia)}</span><span>${esc(n.tema)} · ${n.tipo === 'investigacion' ? 'Investigación' : 'Noticia'}</span><span>${esc(fFecha(n.fecha.slice(0, 10)))} ${esc(n.fecha.slice(11))}</span></div>
+    <div class="meta"><span class="chip rel-${esc(n.relevancia)}">Relevancia ${esc(n.relevancia)}</span><span>${esc(n.tema)} · ${n.tipo === 'investigacion' ? 'Investigación' : 'Noticia'}</span><span>${esc(fFecha(n.fecha.slice(0, 10)))} ${esc(n.fecha.slice(11))}</span><span class="esp"></span>
+      <select onchange="Noticias.ambito('${n.id}',this.value)" aria-label="Ámbito">${ambitos().map(a => `<option ${Amb.de('noticias', n) === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select></div>
     <div class="acc"><button class="btn" onclick="Noticias.leida('${n.id}')">${n.leida ? 'Marcar no leída' : '✓ Marcar leída'}</button><button class="btn" onclick="Noticias.guardada('${n.id}')">${n.guardada ? '★ Guardada' : '☆ Guardar'}</button>
       <button class="btn" onclick="Noticias.crearNota('${n.id}')">Crear nota</button><button class="btn" onclick="Noticias.crearActividad('${n.id}')">Crear actividad</button><button class="btn peligro" onclick="Noticias.borrar('${n.id}')">Eliminar</button></div>
     <h2>${esc(n.titulo)}</h2>

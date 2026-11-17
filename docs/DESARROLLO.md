@@ -203,6 +203,7 @@ Las **imágenes** se guardan en un almacén aparte de IndexedDB (`img`), identif
   - Clave y ciclo salen del nombre del archivo (`IH716_2026B__…`); la materia se sugiere si ya existe con esa clave y ciclo.
   - Borrador editable (materia nueva con su clave como nombre —se renombra después en Materias—, casilla, actividad, tipo, valor, unidad, inicio, entrega); las actividades sin fecha quedan desmarcadas. Opción para marcar como «Enviada» lo ya vencido; lo demás entra «Pendiente».
   - Al guardar se valida como la carga masiva y se omiten repetidos.
+- **Ámbitos** (v0.12): `Amb` en `02-app-proyectos.js` — `Amb.de(lista, registro)` da el ámbito efectivo (propio → del proyecto → por tipo → Trabajo), `Amb.ok()` aplica el filtro global, `Amb.barra()` lo dibuja. Catálogo: `AMBITOS_BASE` + `S.ambitos` (Ajustes → Catálogos).
 - **Inicio → Entregas escolares** (v0.10.3): de hoy a 7/15/30 días; las vencidas sin marcar se resumen aparte (`Esc.enviarVencidas()`).
 - **Nuevo semestre**: manda todas las materias con sus actividades a la papelera (restaurables 7 días) después de ofrecer el respaldo.
 - Campos nuevos: materia `clave`; actividad `unidad`. Tipos nuevos: Presentación y Glosario. Sin hora de entrega: todas las entregas son hasta el final del día.

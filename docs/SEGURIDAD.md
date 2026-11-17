@@ -443,3 +443,34 @@ Todas las peticiones siguen en el módulo de sincronización (`Sync._gh`); `056-
 | Fecha | Cambio | Validación automática | Pasada adversarial |
 |---|---|---|---|
 | 2026-11-17 | v0.11 — Noticias e investigación desde nova-datos, tarjeta de Inicio, sincronización que respeta archivos nuevos | APTO | Sin ejecución de código; 0 conexiones fuera de api.github.com |
+
+## 19. Revisión de ámbitos (macro categorías) en todas las pantallas (v0.12)
+
+Revisión manual (criterios de `web-security-review`) sobre `src/01-nucleo.js`, `src/02-app-proyectos.js`, `src/03-escuela-agenda.js`, `src/04-notas-accesos.js`, `src/05-ajustes-datos.js`, `src/056-noticias.js` y `src/058-papelera.js`.
+
+**Conexiones externas:** sin cambios. No aparece ninguna dirección nueva; la CSP no cambió; 0 peticiones externas en las pruebas.
+
+### Cambios
+- Filtro global por ámbito (Todo · Trabajo · Escuela · Personal · Otro · los creados en Ajustes) en Inicio, Proyectos, Actividades, Agenda (mes, 30 días y eventos), Recordatorios, Notas, Accesos y Noticias. Se recuerda entre pantallas y sesiones.
+- Campo Ámbito en actividades, eventos, recordatorios, notas, accesos y noticias. **Trabajo por omisión** en lo nuevo y en lo anterior sin ámbito. Excepciones: Escuela (materias y entregas), Personal (cumpleaños), y lo ligado a un proyecto hereda su ámbito.
+- Ámbitos nuevos **sólo** en Ajustes → Catálogos (máx. 12). Los formularios y la carga masiva sólo eligen; una carga con un ámbito desconocido no lo crea (queda Trabajo o el del proyecto). Eliminar manda el ámbito a la papelera; sus registros cuentan como Trabajo hasta reclasificarlos o restaurarlo.
+- Columna opcional `Ambito` en la carga masiva y en la exportación.
+
+### Riesgos y controles
+| Riesgo | Control |
+|---|---|
+| Nombre de ámbito con HTML o comillas (se usa en botones y listas) | Formato cerrado `AMB_NOMBRE` (letras, números, espacio, `.`, `-`, `&`; 2–30) al crear, al renombrar y en `sanear()`; además se escapa con `esc()`. Probado: `<b>x</b>` rechazado; A9 sin ejecución |
+| Catálogo inflado o duplicado (respaldo o sincronización alterados) | `sanear()`: máx. 12, sin repetir (ni con los base, sin importar mayúsculas) |
+| Filtro guardado con un valor manipulado | `Amb.f()` sólo acepta un ámbito existente; si no, «Todo». Probado (A9) |
+| Ámbito de un registro con un valor arbitrario | Se acepta sólo con el formato válido; si su ámbito no existe, cuenta como Trabajo |
+
+### Hallazgos
+Sin hallazgos críticos, altos ni medios.
+
+### Pruebas
+- `node pruebas/ambitos.js` (nueva): filtro en todas las pantallas, Trabajo por omisión (formularios y alta rápida), filtro recordado al recargar, crear/validar/renombrar/eliminar/restaurar ámbitos, máximo 12, carga masiva sin crear ámbitos, exportación y saneamiento. **Correcto**.
+- `pruebas/ataque.js` caso **A9**: sin ejecución. `noticias.js`, `papelera.js`, `cronogramas.js`: correctas; `sincronizacion.js`: mismos resultados.
+
+| Fecha | Cambio | Validación automática | Pasada adversarial |
+|---|---|---|---|
+| 2026-11-17 | v0.12 — ámbitos en todas las pantallas, Trabajo por omisión, ámbitos sólo desde Ajustes | APTO | Sin ejecución de código; 0 conexiones externas |

@@ -11,7 +11,7 @@
 Antes de entregar o subir cualquier cambio al código de la aplicación:
 
 1. **Construir**: `cd PlataformaGestion && node construir.js`. Ejecuta `seguridad.js`; si reporta "NO APTO", corregir antes de continuar. No desactivar ni relajar reglas para que pase.
-2. **Pasada adversarial**: `node pruebas/ataque.js` (Playwright); si el cambio toca el lector de fotos, también `node pruebas/lector-fotos.js`; si toca Escuela o cronogramas, `node pruebas/cronogramas.js`; si toca Noticias o la sincronización, `node pruebas/noticias.js` y `node pruebas/sincronizacion.js`. Todos los resultados deben quedar vacíos o en `false`. Si se agregan campos, pantallas o formatos de importación, agregar su caso de ataque.
+2. **Pasada adversarial**: `node pruebas/ataque.js` (Playwright); si el cambio toca el lector de fotos, también `node pruebas/lector-fotos.js`; si toca Escuela o cronogramas, `node pruebas/cronogramas.js`; si toca Noticias o la sincronización, `node pruebas/noticias.js` y `node pruebas/sincronizacion.js`; si toca filtros o ámbitos, `node pruebas/ambitos.js`. Todos los resultados deben quedar vacíos o en `false`. Si se agregan campos, pantallas o formatos de importación, agregar su caso de ataque.
 3. **Revisión manual** con la skill `web-security-review` sobre los archivos modificados (y `power-pages-security-review` cuando el cambio toque Power Pages).
 4. **Reporte**: actualizar `docs/SEGURIDAD.md` con hallazgos, correcciones y recomendaciones. El reporte siempre incluye la sección de **conexiones externas** (qué direcciones aparecen, si se cargan solas y si deben descargarse/empaquetarse o mantenerse).
 5. **Criterio**: hallazgos críticos y de riesgo (altos/medios) se corrigen en la misma entrega. Los opcionales se listan como recomendaciones para que el usuario decida.
@@ -29,6 +29,7 @@ Antes de entregar o subir cualquier cambio al código de la aplicación:
 - Notas privadas: AES-GCM + PBKDF2; no guardar la contraseña ni la clave.
 
 ## Otras convenciones
+- **Ámbitos** (macro categorías): todo registro nuevo con datos debe tener ámbito (`Amb.de()`), respetar el filtro global (`Amb.ok()`) y mostrar `Amb.barra()` en su pantalla. Trabajo por omisión. Los ámbitos nuevos sólo se crean en Ajustes → Catálogos (`S.ambitos`, máx. 12, formato `AMB_NOMBRE`); nunca desde formularios ni cargas.
 - Todo acceso a datos pasa por el objeto `DB` (`01-nucleo.js`).
 - Cada pantalla con datos tiene carga masiva (`LAYOUTS` + `Datos.leer_<clave>`) y plantilla de ejemplo.
 - Los cambios de estatus se registran con `regEstatus()`.

@@ -204,19 +204,19 @@ const Agenda = {
   /** Todo lo que ocurre en un día: eventos, actividades, entregas, cumpleaños y recordatorios. */
   items(iso, todo) {
     const [, m, d] = iso.split('-').map(Number), r = [], ambP = id => (por('proyectos', id) || {}).ambito;
-    for (const e of S.eventos) if (e.fecha === iso) r.push({ clase: 'evento', amb: e.tipo === 'Personal' ? 'Personal' : e.tipo === 'Clase' ? 'Escuela' : (ambP(e.proyecto) || 'Trabajo'), hora: e.horaIni || '', titulo: e.titulo + (e.lugar ? ' · ' + e.lugar : ''), tipo: e.tipo || 'Evento', color: 'var(--ac)', clic: `Agenda.evento('${e.id}')`, peso: 1 });
-    for (const a of S.actividades) if (a.limite === iso && !estFinal(a.estatus)) r.push({ clase: 'actividad', amb: ambAct(a), cat: a.categoria || '', hora: a.hora || '', titulo: a.titulo, tipo: 'Actividad', color: (por('estatus', a.estatus) || {}).color, clic: `Act.editar('${a.id}')`, peso: 1 });
+    for (const e of S.eventos) if (e.fecha === iso) r.push({ clase: 'evento', amb: Amb.de('eventos', e), hora: e.horaIni || '', titulo: e.titulo + (e.lugar ? ' · ' + e.lugar : ''), tipo: e.tipo || 'Evento', color: 'var(--ac)', clic: `Agenda.evento('${e.id}')`, peso: 1 });
+    for (const a of S.actividades) if (a.limite === iso && !estFinal(a.estatus)) r.push({ clase: 'actividad', amb: Amb.de('actividades', a), cat: a.categoria || '', hora: a.hora || '', titulo: a.titulo, tipo: 'Actividad', color: (por('estatus', a.estatus) || {}).color, clic: `Act.editar('${a.id}')`, peso: 1 });
     for (const e of S.escolares) if (e.entrega === iso && e.tipo !== 'Vacaciones') r.push({ clase: 'entrega', amb: 'Escuela', hora: '', titulo: e.titulo, tipo: 'Entrega', color: (por('materias', e.materia) || {}).color, clic: `Esc.editar('${e.id}')`, peso: ['enviada', 'calificada'].includes(e.estatus) ? 0 : 1 });
     for (const c of S.cumples) if (c.dia === d && c.mes === m) r.push({ clase: 'cumple', amb: 'Personal', hora: '', titulo: 'Cumpleaños de ' + c.nombre, tipo: 'Cumpleaños', color: '#db2777', clic: `Cumples.editar('${c.id}')`, peso: 0 });
-    for (const x of S.recordatorios) if (!x.hecho && Rec.ocurre(x, iso)) r.push({ clase: 'recordatorio', amb: '', hora: x.hora || '', titulo: x.texto, tipo: 'Recordatorio', color: 'var(--oro)', clic: `Rec.editar('${x.id}')`, peso: 0 });
+    for (const x of S.recordatorios) if (!x.hecho && Rec.ocurre(x, iso)) r.push({ clase: 'recordatorio', amb: Amb.de('recordatorios', x), hora: x.hora || '', titulo: x.texto, tipo: 'Recordatorio', color: 'var(--oro)', clic: `Rec.editar('${x.id}')`, peso: 0 });
     return r.sort((a, b) => (a.hora || '00:00').localeCompare(b.hora || '00:00'));
   },
   /** Igual que items(), pero respetando las casillas "Mostrar" de la pantalla Agenda. */
-  visibles(iso) { return this.items(iso).filter(x => UI.ag.ver[x.clase] !== false); },
+  visibles(iso) { return this.items(iso).filter(x => UI.ag.ver[x.clase] !== false && Amb.ok(x.amb)); },
   campos: () => [
     { k: 'titulo', label: 'Evento', req: true }, { k: 'fecha', label: 'Fecha', tipo: 'date', req: true, medio: true }, { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: Agenda.TIPOS, medio: true },
     { k: 'horaIni', label: 'Hora de inicio', tipo: 'time', medio: true }, { k: 'horaFin', label: 'Hora de fin', tipo: 'time', medio: true },
-    { k: 'proyecto', label: 'Proyecto relacionado', tipo: 'select', opciones: [['', 'Ninguno'], ...S.proyectos.map(p => [p.id, p.nombre])] }, { k: 'lugar', label: 'Lugar o enlace' }, { k: 'nota', label: 'Notas', tipo: 'textarea', filas: 2 }
+    { k: 'proyecto', label: 'Proyecto relacionado', tipo: 'select', opciones: [['', 'Ninguno'], ...S.proyectos.map(p => [p.id, p.nombre])], medio: true }, Amb.campo('Del proyecto o del tipo (si no, Trabajo)'), { k: 'lugar', label: 'Lugar o enlace' }, { k: 'nota', label: 'Notas', tipo: 'textarea', filas: 2 }
   ],
   _validar: v => (v.horaIni && v.horaFin && v.horaFin < v.horaIni) ? 'La hora de fin no puede ser anterior al inicio' : null,
   /** Asigna un evento a un proyecto. Si hay más eventos con el mismo título sin proyecto, ofrece asignarlos también. */
@@ -239,7 +239,7 @@ const Agenda = {
   borrarSel() { confirmar(`¿Eliminar ${UI.ag.sel.size} evento(s) seleccionados? Irán a la papelera durante 7 días.`, () => { const n = UI.ag.sel.size; [...UI.ag.sel].forEach(id => Papelera.mover('eventos', id)); UI.ag.sel.clear(); App.pintar(); toast(`${n} evento(s) enviados a la papelera`); }); },
   evento(id, proyecto) {
     const e = id ? por('eventos', id) : null;
-    Form.abrir({ titulo: e ? 'Editar evento' : 'Nuevo evento', campos: this.campos(), valores: e || { fecha: UI.ag.dia, tipo: 'Reunión', proyecto: proyecto || '' },
+    Form.abrir({ titulo: e ? 'Editar evento' : 'Nuevo evento', campos: this.campos(), valores: e || { fecha: UI.ag.dia, tipo: 'Reunión', proyecto: proyecto || '', ambito: proyecto ? '' : Amb.nuevo() },
       guardar: v => { const er = this._validar(v); if (er) return er; poner('eventos', { id: e ? e.id : uid(), origen: e ? e.origen : 'local', ...v }); UI.ag.dia = v.fecha; UI.ag.mes = v.fecha.slice(0, 7); },
       eliminar: e ? () => quitar('eventos', e.id) : null });
   }
@@ -267,7 +267,7 @@ Vistas.agenda = () => {
         <div class="barra" style="padding:10px 14px;margin:0;border-top:1px solid var(--bd)"><button class="btn ch" onclick="Agenda.evento()">+ Evento</button><button class="btn ch" onclick="Rec.editar(null,'${UI.ag.dia}')">+ Recordatorio</button></div></section></div>`;
   } else if (UI.ag.modo === 'eventos') {
     const selP = (valor, alCambiar, extra = '') => `<select onchange="${alCambiar}" aria-label="Proyecto" style="max-width:230px">${extra}<option value="">Sin proyecto</option>${S.proyectos.map(p => `<option value="${p.id}" ${valor === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>`;
-    let l = S.eventos.filter(e => (UI.ag.per === 'todos' || (UI.ag.per === 'prox' ? e.fecha >= hoy : e.fecha < hoy)) && (UI.ag.proy === '' || (UI.ag.proy === '-' ? !e.proyecto : e.proyecto === UI.ag.proy)) && coincide(UI.ag.q, e.titulo, e.lugar, e.nota));
+    let l = S.eventos.filter(e => (UI.ag.per === 'todos' || (UI.ag.per === 'prox' ? e.fecha >= hoy : e.fecha < hoy)) && (UI.ag.proy === '' || (UI.ag.proy === '-' ? !e.proyecto : e.proyecto === UI.ag.proy)) && Amb.ok(Amb.de('eventos', e)) && coincide(UI.ag.q, e.titulo, e.lugar, e.nota));
     l.sort((a, b) => (b.fecha + (b.horaIni || '')).localeCompare(a.fecha + (a.horaIni || '')));
     for (const id of [...UI.ag.sel]) if (!l.some(e => e.id === id)) UI.ag.sel.delete(id);
     const ids = l.map(e => e.id), n = UI.ag.sel.size, sinP = S.eventos.filter(e => !e.proyecto).length;
@@ -285,6 +285,7 @@ Vistas.agenda = () => {
     cuerpo = `<div class="panel scrollx">${filas ? `<table class="lista"><tbody>${filas}</tbody></table>` : vacio('Sin eventos en los próximos 30 días', '')}</div>`;
   }
   return `${cab('Agenda', '', '<button class="btn" onclick="Foto.abrir()">Cargar por foto</button>' + btnCarga('eventos') + '<button class="btn pri" onclick="Agenda.evento()">+ Evento</button>')}
+  <div class="barra">${Amb.barra()}</div>
   <div class="barra">${filtro('ag', 'modo', [['mes', 'Mes'], ['lista', 'Próximos 30 días'], ['eventos', 'Eventos y proyectos']])}
     ${UI.ag.modo === 'mes' ? `<button class="btn ch" onclick="UI.ag.mes='${mover(-1)}';App.pintar()">‹</button><b style="min-width:130px;text-align:center">${may(MESES[m - 1])} ${y}</b><button class="btn ch" onclick="UI.ag.mes='${mover(1)}';App.pintar()">›</button>
     <button class="btn ch" onclick="UI.ag.mes='${hoy.slice(0, 7)}';UI.ag.dia='${hoy}';App.pintar()">Hoy</button>` : ''}
@@ -305,8 +306,8 @@ const Rec = {
   siguiente(r) { let f = r.fecha; const hoy = hoyISO(); for (let i = 0; i < 800; i++) { f = sumaDias(f, 1); if (f > hoy && this.ocurre(r, f)) return f; } return f; },
   editar(id, fecha) {
     const r = id ? por('recordatorios', id) : null;
-    Form.abrir({ titulo: r ? 'Editar recordatorio' : 'Nuevo recordatorio', valores: r || { fecha: fecha || hoyISO(), hora: '09:00', repetir: '' },
-      campos: [{ k: 'texto', label: 'Recordarme', req: true }, { k: 'fecha', label: 'Fecha', tipo: 'date', req: true, medio: true }, { k: 'hora', label: 'Hora', tipo: 'time', medio: true }, { k: 'repetir', label: 'Repetición', tipo: 'select', opciones: this.REP }],
+    Form.abrir({ titulo: r ? 'Editar recordatorio' : 'Nuevo recordatorio', valores: r || { fecha: fecha || hoyISO(), hora: '09:00', repetir: '', ambito: Amb.nuevo() },
+      campos: [{ k: 'texto', label: 'Recordarme', req: true }, { k: 'fecha', label: 'Fecha', tipo: 'date', req: true, medio: true }, { k: 'hora', label: 'Hora', tipo: 'time', medio: true }, { k: 'repetir', label: 'Repetición', tipo: 'select', opciones: this.REP, medio: true }, Amb.campo()],
       guardar: v => { poner('recordatorios', { id: r ? r.id : uid(), hecho: r ? r.hecho : false, ...v, avisado: '' }); }, eliminar: r ? () => quitar('recordatorios', r.id) : null });
   },
   hecho(id) {
@@ -333,13 +334,13 @@ const Rec = {
 };
 Vistas.recordatorios = () => {
   const hoy = hoyISO(), ord = (a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || ''));
-  const R = S.recordatorios.filter(r => coincide(UI.rec.q, r.texto));
+  const R = S.recordatorios.filter(r => Amb.ok(Amb.de('recordatorios', r)) && coincide(UI.rec.q, r.texto));
   const grupos = [['Vencidos y de hoy', R.filter(r => !r.hecho && r.fecha <= hoy).sort(ord)], ['Próximos', R.filter(r => !r.hecho && r.fecha > hoy).sort(ord)], ['Hechos', R.filter(r => r.hecho).sort(ord).reverse().slice(0, 30)]];
   const filas = grupos.filter(g => g[1].length).map(([t, l]) => `<tr class="grupo"><td colspan="5">${t} (${l.length})</td></tr>` + l.map(r => `<tr class="${r.hecho ? 'hecho' : ''}">
     <td style="width:30px"><input type="checkbox" ${r.hecho ? 'checked' : ''} onchange="Rec.hecho('${r.id}')" aria-label="Hecho"></td><td><span class="t" onclick="Rec.editar('${r.id}')">${esc(r.texto)}</span></td>
     <td class="nw">${fechaLim(r.fecha, r.hecho)}</td><td class="d nw">${esc(r.hora || '')}</td><td class="d nw">${esc((Rec.REP.find(x => x[0] === (r.repetir || '')) || ['', ''])[1])}</td></tr>`).join('')).join('');
   const sinPermiso = 'Notification' in window && Notification.permission !== 'granted';
   return `${cab('Recordatorios', '', `${sinPermiso ? '<button class="btn" onclick="Rec.permiso()">Activar notificaciones</button>' : ''}${btnCarga('recordatorios')}<button class="btn pri" onclick="Rec.editar()">+ Recordatorio</button>`)}
-  <div class="barra">${campoBuscar('rec', 'rBuscar', 'Buscar recordatorio…')}<span class="d">Los avisos aparecen mientras la plataforma esté abierta en el navegador.</span></div>
+  <div class="barra">${Amb.barra()}${campoBuscar('rec', 'rBuscar', 'Buscar recordatorio…')}<span class="d">Los avisos aparecen mientras la plataforma esté abierta en el navegador.</span></div>
   <div class="panel scrollx">${filas ? `<table class="lista"><thead><tr><th></th><th>Recordatorio</th><th>Fecha</th><th>Hora</th><th>Repetición</th></tr></thead><tbody>${filas}</tbody></table>` : vacio('Sin recordatorios', 'Crea uno con el botón “+ Recordatorio”.')}</div>`;
 };

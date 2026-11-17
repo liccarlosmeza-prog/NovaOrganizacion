@@ -35,6 +35,26 @@ const Aj = {
         quitar('estatus', e.id);
       } : null });
   },
+  /** Registros que usan un ámbito (propio o heredado). */
+  usoAmbito(a) { return ['proyectos', 'actividades', 'escolares', 'eventos', 'recordatorios', 'cumples', 'notas', 'enlaces', 'noticias'].reduce((s, k) => s + S[k].filter(o => Amb.de(k, o) === a).length, 0); },
+  ambito(id) {
+    const x = id ? por('ambitos', id) : null;
+    if (!x && S.ambitos.length >= 12) return toast('Máximo 12 ámbitos adicionales', 'err');
+    Form.abrir({ titulo: x ? 'Editar ámbito' : 'Nuevo ámbito', valores: x || {},
+      campos: [{ k: 'nombre', label: 'Nombre del ámbito', req: true, ph: 'p. ej. Familia', ayuda: 'De 2 a 30 caracteres: letras, números, espacios, punto, guion o &.' }],
+      guardar: v => {
+        const nom = String(v.nombre || '').replace(/\s+/g, ' ').trim();
+        if (!AMB_NOMBRE.test(nom)) return 'Usa de 2 a 30 caracteres: letras, números, espacios, punto, guion o &';
+        if (ambitos().some(a => norm(a) === norm(nom) && (!x || a !== x.nombre))) return 'Ya existe un ámbito con ese nombre';
+        if (x && x.nombre !== nom) {   // renombrar: se actualiza en todos los registros y en el filtro
+          for (const k of ['proyectos', 'actividades', 'eventos', 'recordatorios', 'notas', 'enlaces', 'noticias']) S[k].forEach(o => { if (o.ambito === x.nombre) o.ambito = nom; });
+          if (S.ajustes.inicioFiltro.amb === x.nombre) S.ajustes.inicioFiltro.amb = nom;
+        }
+        poner('ambitos', { id: x ? x.id : uid(), nombre: nom });
+      },
+      eliminar: x ? () => { const n = this.usoAmbito(x.nombre); if (S.ajustes.inicioFiltro.amb === x.nombre) S.ajustes.inicioFiltro.amb = '';
+        Papelera.mover('ambitos', x.id); toast(n ? `Ámbito en la papelera; sus ${n} registro(s) cuentan como Trabajo hasta que los reclasifiques o lo restaures` : 'Ámbito enviado a la papelera'); } : null });
+  },
   categoria(id) {
     const c = id ? por('categorias', id) : null;
     Form.abrir({ titulo: c ? 'Editar clasificación' : 'Nueva clasificación', valores: c || { color: PALETA[S.categorias.length % PALETA.length] },
@@ -84,6 +104,9 @@ Vistas.ajustes = () => {
   else if (t === 'catalogos') cuerpo = `
     <section class="blq"><h3>Estatus de proyectos y actividades <button class="lnk" onclick="Aj.estatus()">+ Agregar</button></h3>
       <ul class="filas">${S.estatus.map(e => `<li>${punto(e.color)}<span class="x clic" onclick="Aj.estatus('${e.id}')">${esc(e.nombre)}</span>${e.final ? '<span class="et">Final</span>' : ''}<span class="m">${S.proyectos.filter(p => p.estatus === e.id).length + S.actividades.filter(x => x.estatus === e.id).length} en uso</span></li>`).join('')}</ul></section>
+    <section class="blq"><h3>Ámbitos (macro categorías) ${S.ambitos.length < 12 ? '<button class="lnk" onclick="Aj.ambito()">+ Agregar</button>' : ''}</h3>
+      <div class="cu d" style="padding-bottom:0">Filtran todas las pantallas. Sólo se crean aquí; en los formularios y en la carga masiva sólo se eligen. Lo nuevo entra como Trabajo.</div>
+      <ul class="filas">${ambitos().map(a => { const n = Aj.usoAmbito(a), x = S.ambitos.find(y => y.nombre === a); return `<li><span class="x ${x ? 'clic' : ''}" ${x ? `onclick="Aj.ambito('${x.id}')"` : ''}>${esc(a)}</span>${x ? '' : '<span class="et">Base</span>'}<span class="m">${n} registro(s)</span></li>`; }).join('')}</ul></section>
     <section class="blq"><h3>Clasificaciones de actividades <button class="lnk" onclick="Aj.categoria()">+ Agregar</button></h3>
       ${S.categorias.length ? `<ul class="filas">${S.categorias.map(c => `<li>${punto(c.color)}<span class="x clic" onclick="Aj.categoria('${c.id}')">${esc(c.nombre)}</span><span class="m">${S.actividades.filter(x => x.categoria === c.id).length} actividades</span></li>`).join('')}</ul>` : vacio('Sin clasificaciones', '')}</section>
     <section class="blq"><h3>Escuela</h3><div class="cu"><div class="reng"><label for="ajMeta">Meta de calificación por defecto</label><input type="number" id="ajMeta" min="0" max="100" value="${a.metaEscolar}" onchange="Aj.numero('metaEscolar',this.value,0,100)" style="width:90px"><span class="d">Puntos; se puede cambiar por materia.</span></div></div></section>`;
@@ -124,6 +147,8 @@ Vistas.ajustes = () => {
    DATOS
    ========================================================================== */
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+/** Ámbito de una fila de carga masiva (columna opcional «Ambito»); vacío si no viene o no es válido. */
+const ambFila = (filas, f) => ambitos().find(a => norm(a) === norm(celda(f, columnas(filas[0] || [])('ambito', 'ámbito')))) || '';
 /** Devuelve una función que busca columnas por nombre (sin importar acentos ni mayúsculas). */
 function columnas(encabezado) { const h = encabezado.map(norm); return (...nombres) => { for (const n of nombres) { const i = h.indexOf(norm(n)); if (i >= 0) return i; } return -1; }; }
 const celda = (f, i) => i >= 0 ? (f[i] || '').trim() : '';
@@ -189,7 +214,7 @@ function sanear(e) {
   // Reglas por tabla: lo que no cumple se corrige o se descarta
   if (!r.estatus.some(x => x.final) || !r.estatus.some(x => !x.final)) r.estatus = b.estatus;
   const est = new Set(r.estatus.map(x => x.id)), e0 = r.estatus[0].id, pri = v => ['1', '2', '3', '4'].includes(String(v)) ? String(v) : '3';
-  r.proyectos.forEach(p => { if (!est.has(p.estatus)) p.estatus = e0; p.prioridad = pri(p.prioridad); if (!AMBITOS.includes(p.ambito)) p.ambito = 'Trabajo'; p.avanceManual = Math.min(100, Math.max(0, p.avanceManual || 0)); });
+  r.proyectos.forEach(p => { if (!est.has(p.estatus)) p.estatus = e0; p.prioridad = pri(p.prioridad); if (!AMB_NOMBRE.test(String(p.ambito || ''))) p.ambito = 'Trabajo'; p.avanceManual = Math.min(100, Math.max(0, p.avanceManual || 0)); });
   r.actividades.forEach(a => { if (!est.has(a.estatus)) a.estatus = e0; a.prioridad = pri(a.prioridad); });
   r.escolares = r.escolares.filter(x => x.entrega && x.materia); r.escolares.forEach(x => { if (!EST_ESC.some(y => y[0] === x.estatus)) x.estatus = 'pendiente'; x.valor = Math.max(0, x.valor || 0); if (!x.inicio || x.inicio > x.entrega) x.inicio = x.entrega; if (!TIPOS_ESC.includes(x.tipo)) x.tipo = 'Otro'; x.unidad = String(x.unidad || '').slice(0, 60); delete x.hora; });   // las entregas son hasta el final del día
   r.materias.forEach(m => { m.clave = String(m.clave || '').slice(0, 20); m.ciclo = String(m.ciclo || '').slice(0, 20); });
@@ -202,6 +227,11 @@ function sanear(e) {
     tipo: n.tipo === 'investigacion' ? 'investigacion' : 'noticia', relevancia: ['alta', 'media', 'baja'].includes(n.relevancia) ? n.relevancia : 'media',
     resumen: String(n.resumen || '').slice(0, 8000), puntos: String(n.puntos || '').slice(0, 15000), fuentes: String(n.fuentes || '').slice(0, 30000), etiquetas: String(n.etiquetas || '').slice(0, 500), consulta: String(n.consulta || '').slice(0, 300),
     archivo: RUTA_NOT.test(String(n.archivo)) ? n.archivo : '', sha: SHA_OK.test(String(n.sha)) ? n.sha : '', fecha: n.fecha || ahoraTxt() }));
+  // Ámbitos: los creados en Ajustes (nombre corto y seguro, sin repetir los base, máx. 12). En los registros se acepta
+  // cualquier nombre con formato válido: si su ámbito se eliminó, cuenta como Trabajo y vuelve a valer si se restaura.
+  const vistosAmb = new Set(AMBITOS_BASE.map(norm));
+  r.ambitos = r.ambitos.filter(a => AMB_NOMBRE.test(String(a.nombre || '')) && !vistosAmb.has(norm(a.nombre)) && vistosAmb.add(norm(a.nombre))).slice(0, 12);
+  for (const k of ['actividades', 'eventos', 'recordatorios', 'notas', 'enlaces', 'noticias']) r[k].forEach(x => { if (!AMB_NOMBRE.test(String(x.ambito || ''))) x.ambito = ''; });
   r.porBorrar = r.porBorrar.filter(x => RUTA_NOT.test(String(x.archivo)) && SHA_OK.test(String(x.sha))).slice(0, 1000);
   r.cumples = r.cumples.filter(c => c.dia >= 1 && c.dia <= 31 && c.mes >= 1 && c.mes <= 12);
   r.bitacora = r.bitacora.filter(x => x.fecha && x.proyecto); r.notasPriv = r.notasPriv.filter(x => x.id && typeof x.iv === 'string' && typeof x.ct === 'string');
@@ -235,6 +265,14 @@ function fusionar(original) {
 const Datos = {
   /* ---------- Exportación ---------- */
   tablas() {
+    const t = this._tablas();
+    // Ámbito efectivo (propio, del proyecto o automático) al final de cada tabla que lo tiene
+    for (const [nombre, lista] of [['actividades.csv', 'actividades'], ['agenda.csv', 'eventos'], ['notas.csv', 'notas'], ['recordatorios.csv', 'recordatorios'], ['accesos_directos.csv', 'enlaces'], ['noticias.csv', 'noticias']]) {
+      const x = t.find(y => y.nombre === nombre); if (!x) continue; x.enc.push('Ambito'); x.filas.forEach((f, i) => f.push(Amb.de(lista, S[lista][i])));
+    }
+    return t;
+  },
+  _tablas() {
     const nom = (lista, id) => (por(lista, id) || {}).nombre || '';
     const pri = p => (PRIORIDADES.find(x => x[0] === p) || ['', ''])[1];
     return [
@@ -321,7 +359,7 @@ const Datos = {
     for (const f of filas.slice(1)) {
       const nombre = celda(f, iN), url = urlSegura(celda(f, iU));
       if (!nombre || !url || vistos.has(url)) { omitidas++; continue; } vistos.add(url);
-      lista.push({ nombre, url, carpeta: celda(f, iF), desc: celda(f, iD), fav: ['si', 'sí', 'x', '1', 'true'].includes(celda(f, iV).toLowerCase()), tags: celda(f, iT).replace(/;/g, ', ') });
+      lista.push({ nombre, url, ambito: ambFila(filas, f), carpeta: celda(f, iF), desc: celda(f, iD), fav: ['si', 'sí', 'x', '1', 'true'].includes(celda(f, iV).toLowerCase()), tags: celda(f, iT).replace(/;/g, ', ') });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.enlaces.push({ id: uid(), ...x, carpeta: this._carpeta(x.carpeta) })) };
   },
@@ -345,7 +383,7 @@ const Datos = {
       const titulo = celda(f, iT), inicio = parseFecha(celda(f, iI)), limite = parseFecha(celda(f, iL));
       const repetida = S.actividades.some(x => norm(x.titulo) === norm(titulo) && (x.limite || '') === limite && norm((por('proyectos', x.proyecto) || {}).nombre) === norm(celda(f, iP)));
       if (!titulo || repetida || (celda(f, iL) && !limite) || (inicio && limite && limite < inicio)) { omitidas++; continue; }
-      lista.push({ titulo, proyecto: celda(f, iP), categoria: celda(f, iC), estatus: celda(f, iE), prioridad: celda(f, iPr), inicio, limite, horas: Number(celda(f, iH).replace(',', '.')) || null, detalle: celda(f, iD), hora: parseHora(celda(f, iHo)), checklist: celda(f, iCk).split('|').map(x => x.trim()).filter(Boolean).join('\n') });
+      lista.push({ titulo, ambito: ambFila(filas, f), proyecto: celda(f, iP), categoria: celda(f, iC), estatus: celda(f, iE), prioridad: celda(f, iPr), inicio, limite, horas: Number(celda(f, iH).replace(',', '.')) || null, detalle: celda(f, iD), hora: parseHora(celda(f, iHo)), checklist: celda(f, iCk).split('|').map(x => x.trim()).filter(Boolean).join('\n') });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => {
       let p = x.proyecto && S.proyectos.find(y => norm(y.nombre) === norm(x.proyecto));
@@ -353,7 +391,7 @@ const Datos = {
       let c = x.categoria && S.categorias.find(y => norm(y.nombre) === norm(x.categoria));
       if (x.categoria && !c) { c = { id: uid(), nombre: x.categoria, color: PALETA[S.categorias.length % PALETA.length] }; S.categorias.push(c); }
       const e = S.estatus.find(y => norm(y.nombre) === norm(x.estatus)) || S.estatus[0], pr = (PRIORIDADES.find(y => norm(y[1]) === norm(x.prioridad)) || ['3'])[0];
-      const a = { id: uid(), creado: hoyISO(), titulo: x.titulo, proyecto: p ? p.id : '', categoria: c ? c.id : '', estatus: e.id, prioridad: pr, inicio: x.inicio, limite: x.limite, hora: x.hora, horas: x.horas, detalle: x.detalle, checklist: x.checklist, completada: e.final ? hoyISO() : '' };
+      const a = { id: uid(), creado: hoyISO(), titulo: x.titulo, ambito: x.ambito || '', proyecto: p ? p.id : '', categoria: c ? c.id : '', estatus: e.id, prioridad: pr, inicio: x.inicio, limite: x.limite, hora: x.hora, horas: x.horas, detalle: x.detalle, checklist: x.checklist, completada: e.final ? hoyISO() : '' };
       regEstatus('actividades', a, '', a.estatus); S.actividades.push(a);
     }) };
   },
@@ -417,26 +455,26 @@ const Datos = {
    ========================================================================== */
 const parseHora = t => { const r = String(t || '').trim().match(/^(\d{1,2})[:.](\d{2})/); return r && +r[1] < 24 && +r[2] < 60 ? `${p2(+r[1])}:${r[2]}` : ''; };
 const LAYOUTS = {
-  proyectos: { t: 'Proyectos', cols: [['Nombre', 1, 'Texto. No se repite.'], ['Ambito', 0, 'Trabajo, Escuela o Personal'], ['Estatus', 0, 'Nombre de un estatus del catálogo'], ['Prioridad', 0, 'Urgente, Alta, Media o Baja'], ['AsignadoPor', 0, 'Texto'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaObjetivo', 0, 'dd/mm/aaaa; no anterior al inicio'], ['Descripcion', 0, 'Texto']],
+  proyectos: { t: 'Proyectos', cols: [['Nombre', 1, 'Texto. No se repite.'], ['Ambito', 0, 'Opcional: Trabajo, Escuela, Personal, Otro o uno creado en Ajustes; vacío = Trabajo'], ['Estatus', 0, 'Nombre de un estatus del catálogo'], ['Prioridad', 0, 'Urgente, Alta, Media o Baja'], ['AsignadoPor', 0, 'Texto'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaObjetivo', 0, 'dd/mm/aaaa; no anterior al inicio'], ['Descripcion', 0, 'Texto']],
     ej: d => [['Migración de reportes a Power BI', 'Trabajo', 'En curso', 'Alta', 'Gerencia de operaciones', d(0), d(45), 'Sustituir reportes de Excel por tableros'], ['Curso de SQL avanzado', 'Personal', 'Pendiente', 'Media', '', d(7), d(60), '']] },
-  actividades: { t: 'Actividades', cols: [['Titulo', 1, 'Texto'], ['Proyecto', 0, 'Nombre del proyecto; vacío = actividad del área. Si no existe, se crea.'], ['Clasificacion', 0, 'Nombre de la clasificación; si no existe, se crea'], ['Estatus', 0, 'Nombre de un estatus del catálogo'], ['Prioridad', 0, 'Urgente, Alta, Media o Baja'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaLimite', 0, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Horas', 0, 'Horas estimadas, número'], ['Detalle', 0, 'Texto'], ['Checklist', 0, 'Elementos separados por | ']],
+  actividades: { t: 'Actividades', cols: [['Titulo', 1, 'Texto'], ['Proyecto', 0, 'Nombre del proyecto; vacío = actividad del área. Si no existe, se crea.'], ['Clasificacion', 0, 'Nombre de la clasificación; si no existe, se crea'], ['Estatus', 0, 'Nombre de un estatus del catálogo'], ['Prioridad', 0, 'Urgente, Alta, Media o Baja'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaLimite', 0, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Horas', 0, 'Horas estimadas, número'], ['Detalle', 0, 'Texto'], ['Checklist', 0, 'Elementos separados por | '], ['Ambito', 0, 'Opcional: Trabajo, Escuela, Personal, Otro o uno creado en Ajustes; vacío o desconocido = Trabajo (o el del proyecto)']],
     ej: d => [['Preparar reporte mensual', '', 'Reportes', 'Pendiente', 'Alta', d(0), d(3), '12:00', '2', 'Incluir comparativo', 'Extraer datos | Validar cifras | Enviar'], ['Diseñar modelo de datos', 'Migración de reportes a Power BI', '', 'En curso', 'Media', d(1), d(10), '', '6', '', '']] },
   materias: { t: 'Materias', cols: [['Materia', 1, 'Texto. No se repite.'], ['Clave', 0, 'Código de la materia, p. ej. IH716'], ['Profesor', 0, 'Texto'], ['Ciclo', 0, 'Texto, p. ej. 2026-B'], ['Color', 0, 'Hexadecimal #RRGGBB'], ['Meta', 0, 'Puntos que quieres alcanzar (0–100)']],
     ej: () => [['Programación Web', 'Mtra. Laura Gómez', '2026-B', '#0B84F3', '85'], ['Bases de Datos', 'Mtro. Jorge Pérez', '2026-B', '#19C3C8', '80']] },
   escolares: { t: 'Actividades escolares', cols: [['Materia', 1, 'Nombre de la materia; si no existe, se crea'], ['Actividad', 1, 'Texto'], ['Tipo', 0, TIPOS_ESC.join(', ')], ['Valor', 0, 'Puntos (número)'], ['FechaInicio', 0, 'dd/mm/aaaa'], ['FechaEntrega', 1, 'dd/mm/aaaa; no anterior al inicio'], ['Estado', 0, 'Pendiente, En proceso, Guardada, Enviada o Calificada'], ['Calificacion', 0, 'Puntos obtenidos; vacío si no está calificada'], ['Unidad', 0, 'Texto, p. ej. Unidad 1']],
     nota: 'Es el mismo formato que exporta AcadTrack.',
     ej: d => [['Programación Web', 'Act. 1.1 El desarrollo web hoy', 'Buzón', '5', d(-10), d(-5), 'Calificada', '5'], ['Programación Web', 'Integradora 1', 'Buzón', '15', d(0), d(8), 'Pendiente', ''], ['Bases de Datos', 'Examen parcial', 'Examen', '25', d(5), d(12), 'Pendiente', '']] },
-  eventos: { t: 'Agenda (eventos)', cols: [['Evento', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['HoraInicio', 0, 'hh:mm (24 h)'], ['HoraFin', 0, 'hh:mm; no anterior al inicio'], ['Tipo', 0, 'Reunión, Revisión, Clase, Personal u Otro'], ['Proyecto', 0, 'Nombre de un proyecto existente'], ['Lugar', 0, 'Texto o enlace'], ['Notas', 0, 'Texto']],
+  eventos: { t: 'Agenda (eventos)', cols: [['Evento', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['HoraInicio', 0, 'hh:mm (24 h)'], ['HoraFin', 0, 'hh:mm; no anterior al inicio'], ['Tipo', 0, 'Reunión, Revisión, Clase, Personal u Otro'], ['Proyecto', 0, 'Nombre de un proyecto existente'], ['Lugar', 0, 'Texto o enlace'], ['Notas', 0, 'Texto'], ['Ambito', 0, 'Opcional: Trabajo, Escuela, Personal, Otro o uno creado en Ajustes; vacío o desconocido = Trabajo (o el del proyecto)']],
     nota: 'También puedes importar un calendario .ics exportado de Outlook, Teams o Google Calendar.',
     ej: d => [['Revisión de avance', d(1), '10:00', '11:00', 'Revisión', '', 'Teams', ''], ['Junta de área', d(4), '09:30', '11:00', 'Reunión', '', 'Sala 2', 'Llevar indicadores']] },
-  recordatorios: { t: 'Recordatorios', cols: [['Recordatorio', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Repeticion', 0, 'Vacío, Diario, Semanal, Mensual o Anual']],
+  recordatorios: { t: 'Recordatorios', cols: [['Recordatorio', 1, 'Texto'], ['Fecha', 1, 'dd/mm/aaaa'], ['Hora', 0, 'hh:mm (24 h)'], ['Repeticion', 0, 'Vacío, Diario, Semanal, Mensual o Anual'], ['Ambito', 0, 'Opcional: Trabajo, Escuela, Personal, Otro o uno creado en Ajustes; vacío o desconocido = Trabajo (o el del proyecto)']],
     ej: d => [['Enviar reporte semanal', d(2), '17:00', 'Semanal'], ['Renovar licencia de software', d(20), '10:00', '']] },
   noticias: { t: 'Noticias e investigación', cols: [['Titulo', 1, 'Texto'], ['Tema', 0, 'Seguridad, IA, Power Platform, Desarrollo web u otro'], ['Tipo', 0, 'Noticia o Investigacion'], ['Relevancia', 0, 'Alta, Media o Baja'],
-    ['Resumen', 0, 'Texto'], ['Puntos', 0, 'Puntos clave separados por |'], ['Fuentes', 0, 'Direcciones https separadas por espacio'], ['Etiquetas', 0, 'Separadas por coma'], ['Consulta', 0, 'Palabras clave de la búsqueda'], ['Fecha', 0, 'dd/mm/aaaa']],
+    ['Resumen', 0, 'Texto'], ['Puntos', 0, 'Puntos clave separados por |'], ['Fuentes', 0, 'Direcciones https separadas por espacio'], ['Etiquetas', 0, 'Separadas por coma'], ['Consulta', 0, 'Palabras clave de la búsqueda'], ['Fecha', 0, 'dd/mm/aaaa'], ['Ambito', 0, 'Opcional: Trabajo, Escuela, Personal, Otro o uno creado en Ajustes; vacío o desconocido = Trabajo (o el del proyecto)']],
     ej: d => [['Actualización de seguridad del navegador', 'Seguridad', 'Noticia', 'Alta', 'Resumen de la noticia.', 'Actualizar el navegador | Reiniciar', 'https://example.com/aviso', 'navegador, parche', 'vulnerabilidad navegador', d(0)]] },
-  notas: { t: 'Notas', cols: [['Titulo', 0, 'Texto (título o texto es obligatorio)'], ['Texto', 0, 'Contenido de la nota'], ['Proyecto', 0, 'Nombre de un proyecto existente; vacío = sin clasificar'], ['Etiquetas', 0, 'Separadas por coma']],
+  notas: { t: 'Notas', cols: [['Titulo', 0, 'Texto (título o texto es obligatorio)'], ['Texto', 0, 'Contenido de la nota'], ['Proyecto', 0, 'Nombre de un proyecto existente; vacío = sin clasificar'], ['Etiquetas', 0, 'Separadas por coma'], ['Ambito', 0, 'Opcional: Trabajo, Escuela, Personal, Otro o uno creado en Ajustes; vacío o desconocido = Trabajo (o el del proyecto)']],
     ej: () => [['Ideas para la junta', 'Proponer tablero único de pendientes', '', 'junta, ideas'], ['Pendiente con proveedor', 'Enviar cotización antes del viernes', '', '']] },
-  enlaces: { t: 'Accesos directos', cols: [['Nombre', 1, 'Texto'], ['URL', 1, 'Dirección http(s). No se repite.'], ['Carpeta', 0, 'Nombre de carpeta; si no existe, se crea'], ['Descripcion', 0, 'Texto'], ['Favorito', 0, 'SI o NO'], ['Tags', 0, 'Etiquetas separadas por ;']],
+  enlaces: { t: 'Accesos directos', cols: [['Nombre', 1, 'Texto'], ['URL', 1, 'Dirección http(s). No se repite.'], ['Carpeta', 0, 'Nombre de carpeta; si no existe, se crea'], ['Descripcion', 0, 'Texto'], ['Favorito', 0, 'SI o NO'], ['Tags', 0, 'Etiquetas separadas por ;'], ['Ambito', 0, 'Opcional: Trabajo, Escuela, Personal, Otro o uno creado en Ajustes; vacío o desconocido = Trabajo (o el del proyecto)']],
     nota: 'Es el mismo formato que exporta LinkManager.',
     ej: () => [['Outlook', 'https://outlook.office.com', 'Trabajo', 'Correo', 'SI', 'correo;diario'], ['Power BI', 'https://app.powerbi.com', 'Trabajo', '', 'NO', 'reportes']] },
   cumples: { t: 'Cumpleaños', cols: [['Nombre', 1, 'Texto. No se repite.'], ['Fecha', 1, 'dd/mm/aaaa, o dd/mm si no sabes el año'], ['Relacion', 0, 'Familia, Amigos, Trabajo…'], ['Nota', 0, 'Texto']],
@@ -472,7 +510,7 @@ Object.assign(Datos, {
     for (const f of filas.slice(1)) {
       const nombre = celda(f, iN), ti = celda(f, col('fechainicio', 'inicio')), to = celda(f, col('fechaobjetivo', 'objetivo')), inicio = parseFecha(ti), objetivo = parseFecha(to);
       if (!nombre || vistos.has(norm(nombre)) || (ti && !inicio) || (to && !objetivo) || (inicio && objetivo && objetivo < inicio)) { omitidas++; continue; } vistos.add(norm(nombre));
-      const amb = AMBITOS.find(a => norm(a) === norm(celda(f, col('ambito')))) || 'Trabajo';
+      const amb = ambitos().find(a => norm(a) === norm(celda(f, col('ambito')))) || 'Trabajo';
       lista.push({ nombre, ambito: amb, est: celda(f, col('estatus', 'estado')), pri: celda(f, col('prioridad')), asignadoPor: celda(f, col('asignadopor')), inicio, objetivo, descripcion: celda(f, col('descripcion')) });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(({ est, pri, ...x }) => {
@@ -497,7 +535,7 @@ Object.assign(Datos, {
       const repetido = e => e.fecha === fecha && norm(e.titulo) === norm(titulo) && (e.horaIni || '') === horaIni;
       if (!titulo || !fecha || (horaIni && horaFin && horaFin < horaIni) || S.eventos.some(repetido) || lista.some(repetido)) { omitidas++; continue; }
       const p = S.proyectos.find(y => norm(y.nombre) === norm(celda(f, col('proyecto'))));
-      lista.push({ titulo, fecha, horaIni, horaFin, tipo: Agenda.TIPOS.find(t => norm(t) === norm(celda(f, col('tipo')))) || 'Reunión', proyecto: p ? p.id : '', lugar: celda(f, col('lugar')), nota: celda(f, col('notas', 'nota')), origen });
+      lista.push({ titulo, ambito: ambFila(filas, f), fecha, horaIni, horaFin, tipo: Agenda.TIPOS.find(t => norm(t) === norm(celda(f, col('tipo')))) || 'Reunión', proyecto: p ? p.id : '', lugar: celda(f, col('lugar')), nota: celda(f, col('notas', 'nota')), origen });
     }
     return { n: lista.length, omitidas, lista, aplicar: () => lista.forEach(x => S.eventos.push({ id: uid(), ...x })) };
   },
@@ -508,7 +546,7 @@ Object.assign(Datos, {
     for (const f of filas.slice(1)) {
       const texto = celda(f, iT), fecha = parseFecha(celda(f, iF));
       if (!texto || !fecha || S.recordatorios.some(r => r.fecha === fecha && norm(r.texto) === norm(texto))) { omitidas++; continue; }
-      lista.push({ texto, fecha, hora: parseHora(celda(f, col('hora'))), repetir: REP[norm(celda(f, col('repeticion', 'repetir')))] || '', hecho: false, avisado: '' });
+      lista.push({ texto, ambito: ambFila(filas, f), fecha, hora: parseHora(celda(f, col('hora'))), repetir: REP[norm(celda(f, col('repeticion', 'repetir')))] || '', hecho: false, avisado: '' });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.recordatorios.push({ id: uid(), ...x })) };
   },
@@ -521,7 +559,7 @@ Object.assign(Datos, {
         puntos: celda(f, col('puntos')).split('|'), fuentes: celda(f, col('fuentes', 'urls')).split(/\s+/).filter(Boolean).map(url => ({ url, medio: (url.match(/^https?:\/\/([^/]+)/i) || [])[1] || '' })),
         etiquetas: celda(f, col('etiquetas')), consulta: celda(f, col('consulta')), fecha: fe ? fe + 'T09:00' : '' });
       if (!n || S.noticias.some(x => norm(x.titulo) === norm(n.titulo)) || lista.some(x => norm(x.titulo) === norm(n.titulo))) { omitidas++; continue; }
-      lista.push(n);
+      lista.push({ ...n, ambito: ambFila(filas, f) });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.noticias.push({ id: uid(), archivo: '', sha: '', recibida: ahoraTxt(), ...x })) };
   },
@@ -532,7 +570,7 @@ Object.assign(Datos, {
       const titulo = celda(f, iT), texto = celda(f, iX);
       if ((!titulo && !texto) || S.notas.some(n => norm(n.titulo) === norm(titulo) && norm(n.texto) === norm(texto))) { omitidas++; continue; }
       const p = S.proyectos.find(y => norm(y.nombre) === norm(celda(f, col('proyecto'))));
-      lista.push({ titulo, texto, proyecto: p ? p.id : '', etiquetas: celda(f, col('etiquetas', 'tags')), fijada: false, creado: ahoraTxt(), actualizado: ahoraTxt() });
+      lista.push({ titulo, texto, ambito: ambFila(filas, f), proyecto: p ? p.id : '', etiquetas: celda(f, col('etiquetas', 'tags')), fijada: false, creado: ahoraTxt(), actualizado: ahoraTxt() });
     }
     return { n: lista.length, omitidas, aplicar: () => lista.forEach(x => S.notas.push({ id: uid(), ...x })) };
   },

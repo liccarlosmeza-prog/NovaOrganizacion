@@ -102,19 +102,51 @@ Vistas.inicio = () => {
     return `<section class="blq" style="grid-column:span ${w.ancho}"><h3>${esc(r.t)}${r.n != null ? `<span class="ct">${r.n}</span>` : ''}${r.extra || ''}<a class="lnk" href="#/${r.ir}">Ver todo</a></h3>${r.h}${r.pie || ''}</section>`;
   }).join('');
   return `${cab(`${saludo}${S.ajustes.usuario ? ', ' + S.ajustes.usuario : ''}`, may(fFechaLarga(hoy)))}
-  <div class="barra"><div class="fil">${[['', 'Todo'], ...AMBITOS.map(a => [a, a])].map(([v, t]) => `<button class="${f.amb === v ? 'on' : ''}" onclick="Ini.set('amb','${v}')">${t}</button>`).join('')}</div>
+  <div class="barra">${Amb.barra()}
     <select onchange="Ini.set('cat',this.value)" aria-label="Clasificación"><option value="">Todas las clasificaciones</option>${S.categorias.map(c => `<option value="${c.id}" ${f.cat === c.id ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select>
     ${f.amb || f.cat ? '<button class="lnk gris" onclick="Ini.limpiar()">Quitar filtros</button>' : ''}<span class="esp"></span>
     <button class="lnk" onclick="UI.aj.tab='inicio';App.ir('ajustes')">Personalizar inicio</button></div>
   <div class="tab6">${bloques || vacio('Inicio sin bloques', 'Activa bloques en Ajustes → Inicio.')}</div>`;
 };
 
+/**
+ * Ámbito (macro categoría) de cualquier registro y filtro global por ámbito.
+ * El filtro es uno solo para toda la plataforma (se guarda en ajustes.inicioFiltro.amb): al elegir «Escuela»
+ * en Agenda, también Inicio, Actividades, Notas, etc. muestran sólo lo de Escuela.
+ */
+const Amb = {
+  f: () => ambitos().includes(S.ajustes.inicioFiltro.amb) ? S.ajustes.inicioFiltro.amb : '',
+  set(v) { S.ajustes.inicioFiltro.amb = ambitos().includes(v) ? v : ''; guardar(); App.pintar(); },
+  ok(a) { const f = Amb.f(); return !f || a === f; },
+  /**
+   * Ámbito efectivo: el propio; si no tiene (o el suyo se eliminó en Ajustes), el del proyecto o el que corresponde
+   * al tipo de registro, y si no, Trabajo (el ámbito por omisión: lo anterior se reclasifica a mano).
+   */
+  de(lista, o) {
+    if (['escolares', 'materias'].includes(lista)) return 'Escuela';
+    if (lista === 'cumples') return 'Personal';
+    if (!o) return 'Trabajo';
+    if (ambitos().includes(o.ambito)) return o.ambito;
+    const p = lista !== 'proyectos' && o.proyecto && por('proyectos', o.proyecto), dp = p && ambitos().includes(p.ambito) ? p.ambito : '';
+    if (dp) return dp;
+    if (lista === 'eventos' && o.tipo === 'Personal') return 'Personal';
+    if (lista === 'eventos' && o.tipo === 'Clase') return 'Escuela';
+    return 'Trabajo';
+  },
+  /** Barra de ámbitos (la misma en todas las pantallas). */
+  barra() { const f = Amb.f(); return `<div class="fil amb" role="group" aria-label="Ámbito">${[['', 'Todo'], ...ambitos().map(a => [a, a])].map(([v, t]) => `<button class="${f === v ? 'on' : ''}" onclick="Amb.set('${esc(v)}')">${esc(t)}</button>`).join('')}</div>`; },
+  /** Campo de formulario: «auto» permite heredar del proyecto o del tipo. */
+  campo: (auto = '') => ({ ayuda: 'Los ámbitos se crean en Ajustes → Catálogos.', k: 'ambito', label: 'Ámbito', tipo: 'select', opciones: auto ? [['', auto], ...ambitos()] : ambitos(), medio: true }),
+  /** Valor inicial de un registro nuevo: Trabajo (se reclasifica después si hace falta). */
+  nuevo: () => 'Trabajo'
+};
+
 /** Bloques de Inicio. Cada uno recibe su configuración (filas, días) y respeta los filtros de la barra superior. */
-const ambAct = a => { const p = a.proyecto && por('proyectos', a.proyecto); return p ? (p.ambito || 'Trabajo') : 'Trabajo'; };
+const ambAct = a => Amb.de('actividades', a);
 const Ini = {
   set(k, v) { S.ajustes.inicioFiltro[k] = v; guardar(); App.pintar(); },
   limpiar() { S.ajustes.inicioFiltro = { amb: '', cat: '' }; guardar(); App.pintar(); },
-  amb(a) { const f = S.ajustes.inicioFiltro.amb; return !f || !a || a === f; },
+  amb(a) { return Amb.ok(a); },
   cat(c) { const f = S.ajustes.inicioFiltro.cat; return !f || c === f; },
   lista: (filas, tv, dv) => filas ? `<ul class="filas">${filas}</ul>` : vacio(tv, dv || ''),
   frase() {
@@ -138,7 +170,7 @@ const Ini = {
   },
   actividades(c) {
     const hoy = hoyISO();
-    const l = S.actividades.filter(a => !estFinal(a.estatus) && this.amb(ambAct(a)) && this.cat(a.categoria) && (!c.dias || (a.limite && difDias(hoy, a.limite) <= c.dias))).sort(Act.orden);
+    const l = S.actividades.filter(a => !estFinal(a.estatus) && this.amb(Amb.de('actividades', a)) && this.cat(a.categoria) && (!c.dias || (a.limite && difDias(hoy, a.limite) <= c.dias))).sort(Act.orden);
     const filas = l.slice(0, c.filas).map(a => `<li><input type="checkbox" title="Marcar como terminada" onchange="cambiarEstatus('actividades','${a.id}','${idFinal()}')">
       <span class="x clic" onclick="Act.editar('${a.id}')">${esc(a.titulo)}</span><span class="m">${esc(Act.origen(a))}</span><span class="m">${fechaLim(a.limite)}</span></li>`).join('');
     return { t: c.dias ? `Actividades · vencen en ${c.dias} días` : 'Actividades pendientes', n: l.length, ir: 'actividades', h: this.lista(filas, 'Nada por atender', c.dias ? `Sin actividades que venzan en ${c.dias} días.` : ''),
@@ -165,7 +197,7 @@ const Ini = {
     return { t: `Entregas escolares · próximos ${dias} días`, n: l.length, ir: 'escuela', extra: rango, h: aviso + this.lista(filas, ...vacioTxt) };
   },
   noticias(c) {
-    const l = S.noticias.filter(n => !n.leida).sort((a, b) => ({ alta: 0, media: 1, baja: 2 }[a.relevancia] - { alta: 0, media: 1, baja: 2 }[b.relevancia]) || b.fecha.localeCompare(a.fecha));
+    const l = S.noticias.filter(n => !n.leida && this.amb(Amb.de('noticias', n))).sort((a, b) => ({ alta: 0, media: 1, baja: 2 }[a.relevancia] - { alta: 0, media: 1, baja: 2 }[b.relevancia]) || b.fecha.localeCompare(a.fecha));
     const filas = l.slice(0, c.filas).map(n => `<li>${punRel(n.relevancia)}<span class="x clic" onclick="UI.not.f='sinleer';App.ir('noticias');Noticias.abrir('${n.id}')">${esc(n.titulo)}</span><span class="m">${esc(n.tema)}</span><span class="m">${esc(grupoDia(n.fecha) === 'Hoy' ? n.fecha.slice(11) : grupoDia(n.fecha))}</span></li>`).join('');
     return { t: 'Noticias sin leer', n: l.length, ir: 'noticias', extra: Noticias.conectado() ? '<button class="lnk" onclick="Noticias.actualizar()">Actualizar</button>' : '',
       h: this.lista(filas, S.noticias.length ? 'Todo leído' : 'Sin noticias', S.noticias.length ? '' : (Noticias.conectado() ? 'Pide una búsqueda a Claude y pulsa Actualizar.' : 'Conecta nova-datos en Ajustes → Sincronización.')) };
@@ -173,13 +205,13 @@ const Ini = {
   /** Cambia los días de un bloque desde el propio bloque. */
   dias(id, d) { const w = S.ajustes.inicio.find(x => x.id === id); if (w && [7, 15, 30].includes(d)) { w.dias = d; guardar(); App.pintar(); } },
   proyectos(c) {
-    const l = S.proyectos.filter(p => !estFinal(p.estatus) && this.amb(p.ambito)).sort((a, b) => (a.prioridad || '3').localeCompare(b.prioridad || '3'));
+    const l = S.proyectos.filter(p => !estFinal(p.estatus) && this.amb(Amb.de('proyectos', p))).sort((a, b) => (a.prioridad || '3').localeCompare(b.prioridad || '3'));
     const filas = l.slice(0, c.filas).map(p => { const e = por('estatus', p.estatus) || {}; return `<li><span class="x clic" onclick="App.ir('proyecto','${p.id}')">${esc(p.nombre)}</span><span class="m">${punto(e.color)}${esc(e.nombre || '')}</span><span class="m">${Proy.avance(p)}%</span><span class="m">${fechaLim(p.objetivo)}</span></li>`; }).join('');
     return { t: 'Proyectos activos', n: l.length, ir: 'proyectos', h: this.lista(filas, 'Sin proyectos activos') };
   },
   recordatorios(c) {
     const lim = sumaDias(hoyISO(), c.dias || 7);
-    const l = S.recordatorios.filter(r => !r.hecho && r.fecha <= lim).sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
+    const l = S.recordatorios.filter(r => !r.hecho && r.fecha <= lim && this.amb(Amb.de('recordatorios', r))).sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
     const filas = l.slice(0, c.filas).map(r => `<li><input type="checkbox" title="Hecho" onchange="Rec.hecho('${r.id}')"><span class="x clic" onclick="Rec.editar('${r.id}')">${esc(r.texto)}</span><span class="m">${fechaLim(r.fecha)} ${esc(r.hora || '')}</span></li>`).join('');
     return { t: 'Recordatorios', n: l.length, ir: 'recordatorios', h: this.lista(filas, 'Sin recordatorios próximos'), extra: '<button class="lnk" onclick="Rec.editar()">+ Nuevo</button>' };
   },
@@ -189,7 +221,7 @@ const Ini = {
     return { t: 'Cumpleaños próximos', n: l.length, ir: 'cumples', h: this.lista(filas, 'Sin cumpleaños próximos') };
   },
   accesos(c) {
-    const filas = S.enlaces.filter(l => l.fav).slice(0, c.filas).map(l => `<li><span class="x"><a href="${esc(urlSegura(l.url))}" target="_blank" rel="noopener noreferrer">${esc(l.nombre)}</a></span><span class="m">${esc(Acc.host(l.url))}</span></li>`).join('');
+    const filas = S.enlaces.filter(l => l.fav && this.amb(Amb.de('enlaces', l))).slice(0, c.filas).map(l => `<li><span class="x"><a href="${esc(urlSegura(l.url))}" target="_blank" rel="noopener noreferrer">${esc(l.nombre)}</a></span><span class="m">${esc(Acc.host(l.url))}</span></li>`).join('');
     return { t: 'Accesos favoritos', ir: 'accesos', h: this.lista(filas, 'Sin favoritos', 'Marca con ★ tus accesos directos.') };
   }
 };
@@ -225,7 +257,7 @@ const Proy = {
   avance(p) { const a = this.acts(p); return a.length ? Math.round(a.filter(x => estFinal(x.estatus)).length * 100 / a.length) : (estFinal(p.estatus) ? 100 : (p.avanceManual || 0)); },
   campos: () => [
     { k: 'nombre', label: 'Nombre del proyecto', req: true },
-    { k: 'ambito', label: 'Ámbito', tipo: 'select', opciones: AMBITOS, medio: true },
+    { k: 'ambito', label: 'Ámbito', tipo: 'select', opciones: ambitos(), medio: true },
     { k: 'estatus', label: 'Estatus', tipo: 'select', opciones: S.estatus.map(e => [e.id, e.nombre]), medio: true },
     { k: 'asignadoPor', label: 'Asignado por', medio: true, ph: 'Quién te lo asignó' },
     { k: 'prioridad', label: 'Prioridad', tipo: 'select', opciones: PRIORIDADES, medio: true, def: '3' },
@@ -235,7 +267,7 @@ const Proy = {
     { k: 'descripcion', label: 'Descripción', tipo: 'textarea', filas: 3 }
   ],
   nuevo() {
-    Form.abrir({ titulo: 'Nuevo proyecto', campos: this.campos(), valores: { ambito: 'Trabajo', estatus: idInicial(), inicio: hoyISO() },
+    Form.abrir({ titulo: 'Nuevo proyecto', campos: this.campos(), valores: { ambito: Amb.nuevo(), estatus: idInicial(), inicio: hoyISO() },
       guardar: v => { if (v.inicio && v.objetivo && v.objetivo < v.inicio) return 'La fecha objetivo no puede ser anterior al inicio'; const p = { id: uid(), creado: hoyISO(), ...v }; regEstatus('proyectos', p, '', p.estatus); poner('proyectos', p); toast('Proyecto creado'); } });
   },
   editar(id) {
@@ -251,13 +283,12 @@ const Proy = {
 };
 Vistas.proyectos = () => {
   let l = S.proyectos.filter(p => UI.proy.f === 'todos' ? true : UI.proy.f === 'activos' ? !estFinal(p.estatus) : estFinal(p.estatus));
-  if (UI.proy.amb) l = l.filter(p => p.ambito === UI.proy.amb);
+  l = l.filter(p => Amb.ok(Amb.de('proyectos', p)));
   if (UI.proy.pri) l = l.filter(p => (p.prioridad || '3') === UI.proy.pri);
   l = l.filter(p => coincide(UI.proy.q, p.nombre, p.descripcion, p.asignadoPor));
   l.sort((a, b) => (a.prioridad || '3').localeCompare(b.prioridad || '3') || (a.objetivo || '9').localeCompare(b.objetivo || '9'));
   return `${cab('Proyectos', `${S.proyectos.filter(p => !estFinal(p.estatus)).length} activos de ${S.proyectos.length}`, btnHist('proyectos') + btnCarga('proyectos') + '<button class="btn pri" onclick="Proy.nuevo()">+ Proyecto</button>')}
-  <div class="barra">${filtro('proy', 'f', [['activos', 'Activos'], ['terminados', 'Terminados'], ['todos', 'Todos']])}
-    <select onchange="UI.proy.amb=this.value;App.pintar()"><option value="">Todos los ámbitos</option>${AMBITOS.map(a => `<option ${UI.proy.amb === a ? 'selected' : ''}>${a}</option>`).join('')}</select>
+  <div class="barra">${Amb.barra()}${filtro('proy', 'f', [['activos', 'Activos'], ['terminados', 'Terminados'], ['todos', 'Todos']])}
     <select onchange="UI.proy.pri=this.value;App.pintar()"><option value="">Todas las prioridades</option>${PRIORIDADES.map(([v, t]) => `<option value="${v}" ${UI.proy.pri === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
     ${campoBuscar('proy', 'pBuscar', 'Buscar proyecto…')}<span class="d">${l.length} resultado(s)</span></div>
   <div class="panel scrollx">${l.length ? `<table class="lista"><thead><tr><th>Proyecto</th><th>Ámbito</th><th>Prioridad</th><th>Estatus</th><th>Avance</th><th class="num">Actividades</th><th>Fecha objetivo</th><th>Asignado por</th></tr></thead><tbody>
@@ -335,6 +366,7 @@ const Act = {
   campos: () => [
     { k: 'titulo', label: 'Actividad', req: true },
     { k: 'proyecto', label: 'Pertenece a', tipo: 'select', opciones: [['', 'Actividad del área (sin proyecto)'], ...S.proyectos.map(p => [p.id, 'Proyecto: ' + p.nombre])], medio: true },
+    Amb.campo('Del proyecto (sin proyecto = Trabajo)'),
     { k: 'categoria', label: 'Clasificación', tipo: 'select', opciones: [['', 'Sin clasificar'], ...S.categorias.map(c => [c.id, c.nombre])], medio: true },
     { k: 'estatus', label: 'Estatus', tipo: 'select', opciones: S.estatus.map(e => [e.id, e.nombre]), medio: true },
     { k: 'prioridad', label: 'Prioridad', tipo: 'select', opciones: PRIORIDADES, medio: true, def: '3' },
@@ -347,7 +379,7 @@ const Act = {
   ],
   _validar: v => (v.inicio && v.limite && v.limite < v.inicio) ? 'La fecha límite no puede ser anterior al inicio' : null,
   nueva(proyecto = '') {
-    Form.abrir({ titulo: 'Nueva actividad', campos: this.campos(), valores: { proyecto, estatus: idInicial(), prioridad: '3' },
+    Form.abrir({ titulo: 'Nueva actividad', campos: this.campos(), valores: { proyecto, estatus: idInicial(), prioridad: '3', ambito: proyecto ? '' : Amb.nuevo() },
       guardar: v => { const er = this._validar(v); if (er) return er; const a = { id: uid(), creado: hoyISO(), completada: estFinal(v.estatus) ? hoyISO() : '', ...v }; regEstatus('actividades', a, '', a.estatus); poner('actividades', a); } });
   },
   editar(id) {
@@ -359,7 +391,7 @@ const Act = {
   rapida(titulo, proyecto = '') {
     titulo = titulo.trim(); if (!titulo) return;
     const cat = (App.vista === 'inicio' ? S.ajustes.inicioFiltro.cat : UI.act.cat) || '';
-    const nueva = { id: uid(), creado: hoyISO(), titulo, proyecto, categoria: cat === '-' ? '' : cat, estatus: idInicial(), prioridad: '3', inicio: '', limite: '', hora: '', horas: null, detalle: '', checklist: '', completada: '' };
+    const nueva = { id: uid(), creado: hoyISO(), titulo, ambito: proyecto ? '' : Amb.nuevo(), proyecto, categoria: cat === '-' ? '' : cat, estatus: idInicial(), prioridad: '3', inicio: '', limite: '', hora: '', horas: null, detalle: '', checklist: '', completada: '' };
     regEstatus('actividades', nueva, '', nueva.estatus); poner('actividades', nueva);
     App.pintar(); const i = $('#rapida'); if (i) i.focus();
   },
@@ -388,10 +420,11 @@ Vistas.actividades = () => {
   if (UI.act.proy === '-') l = l.filter(a => !a.proyecto); else if (UI.act.proy) l = l.filter(a => a.proyecto === UI.act.proy);
   if (UI.act.cat === '-') l = l.filter(a => !a.categoria); else if (UI.act.cat) l = l.filter(a => a.categoria === UI.act.cat);
   if (UI.act.pri) l = l.filter(a => (a.prioridad || '3') === UI.act.pri);
-  l = l.filter(a => coincide(UI.act.q, a.titulo, a.detalle, Act.origen(a)));
+  l = l.filter(a => Amb.ok(Amb.de('actividades', a)) && coincide(UI.act.q, a.titulo, a.detalle, Act.origen(a)));
   l.sort(Act.orden);
   const proyRapida = UI.act.proy && UI.act.proy !== '-' ? UI.act.proy : '';
   return `${cab('Actividades', `${S.actividades.filter(a => !estFinal(a.estatus)).length} pendientes`, btnHist('actividades') + btnCarga('actividades') + '<button class="btn pri" onclick="Act.nueva()">+ Actividad</button>')}
+  <div class="barra">${Amb.barra()}</div>
   <div class="barra">${filtro('act', 'f', [['pendientes', 'Pendientes'], ['hoy', 'Hoy'], ['semana', '7 días'], ['vencidas', 'Vencidas'], ['terminadas', 'Terminadas'], ['todas', 'Todas']])}
     <select onchange="UI.act.proy=this.value;App.pintar()"><option value="">Proyectos y área</option><option value="-" ${UI.act.proy === '-' ? 'selected' : ''}>Sólo actividades del área</option>${S.proyectos.map(p => `<option value="${p.id}" ${UI.act.proy === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
     <select onchange="UI.act.cat=this.value;App.pintar()"><option value="">Todas las clasificaciones</option><option value="-" ${UI.act.cat === '-' ? 'selected' : ''}>Sin clasificar</option>${S.categorias.map(c => `<option value="${c.id}" ${UI.act.cat === c.id ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select>

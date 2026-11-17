@@ -140,7 +140,10 @@ const esOscuro = hex => { const n = parseInt(String(hex).slice(1), 16); return (
 const LOGO = `<svg viewBox="0 0 64 64" role="img" aria-label="Nova"><defs><linearGradient id="lgN" x1="0" x2="1"><stop offset="0" stop-color="#19C3C8"/><stop offset="1" stop-color="#0B84F3"/></linearGradient></defs>
 <rect width="64" height="64" rx="14" fill="#073763"/><path d="M32 32C26.5 22.5 11 22.5 11 32s15.5 9.5 21 0c5.500-9.500 21-9.500 21 0s-15.500 9.500-21 0z" fill="none" stroke="url(#lgN)" stroke-width="5.200" stroke-linecap="round"/>
 <rect x="38.600" y="32" width="2.600" height="4.500" rx=".6" fill="#0B84F3"/><rect x="42.300" y="29.500" width="2.600" height="7" rx=".6" fill="#0B84F3"/><rect x="46" y="27" width="2.600" height="9.500" rx=".6" fill="#0B84F3"/></svg>`;
-const AMBITOS = ['Trabajo', 'Escuela', 'Personal'];
+const AMBITOS_BASE = ['Trabajo', 'Escuela', 'Personal', 'Otro'];
+/** Ámbitos (macro categorías): los 4 base más los creados en Ajustes → Catálogos (máx. 12). */
+const ambitos = () => [...AMBITOS_BASE, ...S.ambitos.map(a => a.nombre)];
+const AMB_NOMBRE = /^[\p{L}\p{N}][\p{L}\p{N} .&-]{1,29}$/u;
 const PRIORIDADES = [['1', 'Urgente'], ['2', 'Alta'], ['3', 'Media'], ['4', 'Baja']];
 const EST_ESC = [['pendiente', 'Pendiente'], ['proceso', 'En proceso'], ['guardada', 'Guardada'], ['enviada', 'Enviada'], ['calificada', 'Calificada']];
 const TIPOS_ESC = ['Buzón', 'Foro', 'Examen', 'Glosario', 'H5P', 'Presentación', 'Proyecto', 'Tarea', 'Vacaciones', 'Otro'];
@@ -163,7 +166,7 @@ function estadoVacio() {
     proyectos: [], actividades: [], bitacora: [], notas: [], boveda: null, notasPriv: [],
     recordatorios: [], eventos: [], cumples: [], materias: [], escolares: [],
     carpetas: [], enlaces: [], grupos: [], frases: [], historial: [], papelera: [], correcciones: [],
-    noticias: [], porBorrar: []
+    noticias: [], porBorrar: [], ambitos: []
   };
 }
 let S = estadoVacio();

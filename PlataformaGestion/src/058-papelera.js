@@ -17,7 +17,7 @@ const Papelera = {
     notasPriv: ['Nota privada', ''], recordatorios: ['Recordatorio', 'texto'], eventos: ['Evento', 'titulo'], cumples: ['Cumpleaños', 'nombre'],
     materias: ['Materia', 'nombre'], escolares: ['Actividad escolar', 'titulo'], carpetas: ['Carpeta', 'nombre'], enlaces: ['Acceso directo', 'nombre'],
     grupos: ['Grupo de accesos', 'nombre'], frases: ['Frase', 'texto'], estatus: ['Estatus', 'nombre'], categorias: ['Clasificación', 'nombre'],
-    fotoNota: ['Foto de nota', ''], correcciones: ['Corrección del lector', 'mal'], noticias: ['Noticia', 'titulo']
+    fotoNota: ['Foto de nota', ''], correcciones: ['Corrección del lector', 'mal'], noticias: ['Noticia', 'titulo'], ambitos: ['Ámbito', 'nombre']
   },
   // Campos de vínculo que se pueden quitar y volver a poner al restaurar
   VINCULOS: { actividades: ['proyecto', 'categoria'], notas: ['proyecto'], eventos: ['proyecto'], enlaces: ['carpeta'] },

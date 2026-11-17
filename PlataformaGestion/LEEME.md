@@ -1,4 +1,4 @@
-# Nova Organización — prueba v0.11
+# Nova Organización — prueba v0.12
 
 > *Evolución sin límites.*
 
@@ -58,6 +58,12 @@ Para actualizar después: `git pull` dentro de la carpeta.
 - **Carga masiva en cada pantalla**: botón *Carga masiva* con el layout de columnas, **plantilla CSV con ejemplos** y validación antes de guardar. En Ajustes → Datos se descargan todas las plantillas en un ZIP.
 - **Historial de estatus**: cada cambio de estatus de proyectos, actividades y actividades escolares queda registrado con fecha y hora (botón *Historial*, pestaña en el proyecto, dentro del formulario del registro y en la exportación CSV).
 - **Formularios sin desplazamiento**: los botones Guardar / Cancelar quedan siempre visibles; sólo se desplaza el contenido.
+
+### Novedades de la v0.12 (ámbitos en todas las pantallas)
+- Barra **Todo · Trabajo · Escuela · Personal · Otro** en Inicio, Proyectos, Actividades, Agenda, Recordatorios, Notas, Accesos y Noticias. Es un solo filtro para toda la plataforma y se recuerda.
+- Todo lo nuevo se crea como **Trabajo**; cámbialo en el campo Ámbito si es de otro. Lo anterior sin ámbito cuenta como Trabajo hasta que lo reclasifiques (lo de un proyecto toma el ámbito del proyecto; Escuela y Cumpleaños ya tienen el suyo).
+- ¿Necesitas otro ámbito (p. ej. Familia)? Créalo en **Ajustes → Catálogos → Ámbitos** (hasta 12). En formularios y cargas sólo se elige de la lista.
+- La carga masiva acepta una columna opcional **Ambito**; si viene vacía o con un ámbito que no existe, el registro entra como Trabajo para que lo clasifiques después.
 
 ### Novedades de la v0.11 (Noticias e investigación)
 - Pantalla **Noticias**: lista agrupada por día (punto azul = sin leer; color = relevancia) y panel de lectura con resumen, puntos clave y fuentes. Filtros Sin leer · Todas · Guardadas, por tema y tipo, y búsqueda.
